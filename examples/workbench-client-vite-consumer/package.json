@@ -9,8 +9,8 @@
   "dependencies": {
     "@assistant-mk1/workbench-client": "workspace:*",
     "@assistant-mk1/workbench-react": "workspace:*",
-    "@tanstack/react-query": "5.101.4",
-    "react": "19.2.6",
-    "vite": "8.0.16"
+    "@tanstack/react-query": "5.102.8",
+    "react": "19.2.8",
+    "vite": "8.2.2"
   }
 }

@@ -36,6 +36,6 @@
   },
   "dependencies": {
     "@assistant-mk1/agent-sdk": "workspace:^",
-    "react": "19.2.6"
+    "react": "19.2.8"
   }
 }
