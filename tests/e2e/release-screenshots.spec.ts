@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 const releaseMode = process.env.E2E_RELEASE_MODE;
 const outputDirectory = resolve(process.cwd(), "docs/assets/release");

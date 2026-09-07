@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext } from "@playwright/test";
+import { expect, test, type APIRequestContext } from "./fixtures";
 
 const releaseMode = process.env.E2E_RELEASE_MODE;
 const workerOrigin = "http://127.0.0.1:8788";

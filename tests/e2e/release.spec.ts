@@ -1,4 +1,4 @@
-import { expect, test, type ConsoleMessage } from "@playwright/test";
+import { expect, test, type ConsoleMessage } from "./fixtures";
 
 const releaseMode = process.env.E2E_RELEASE_MODE;
 const hydrationErrors: string[] = [];
