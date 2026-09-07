@@ -35,7 +35,9 @@ derived from the WorkOS `user.id`, with a default workspace under that account.
 
 ## Required Environment
 
-Create distinct protected Vercel projects for `acceptance` and `production`.
+For separate hosted acceptance, create distinct protected Vercel projects for
+`acceptance` and `production`. The personal deployment keeps only one active
+[testing stack](minimal-hosted-testing.md).
 Resolve the non-secret project IDs and origins required by
 `config/environments/<target>.json`, then set these in that target only:
 

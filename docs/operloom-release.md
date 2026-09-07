@@ -21,10 +21,12 @@ Mobile is WIP and no longer installs or blocks verification on main.
 - Existing `x-assistant-mk1-*` signed transport headers remain unchanged. They
   are protocol identifiers, not UI branding. Keeping them avoids an accidental
   mixed-version authorization or callback outage.
-- Existing deployed provider resource names, database names, public origins,
-  auth-presentation cookie, and `.assistant-mk1` local data location remain
-  stable. Renaming a repository must not create a new empty database or break
-  an OAuth callback. Forks configure their own provider identities.
+- Hosted resources use Operloom names after an explicit migration; see
+  [Minimal hosted testing](minimal-hosted-testing.md). Retained rollback copies
+  keep their historical names until retired. Auth redirects must be configured
+  in WorkOS before changing the frontend callback.
+- The auth-presentation cookie and `.assistant-mk1` local data directory remain
+  compatibility identifiers. Forks configure their own provider identities.
 - Historical migrations and server bearer/notification contracts remain. They
   support shared clients and retained data even while native delivery is deferred.
 - Hosted cron triggers remain disabled and Fly retains zero running Machines

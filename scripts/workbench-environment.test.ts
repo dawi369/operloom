@@ -76,7 +76,7 @@ describe("workbench environment manifests", () => {
         'OPENROUTER_MODEL = "deepseek/deepseek-v4-flash"',
       );
       const worker = readFileSync(rendered.wranglerPath, "utf8");
-      expect(worker).toContain("assistant-mk1-acceptance-control-plane");
+      expect(worker).toContain("operloom-acceptance-control-plane");
       expect(worker).toContain('"workers_dev": true');
       expect(worker).toContain('"crons": []');
       expect(worker).not.toContain("WORKBENCH_ACCEPTANCE_RUNNER_SIGNING_SECRET");

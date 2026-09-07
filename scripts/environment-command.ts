@@ -94,7 +94,14 @@ const commands: Record<Phase, { command: string; args: string[]; env?: NodeJS.Pr
   },
   "deploy-fly": {
     command: "fly",
-    args: ["deploy", "--config", rendered.flyPath, "--app", rendered.manifest.fly.appName],
+    args: [
+      "deploy",
+      "--config",
+      rendered.flyPath,
+      "--app",
+      rendered.manifest.fly.appName,
+      "--ha=false",
+    ],
   },
   "deploy-vercel": {
     command: "vercel",
