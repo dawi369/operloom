@@ -51,7 +51,9 @@ export default defineConfig({
       : []),
     {
       command: frontendCommand,
-      url: `${appOrigin}/api/health`,
+      // A health route does not establish that the page and its metadata have
+      // compiled. Wait for the actual browser entry point before navigation.
+      url: appOrigin,
       reuseExistingServer: false,
       gracefulShutdown: { signal: "SIGTERM" as const, timeout: 5000 },
       timeout: 60_000,

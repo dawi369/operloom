@@ -14,6 +14,7 @@ const safeReportName = (value: string) =>
     .replace(/^-|-$/g, "");
 
 const auditPage = async (page: Page, testInfo: TestInfo, surface: string) => {
+  await expect(page).toHaveTitle("Operloom");
   // Radix dialogs and shared controls animate opacity for 200 ms. Audit the
   // settled surface so Axe does not evaluate transient blended colors.
   await page.waitForTimeout(250);
