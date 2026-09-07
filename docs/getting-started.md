@@ -96,6 +96,8 @@ Browser servers use a fresh `.next/e2e` build directory for each invocation,
 isolating signed-out and local identity manifests from the normal development cache.
 Development manifest assets are published with an atomic rename: concurrent
 requests see a complete old or new file while Webpack recompiles routes.
+Browser assertions allow 15 seconds for cold route compilation and data loading;
+the tests retain separate, tighter checks for immediate composer responsiveness.
 
 Run Docker builds and browser acceptance **sequentially**. A failed resource
 check is a reason to inspect the log, not to retry without the supervisor.

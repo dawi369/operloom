@@ -22,6 +22,9 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
   workers: 1,
+  // These journeys start a cold development compiler. Data-backed UI can
+  // span several first-time route compilations; latency checks stay explicit.
+  expect: { timeout: 15_000 },
   reporter: "list",
   outputDir: "output/playwright/results",
   use: {
