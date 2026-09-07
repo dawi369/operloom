@@ -92,6 +92,8 @@ watchdog; use the supported macOS/Linux environment for bounded verification.
 
 Unit tests use at most two workers. Docker verification uses a disposable
 BuildKit builder capped at two CPUs and 3 GiB; runtime probes use one GiB.
+Browser servers use a fresh `.next/e2e` build directory for each invocation,
+isolating signed-out and local identity manifests from the normal development cache.
 
 Run Docker builds and browser acceptance **sequentially**. A failed resource
 check is a reason to inspect the log, not to retry without the supervisor.

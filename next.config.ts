@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
+  // Browser environments must not reuse development manifests compiled with
+  // another identity configuration, or overwrite the developer's own cache.
+  distDir: process.env.E2E_RELEASE_MODE ? ".next/e2e" : ".next",
   devIndicators: false,
   serverExternalPackages: ["@sentry/nextjs"],
   turbopack: {},
