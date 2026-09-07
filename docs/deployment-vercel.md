@@ -67,7 +67,8 @@ stable WorkOS user ids.
 Do not mirror local `.env.local` into Vercel Production blindly:
 
 - Local redirect URI: `http://localhost:3000/auth/callback`
-- Production redirect URI: `https://assistant-mk1.vercel.app/auth/callback`
+- Production redirect URI: `https://operloom.vercel.app/auth/callback` (register it
+  in WorkOS first; see the compatibility callback in the testing runbook)
 
 The Vercel `/api` proxy authenticates to Cloudflare with a signed facade
 request. Hosted targets reject the local development transport token and trust

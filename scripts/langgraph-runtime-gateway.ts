@@ -117,7 +117,7 @@ const assistantHeaders = (request: IncomingMessage) => {
   const headers: Record<string, string> = {};
   for (const [key, value] of Object.entries(request.headers)) {
     const item = firstHeader(value);
-    if (item && key.toLowerCase().startsWith("x-operloom-")) {
+    if (item && key.toLowerCase().startsWith("x-assistant-mk1-")) {
       headers[key.toLowerCase()] = item;
     }
   }
@@ -642,6 +642,18 @@ const handleToolRunnerInvocation = async (
 
   {
     const network = isRecord(parsed.runner?.sandbox) ? parsed.runner.sandbox.network : null;
+    if (!isRecord(network)) {
+      json(response, 403, {
+        ok: false,
+        error: {
+          code: "sandbox_required",
+          message: "A signed runner network policy is required.",
+          retryable: false,
+          redacted: true,
+        },
+      });
+      return;
+    }
     const manifestEntry = genericRunnerEntry
       ? agentManifestRegistry[
           genericRunnerEntry.module.packId as keyof typeof agentManifestRegistry
@@ -660,7 +672,11 @@ const handleToolRunnerInvocation = async (
         parsed.execution?.mode as "ask" | "dry_run" | "execute",
       ) ||
       !isRecord(network) ||
-      network.privateNetwork !== "deny"
+      network.privateNetwork !== "deny" ||
+      !["none", "public_web"].includes(String(network.egress)) ||
+      ![network.allowedSchemes, network.allowedHosts, network.deniedHosts].every(
+        (value) => Array.isArray(value) && value.every((entry) => typeof entry === "string"),
+      )
     ) {
       json(response, 403, {
         ok: false,
@@ -713,6 +729,12 @@ const handleToolRunnerInvocation = async (
         workflowIntentId,
         executionMode: parsed.execution!.mode as "ask" | "dry_run" | "execute",
         source: "user",
+      },
+      networkPolicy: {
+        egress: network.egress as "none" | "public_web",
+        allowedSchemes: network.allowedSchemes as string[],
+        allowedHosts: network.allowedHosts as string[],
+        deniedHosts: network.deniedHosts as string[],
       },
       signal: new AbortController().signal,
       connections: runnerConnectionPort(
@@ -818,15 +840,19 @@ const handleToolRunnerInvocation = async (
           }
         }
       }
-      json(response, result.ok ? 200 : 502, {
-        ...result,
-        runner: parsed.runner,
-        metrics: {
-          transport: "fly",
-          durationMs: Date.now() - startedAt,
-          callback: parsed.callback ? { status: "progress_published" } : { status: "skipped" },
+      json(
+        response,
+        result.ok ? 200 : result.error.code === "sandbox_egress_not_allowed" ? 403 : 502,
+        {
+          ...result,
+          runner: parsed.runner,
+          metrics: {
+            transport: "fly",
+            durationMs: Date.now() - startedAt,
+            callback: parsed.callback ? { status: "progress_published" } : { status: "skipped" },
+          },
         },
-      });
+      );
     } catch (error) {
       Sentry.captureException(error, {
         tags: { "gateway.operation": "runner.invoke" },

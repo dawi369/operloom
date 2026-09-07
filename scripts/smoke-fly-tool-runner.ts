@@ -1,3 +1,5 @@
+import { agentManifestRegistry } from "../generated/agent-runtime/manifests";
+import { agentRunnerRegistry } from "../generated/agent-runtime/runner";
 import { facadeSignatureHeader, signFacadeRequest } from "../lib/workbench/control-plane-signing";
 import { runSmoke } from "./smoke-utils";
 
@@ -85,6 +87,20 @@ const runnerEchoSandbox = () => ({
   },
 });
 
+const contract = (toolName: string) => {
+  const entry = Object.values(agentRunnerRegistry).find((entry) =>
+    entry.module.tools.some((tool) => tool.id === toolName),
+  );
+  const manifest = entry
+    ? agentManifestRegistry[entry.module.packId as keyof typeof agentManifestRegistry]
+    : undefined;
+  return {
+    packVersion: manifest?.module.version ?? "1.0.0",
+    runtimeVersion: entry?.module.runtimeVersion ?? "1.0.0",
+    bindingVersion: 1,
+  };
+};
+
 const invocationBody = (
   runId = `cf-run-${suffix}`,
   input: { url: string } = { url: "https://example.com" },
@@ -96,6 +112,7 @@ const invocationBody = (
     runId,
     workflowIntentId: `cf-intent-${suffix}`,
     toolName: "url.inspect",
+    ...contract("url.inspect"),
     execution: { mode: "dry_run", policy: "tool-admin-readonly-v0" },
     input,
     runner: {
@@ -115,6 +132,7 @@ const repoSnapshotInvocationBody = (runId = `cf-run-repo-snapshot-${suffix}`) =>
     runId,
     workflowIntentId: `cf-intent-repo-snapshot-${suffix}`,
     toolName: "repo.snapshot",
+    ...contract("repo.snapshot"),
     execution: { mode: "dry_run", policy: "repo-snapshot-readonly-v0" },
     input: { includeDocs: true, includeScripts: true, includeConfig: true },
     runner: {
@@ -142,6 +160,7 @@ const runnerEchoInvocationBody = (runId = `cf-run-runner-echo-${suffix}`) =>
     runId,
     workflowIntentId: `cf-intent-runner-echo-${suffix}`,
     toolName: "runner.echo",
+    ...contract("runner.echo"),
     execution: { mode: "dry_run", policy: "admin-conformance-runner-echo-v0" },
     input: { message: "runner smoke", uppercase: true },
     runner: {
@@ -169,6 +188,7 @@ const operatorSnapshotInvocationBody = (runId = `cf-run-operator-snapshot-${suff
     runId,
     workflowIntentId: `cf-intent-operator-snapshot-${suffix}`,
     toolName: "operator.snapshot",
+    ...contract("operator.snapshot"),
     execution: { mode: "dry_run", policy: "operator.snapshot.v1" },
     input: { subject: "runner-conformance" },
     runner: {
@@ -386,6 +406,7 @@ runSmoke("Fly tool runner smoke", async () => {
     runId: `cf-run-missing-sandbox-${suffix}`,
     workflowIntentId: `cf-intent-${suffix}`,
     toolName: "url.inspect",
+    ...contract("url.inspect"),
     execution: { mode: "dry_run", policy: "tool-admin-readonly-v0" },
     input: { url: "https://example.com" },
     runner: {
@@ -409,6 +430,14 @@ runSmoke("Fly tool runner smoke", async () => {
       `missing sandbox block missing code: ${JSON.stringify(missingSandboxResponse)}`,
     );
   }
+
+  const scopeTampered = await signedFetch({
+    nonce: `scope-tamper-${suffix}`,
+    tamper: (headers) => {
+      headers["x-assistant-mk1-workspace-id"] = "other-workspace";
+    },
+  });
+  await expectRunnerAuthError(scopeTampered, "signature_invalid");
 
   const unsigned = await fetch(`${baseUrl}${path}`, {
     method: "POST",

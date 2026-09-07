@@ -15,6 +15,10 @@ always-on production service or a public anonymous demo.
 | Heavy tools        | Fly `operloom-runner`, Frankfurt                    | One shared CPU, 1 GB RAM; automatic stop/start, minimum zero |
 | Notifications      | `operloom-control-plane-notifications`              | Delivery paused; push disabled                               |
 
+The signed runner contract protects tenant headers and carries an explicit network
+policy to network-aware tools, including redirect hops for URL inspection. Agent
+packs are trusted code; this is not isolation for arbitrary untrusted plugins.
+
 Mutations and conformance mode remain disabled. Authenticated chat and explicit
 runner tools remain available. Scheduled agents and queued notifications are
 not part of this testing profile. Cold starts are expected. Stopped Machines
@@ -36,7 +40,8 @@ remain compatible; changing visible names does not require rotating credentials.
 
 Historical Vercel projects are renamed with an `-archive` suffix and paused.
 The old dev/acceptance Workers have no public or preview endpoints. The three
-old Fly apps retain stopped Machines with automatic start disabled. Historical
+old Fly apps are scaled to zero Machines; app secrets and saved image/config
+references remain available for rollback. Historical
 D1 databases and R2 buckets retain their names as rollback copies. Do not point
 new deployments at those copies or delete retained data casually.
 
