@@ -115,6 +115,14 @@ test.describe.serial("Level 2 executable conformance", () => {
     });
     expect(resetApprovalPolicyResponse.ok()).toBe(true);
 
+    // Compile the observation/cancellation routes before starting the short
+    // fixture run; this checks cancellation authority, not compiler latency.
+    await historyRuns(page);
+    const warmCancel = await page.request.post(
+      "/api/workbench/history/runs/nonexistent-cancellation-prewarm/cancel",
+    );
+    expect(warmCancel.status(), await warmCancel.text()).toBe(404);
+
     await page.evaluate(() => {
       (window as typeof window & { level2Run?: Promise<unknown> }).level2Run = fetch(
         "/api/workbench/workflows/repo.readiness_report",
@@ -143,7 +151,7 @@ test.describe.serial("Level 2 executable conformance", () => {
     const cancelResponse = await page.request.post(
       `/api/workbench/history/runs/${encodeURIComponent(cancelledRunId)}/cancel`,
     );
-    expect(cancelResponse.ok()).toBe(true);
+    expect(cancelResponse.ok(), await cancelResponse.text()).toBe(true);
     await page.waitForTimeout(2_000);
 
     const cancelledSnapshotResponse = await page.request.get(
