@@ -13,6 +13,11 @@ variable references. `cloudflare/control-plane/wrangler.jsonc` and
 | `acceptance` | synthetic only | enabled     | WorkOS | off              |
 | `production` | allowed        | disabled    | WorkOS | off              |
 
+Hosted targets default to cost-idle operation: Cloudflare Cron Triggers are
+empty and Fly keeps zero Machines running when idle. Scheduled and monitor
+triggers remain dormant until a deliberate deployment re-enables the scheduler;
+explicit LangGraph or runner traffic cold-starts the existing Fly Machine.
+
 Worker names, D1 names and IDs, R2 buckets, Fly apps, Vercel projects, WorkOS
 applications/workspaces, public origins, and every signing-secret reference are
 mechanically distinct. Production validation rejects conformance mode, the

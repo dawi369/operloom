@@ -83,7 +83,7 @@ export const renderEnvironmentConfig = (
       SENTRY_ENVIRONMENT: target,
       SENTRY_TRACES_SAMPLE_RATE: "0.02",
     },
-    ...(bootstrap ? {} : { triggers: { crons: ["* * * * *"] } }),
+    ...(bootstrap ? {} : { triggers: { crons: [] } }),
     d1_databases: [
       {
         binding: "DB",
@@ -155,7 +155,7 @@ internal_port = 3000
 force_https = true
 auto_stop_machines = "stop"
 auto_start_machines = true
-min_machines_running = 1
+min_machines_running = 0
 processes = ["app"]
 
 [[http_service.checks]]

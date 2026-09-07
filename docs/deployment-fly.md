@@ -113,6 +113,11 @@ that should prove the gateway can reach the LangGraph `/ok` endpoint. A healthy
 steady-state Fly log should show startup plus Fly health state changes, not
 recurring LangGraph `/ok` lines every 15 seconds from machine checks.
 
+Hosted Fly targets keep `min_machines_running = 0`, with automatic stop and
+start enabled. Idle Machines therefore release CPU and RAM and cold-start only
+when explicit LangGraph or runner traffic arrives. Do not raise the minimum
+without an approved latency-versus-cost decision.
+
 The Fly image installs the root production dependency set and boots the checked
 in LangGraph CLI/graph pair. Dependency updates must pass
 `pnpm verify:security`, the LangGraph runtime boot smoke, and
@@ -153,9 +158,8 @@ Frontend:
 
 ## Health Checks
 
-`fly.langgraph.toml` checks `/health`. That endpoint confirms the runtime
-gateway is up and reports its configured LangGraph upstream URL. It does not
-call the model provider.
+`fly.langgraph.toml` checks `/health/live`. That endpoint confirms the runtime
+gateway is up without calling LangGraph or the model provider.
 
 ## Persistence Warning
 
