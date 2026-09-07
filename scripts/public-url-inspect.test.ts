@@ -10,6 +10,7 @@ import {
 describe("public URL runner egress", () => {
   it.each([
     { egress: "none" as const },
+    { egress: "broker_only" as const },
     { egress: "public_web" as const, allowedHosts: ["allowed.example"] },
     { egress: "public_web" as const, deniedHosts: ["example.com"] },
     { egress: "public_web" as const, allowedSchemes: ["http"] },

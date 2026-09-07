@@ -673,7 +673,7 @@ const handleToolRunnerInvocation = async (
       ) ||
       !isRecord(network) ||
       network.privateNetwork !== "deny" ||
-      !["none", "public_web"].includes(String(network.egress)) ||
+      !["none", "public_web", "broker_only"].includes(String(network.egress)) ||
       ![network.allowedSchemes, network.allowedHosts, network.deniedHosts].every(
         (value) => Array.isArray(value) && value.every((entry) => typeof entry === "string"),
       )
@@ -731,7 +731,7 @@ const handleToolRunnerInvocation = async (
         source: "user",
       },
       networkPolicy: {
-        egress: network.egress as "none" | "public_web",
+        egress: network.egress as "none" | "public_web" | "broker_only",
         allowedSchemes: network.allowedSchemes as string[],
         allowedHosts: network.allowedHosts as string[],
         deniedHosts: network.deniedHosts as string[],

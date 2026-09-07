@@ -108,7 +108,7 @@ export type AgentExecutionContext = {
   }>;
   /** Signed runner restrictions; network tools must enforce these on every hop. */
   networkPolicy?: Readonly<{
-    egress: "none" | "public_web";
+    egress: "none" | "public_web" | "broker_only";
     allowedSchemes: readonly string[];
     allowedHosts: readonly string[];
     deniedHosts: readonly string[];

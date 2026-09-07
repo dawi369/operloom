@@ -14,7 +14,7 @@ const maxBytes = 128 * 1024;
 const maxRedirects = 3;
 
 type PublicUrlInspectPolicy = {
-  egress?: "none" | "public_web";
+  egress?: "none" | "public_web" | "broker_only";
   allowedSchemes?: readonly string[];
   allowedHosts?: readonly string[];
   deniedHosts?: readonly string[];
@@ -212,7 +212,7 @@ export const inspectPublicUrl = async (
   try {
     for (let redirects = 0; redirects <= maxRedirects; redirects += 1) {
       if (
-        policy.egress === "none" ||
+        (policy.egress !== undefined && policy.egress !== "public_web") ||
         (policy.allowedSchemes && !policy.allowedSchemes.includes(url.protocol.slice(0, -1)))
       ) {
         return {
