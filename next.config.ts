@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import { AtomicDevManifestsPlugin } from "./scripts/atomic-dev-manifests";
 
 const nextConfig: NextConfig = {
   // Browser environments must not reuse development manifests compiled with
@@ -13,7 +14,10 @@ const nextConfig: NextConfig = {
     webpackMemoryOptimizations: true,
   },
   webpack(config, { dev }) {
-    if (dev) config.parallelism = 2;
+    if (dev) {
+      config.parallelism = 2;
+      config.plugins.push(new AtomicDevManifestsPlugin());
+    }
     return config;
   },
 };
