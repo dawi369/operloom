@@ -64,8 +64,14 @@ test("captures deterministic public release product evidence", async ({ page }) 
   await expect(page.getByText("Repository snapshot report", { exact: true })).toBeVisible({
     timeout: 30_000,
   });
-  await page.locator("summary").filter({ hasText: /^Result$/ }).click();
-  await page.locator("summary").filter({ hasText: /^View result$/ }).click();
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Result$/ })
+    .click();
+  await page
+    .locator("summary")
+    .filter({ hasText: /^View result$/ })
+    .click();
   await capture(page, "history-and-action-ledger.png");
   await page.getByRole("button", { name: "Close" }).click();
 
