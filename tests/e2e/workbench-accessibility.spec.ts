@@ -18,9 +18,24 @@ const auditPage = async (page: Page, testInfo: TestInfo, surface: string) => {
   // Radix dialogs and shared controls animate opacity for 200 ms. Audit the
   // settled surface so Axe does not evaluate transient blended colors.
   await page.waitForTimeout(250);
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-    .analyze();
+  const scan = () =>
+    new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+  let results = await scan();
+  // The development server can replace metadata during Fast Refresh after
+  // toHaveTitle passes. Preserve that evidence and rescan once only if the
+  // sole finding is a title that has already recovered. Persistent missing
+  // titles and every other accessibility violation still fail normally.
+  if (
+    results.violations.length === 1 &&
+    results.violations[0]?.id === "document-title" &&
+    (await page.title()) === "Operloom"
+  ) {
+    await testInfo.attach(`axe-${surface}-transient-title`, {
+      body: JSON.stringify(results, null, 2),
+      contentType: "application/json",
+    });
+    results = await scan();
+  }
   const reportPath = resolve(
     reportDirectory,
     `${releaseMode}-${safeReportName(testInfo.title)}-${safeReportName(surface)}.json`,
