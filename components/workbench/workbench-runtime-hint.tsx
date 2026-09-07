@@ -158,21 +158,30 @@ export function WorkbenchRuntimeHint({
           ) : null}
         </span>
       </div>
-      <RuntimeHintRow
-        icon={CloudIcon}
-        label="Cloudflare"
-        value={liveRuntime.cloudflareStatus}
-        tone={liveRuntime.cloudflareTone}
-      />
-      <RuntimeHintRow icon={Building2Icon} label="Workspace" value={workspaceName} />
-      <RuntimeHintRow icon={BotIcon} label="Agent" value={agentLabel ?? "Agent"} />
-      <RuntimeHintRow icon={CpuIcon} label="Model" value={modelLabel ?? "System default"} />
-      <RuntimeHintRow
-        icon={MessageSquareIcon}
-        label="Thread"
-        value={liveRuntime.activeThreadTitle || liveRuntime.activeThreadId || "Waiting for Worker"}
-      />
-      <RuntimeHintRow icon={ActivityIcon} label="Source" value={liveRuntime.sourceLabel} />
+      <details className="group">
+        <summary className="cursor-pointer rounded-sm py-1 text-[11px] outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          Runtime details
+        </summary>
+        <div className="mt-1 flex flex-col gap-1.5">
+          <RuntimeHintRow
+            icon={CloudIcon}
+            label="Cloudflare"
+            value={liveRuntime.cloudflareStatus}
+            tone={liveRuntime.cloudflareTone}
+          />
+          <RuntimeHintRow icon={Building2Icon} label="Workspace" value={workspaceName} />
+          <RuntimeHintRow icon={BotIcon} label="Agent" value={agentLabel ?? "Agent"} />
+          <RuntimeHintRow icon={CpuIcon} label="Model" value={modelLabel ?? "System default"} />
+          <RuntimeHintRow
+            icon={MessageSquareIcon}
+            label="Thread"
+            value={
+              liveRuntime.activeThreadTitle || liveRuntime.activeThreadId || "Waiting for Worker"
+            }
+          />
+          <RuntimeHintRow icon={ActivityIcon} label="Source" value={liveRuntime.sourceLabel} />
+        </div>
+      </details>
       {session?.isStale ? (
         <div className="text-muted-foreground text-[11px]">
           Cached shell is visible; chat actions unlock after Cloudflare returns a live token.

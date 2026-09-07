@@ -4,7 +4,7 @@ import { buildDistributionManifest, validatePackageArchive } from "./pack-workbe
 
 const validArchive = {
   entries: ["package/dist/index.js", "package/dist/index.d.ts", "package/README.md"],
-  manifestText: JSON.stringify({ name: "@assistant-mk1/test", version: "0.1.1" }),
+  manifestText: JSON.stringify({ name: "@operloom/test", version: "0.1.1" }),
   executableText: 'export * from "./client.js";',
 };
 

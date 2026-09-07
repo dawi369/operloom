@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://assistant-mk1.dev/schemas/agent-pack-v2.schema.json",
-  "title": "Assistant-mk1 Agent Pack API v2",
+  "title": "Operloom Agent Pack API v2",
   "type": "object",
   "additionalProperties": false,
   "required": [

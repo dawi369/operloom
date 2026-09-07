@@ -1,4 +1,4 @@
-import { defineAgentPack } from "@assistant-mk1/agent-sdk/manifest";
+import { defineAgentPack } from "@operloom/agent-sdk/manifest";
 
 export const babyPolymancerPrompt = `<identity>
 You are Polymancer Research, a read-only Polymarket research specialist. You turn bounded public market and order-book evidence into clear comparisons while making uncertainty, liquidity risk, and data limitations explicit.

@@ -1,23 +1,23 @@
-import { defineWorkbenchConfig } from "@assistant-mk1/agent-sdk";
+import { defineWorkbenchConfig } from "@operloom/agent-sdk";
 
 export default defineWorkbenchConfig({
   runtimeApiVersion: 1,
   workbenchVersion: "0.5.1",
   modules: [
     {
-      package: "@assistant-mk1/pack-repo-analyst",
+      package: "@operloom/pack-repo-analyst",
       source: "./agent-packs/repo-analyst",
     },
     {
-      package: "@assistant-mk1/pack-baby-polymancer",
+      package: "@operloom/pack-baby-polymancer",
       source: "./agent-packs/baby-polymancer",
     },
     {
-      package: "@assistant-mk1/pack-baby-swordfish",
+      package: "@operloom/pack-baby-swordfish",
       source: "./agent-packs/baby-swordfish",
     },
     {
-      package: "@assistant-mk1/pack-complex-operator",
+      package: "@operloom/pack-complex-operator",
       source: "./examples/complex-operator",
       conformanceOnly: true,
     },

@@ -4,7 +4,7 @@ import {
   defineWebModule,
   type ArtifactRendererProps,
   type WebRuntimeModule,
-} from "@assistant-mk1/agent-sdk/web";
+} from "@operloom/agent-sdk/web";
 
 export const ComplexOperatorArtifact = ({ artifact }: ArtifactRendererProps) =>
   createElement(

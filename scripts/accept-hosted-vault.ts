@@ -39,7 +39,7 @@ const main = async () => {
   await vault.revoke(rotated);
   const deletionProbe = await vault.create({
     context: { workspaceId },
-    name: `assistant-mk1-delete-acceptance-${Date.now()}`,
+    name: `operloom-delete-acceptance-${Date.now()}`,
     value: `vault-delete-acceptance-${crypto.randomUUID()}`,
   });
   await vault.delete(deletionProbe);

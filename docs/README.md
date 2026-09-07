@@ -1,4 +1,8 @@
-# Docs Map
+# Operloom documentation
+
+Start with [Getting started](getting-started.md), then [Build your first agent](first-agent.md).
+For the design rationale, read [Architecture](architecture.md).
+For the rebrand and native separation, see [Operloom release notes](operloom-release.md).
 
 This folder separates current runbooks, target contracts, reference-app
 pressure, and architectural decisions. Check a document's section below before
@@ -43,7 +47,7 @@ These files should stay aligned with code changes:
 - `workbench-ui.md`: current UI baseline and target workbench surfaces.
 - `frontend-integration.md`: portable headless/React client packages, auth,
   caching, chat/realtime, distribution, and generic Agent Pack rendering.
-- `mobile-frontends.md`: Expo reference app, portable client, bearer identity, resume, and push contract.
+- `mobile-frontends.md`: WIP branch location and criteria for resuming native work.
 - `dev-infrastructure-readiness.md`: local/remote setup, smoke commands, and
   resource checklist.
 - `evals.md`: real-session eval posture, manifest, and verifier command.

@@ -1,6 +1,6 @@
 # Cloudflare Control Plane
 
-Cloudflare is the live multi-user control plane for assistant-mk1. It owns
+Cloudflare is the live multi-user control plane for operloom. It owns
 coordination, authorization, normal chat session state, policy, and canonical
 control-plane writes. It does not own arbitrary heavy execution.
 

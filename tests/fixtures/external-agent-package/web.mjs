@@ -1,4 +1,4 @@
-import { defineWebModule } from "@assistant-mk1/agent-sdk/web";
+import { defineWebModule } from "@operloom/agent-sdk/web";
 
 export const web = defineWebModule({
   packId: "external-agent-fixture",

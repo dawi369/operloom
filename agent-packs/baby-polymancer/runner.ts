@@ -1,4 +1,4 @@
-import { defineRunnerModule } from "@assistant-mk1/agent-sdk/runner";
+import { defineRunnerModule } from "@operloom/agent-sdk/runner";
 
 export const runner = defineRunnerModule({
   packId: "baby-polymancer",

@@ -35,10 +35,10 @@ and again during runtime resolution.
 The publish-ready SDK is in `packages/agent-sdk`:
 
 ```ts
-import { defineAgentPack } from "@assistant-mk1/agent-sdk/manifest";
-import { defineControlPlaneModule } from "@assistant-mk1/agent-sdk/control-plane";
-import { defineRunnerModule } from "@assistant-mk1/agent-sdk/runner";
-import { defineWebModule } from "@assistant-mk1/agent-sdk/web";
+import { defineAgentPack } from "@operloom/agent-sdk/manifest";
+import { defineControlPlaneModule } from "@operloom/agent-sdk/control-plane";
+import { defineRunnerModule } from "@operloom/agent-sdk/runner";
+import { defineWebModule } from "@operloom/agent-sdk/web";
 ```
 
 Its JSON contracts are `schemas/agent-pack-v2.schema.json` and

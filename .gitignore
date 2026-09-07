@@ -76,3 +76,6 @@ cloudflare/control-plane/.wrangler/
 /output/environments/
 /output/provider-links/
 /output/*.png
+
+# Supervised local development logs
+/output/dev/

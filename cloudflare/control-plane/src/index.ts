@@ -161,7 +161,7 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
   if (request.method === "GET" && url.pathname === "/health/live") {
     return json({
       ok: true,
-      service: "assistant-mk1-control-plane",
+      service: "operloom-control-plane",
       version: compiledWorkbenchVersion,
       release: env.WORKBENCH_RELEASE_SHA ?? "development",
     });
@@ -177,7 +177,7 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
         !env.WorkbenchSessionAgent ||
         !releaseFeatureConfigurationValid(env)
       ) {
-        return json({ ok: false, service: "assistant-mk1-control-plane" }, { status: 503 });
+        return json({ ok: false, service: "operloom-control-plane" }, { status: 503 });
       }
       connectionProviderRegistry(env);
       const runtimeChecks = await Promise.all(
@@ -196,17 +196,17 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
           ),
       );
       if (runtimeChecks.some((check) => !check.ok)) {
-        return json({ ok: false, service: "assistant-mk1-control-plane" }, { status: 503 });
+        return json({ ok: false, service: "operloom-control-plane" }, { status: 503 });
       }
       return json({
         ok: true,
-        service: "assistant-mk1-control-plane",
+        service: "operloom-control-plane",
         version: compiledWorkbenchVersion,
         storage: "d1",
         release: env.WORKBENCH_RELEASE_SHA ?? "development",
       });
     } catch {
-      return json({ ok: false, service: "assistant-mk1-control-plane" }, { status: 503 });
+      return json({ ok: false, service: "operloom-control-plane" }, { status: 503 });
     }
   }
 
@@ -249,7 +249,7 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
   if (request.method === "GET" && url.pathname === "/health/facade") {
     return json({
       ok: true,
-      service: "assistant-mk1-control-plane-facade",
+      service: "operloom-control-plane-facade",
       version: compiledWorkbenchVersion,
       release: env.WORKBENCH_RELEASE_SHA ?? "development",
     });
@@ -785,7 +785,7 @@ export default Sentry.withSentry<Env>(
       tracesSampleRate: parseSampleRate(env.SENTRY_TRACES_SAMPLE_RATE),
       initialScope: {
         tags: {
-          service: "assistant-mk1",
+          service: "operloom",
           "runtime.surface": "cloudflare-worker",
           "runtime.target": "control-plane",
         },

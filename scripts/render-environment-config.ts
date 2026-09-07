@@ -67,7 +67,7 @@ export const renderEnvironmentConfig = (
       LANGGRAPH_ASSISTANT_ID: "agent",
       OPENROUTER_MODEL: "deepseek/deepseek-v4-flash",
       OPENROUTER_SITE_URL: manifest.vercel.origin,
-      OPENROUTER_APP_NAME: `assistant-mk1-${target}-cloudflare-chat`,
+      OPENROUTER_APP_NAME: `operloom-${target}-cloudflare-chat`,
       WORKBENCH_CALLBACK_URL: `${manifest.cloudflare.origin}/workbench/run-callbacks`,
       WORKBENCH_RUNNER_TRANSPORT: "fly",
       WORKBENCH_RUNNER_URL: `${manifest.fly.origin}/workbench/tool-runners/invocations`,
@@ -143,7 +143,7 @@ dockerfile = "../../../Dockerfile.langgraph"
 [env]
 LANGGRAPH_PORT = "2024"
 LANGGRAPH_UPSTREAM_URL = "http://127.0.0.1:2024"
-OPENROUTER_APP_NAME = "assistant-mk1-${target}-runner"
+OPENROUTER_APP_NAME = "operloom-${target}-runner"
 OPENROUTER_MODEL = "deepseek/deepseek-v4-flash"
 OPENROUTER_SITE_URL = "${manifest.fly.origin}"
 WORKBENCH_CONFORMANCE_MODE = "${manifest.conformanceMode}"

@@ -103,8 +103,8 @@ const main = async () => {
     ["pack", "--pack-destination", output],
     resolve(root, "examples/complex-operator"),
   );
-  const sdkArchive = archive("assistant-mk1-agent-sdk-");
-  const fixtureArchive = archive("assistant-mk1-pack-complex-operator-");
+  const sdkArchive = archive("operloom-agent-sdk-");
+  const fixtureArchive = archive("operloom-pack-complex-operator-");
 
   const entries = command("fixture-archive-list", "tar", ["-tzf", fixtureArchive], root, {
     print: false,
@@ -165,16 +165,16 @@ const main = async () => {
     resolve(consumer, "package.json"),
     `${JSON.stringify(
       {
-        name: "assistant-mk1-extension-contract-consumer",
+        name: "operloom-extension-contract-consumer",
         private: true,
         type: "module",
         dependencies: {
-          "@assistant-mk1/agent-sdk": `file:${relative(consumer, sdkArchive)}`,
-          "@assistant-mk1/pack-complex-operator": `file:${relative(consumer, fixtureArchive)}`,
+          "@operloom/agent-sdk": `file:${relative(consumer, sdkArchive)}`,
+          "@operloom/pack-complex-operator": `file:${relative(consumer, fixtureArchive)}`,
         },
         pnpm: {
           overrides: {
-            "@assistant-mk1/agent-sdk": `file:${relative(consumer, sdkArchive)}`,
+            "@operloom/agent-sdk": `file:${relative(consumer, sdkArchive)}`,
           },
         },
       },
@@ -190,21 +190,21 @@ const main = async () => {
   );
   writeFileSync(
     resolve(consumer, "workbench.config.ts"),
-    `import { defineWorkbenchConfig } from "@assistant-mk1/agent-sdk";
+    `import { defineWorkbenchConfig } from "@operloom/agent-sdk";
 
 export default defineWorkbenchConfig({
   runtimeApiVersion: 1,
   workbenchVersion: "0.5.0",
-  modules: [{ package: "@assistant-mk1/pack-complex-operator" }],
+  modules: [{ package: "@operloom/pack-complex-operator" }],
 });
 `,
   );
   writeFileSync(
     resolve(consumer, "consumer.ts"),
-    `import { manifest } from "@assistant-mk1/pack-complex-operator/manifest";
-import { controlPlane } from "@assistant-mk1/pack-complex-operator/control-plane";
-import { runner } from "@assistant-mk1/pack-complex-operator/runner";
-import { web } from "@assistant-mk1/pack-complex-operator/web";
+    `import { manifest } from "@operloom/pack-complex-operator/manifest";
+import { controlPlane } from "@operloom/pack-complex-operator/control-plane";
+import { runner } from "@operloom/pack-complex-operator/runner";
+import { web } from "@operloom/pack-complex-operator/web";
 void [manifest, controlPlane, runner, web];
 `,
   );

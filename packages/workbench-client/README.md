@@ -1,16 +1,16 @@
-# @assistant-mk1/workbench-client
+# @operloom/workbench-client
 
-Framework-neutral TypeScript client for Assistant-mk1 product APIs. It is used
-by the Next.js and Expo applications and is suitable for independent React web
-or native clients.
+Framework-neutral TypeScript client for Operloom product APIs. It is used
+by the web workbench and is suitable for independent React web clients. Native
+consumers are future work on the `codex/mobile-wip` branch.
 
 ```ts
-import { createWorkbenchClient } from "@assistant-mk1/workbench-client";
+import { createWorkbenchClient } from "@operloom/workbench-client";
 
 const client = createWorkbenchClient({
   baseUrl: "https://assistant.example.com",
   getAccessToken: () => auth.getAccessToken({ minValidityMs: 60_000 }),
-  client: { platform: "ios", version: "1.0.0" },
+  client: { platform: "web", version: "1.0.0" },
 });
 
 const { agents } = await client.agents.list();
@@ -32,4 +32,4 @@ This package is private and initially unpublished. From the repository, run
 `pnpm workbench client pack` to create checked archives and a checksum manifest
 under `output/workbench-client-distribution/`.
 
-See the [frontend integration guide](https://github.com/dawi369/assistant-mk1/blob/main/docs/frontend-integration.md).
+See the [frontend integration guide](https://github.com/dawi369/operloom/blob/main/docs/frontend-integration.md).

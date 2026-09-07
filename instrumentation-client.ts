@@ -44,7 +44,7 @@ if (enabled) {
     ),
     initialScope: {
       tags: {
-        service: "assistant-mk1",
+        service: "operloom",
         "runtime.surface": "vercel-next",
       },
     },

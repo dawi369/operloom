@@ -1,4 +1,4 @@
-import { defineRunnerModule } from "@assistant-mk1/agent-sdk/runner";
+import { defineRunnerModule } from "@operloom/agent-sdk/runner";
 
 import { runRepoSnapshot } from "../../lib/workbench/repo-snapshot-runner";
 import { validateUrlInspectInput } from "../../lib/workbench/url-inspect";

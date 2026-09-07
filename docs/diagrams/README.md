@@ -12,7 +12,7 @@ Mermaid topology in this directory and keep the evidence brief beside it.
 
 | Diagram                            | Mermaid source                                         | Brief                                                 |
 | ---------------------------------- | ------------------------------------------------------ | ----------------------------------------------------- |
-| Current implementation topology    | `docs/diagrams/current-implementation-topology.mmd`    | `docs/diagrams/assistant-mk1-overview.md`             |
+| Current implementation topology    | `docs/diagrams/current-implementation-topology.mmd`    | `docs/diagrams/operloom-overview.md`                  |
 | North-star implementation topology | `docs/diagrams/north-star-implementation-topology.mmd` | `docs/diagrams/north-star-production-architecture.md` |
 
 ## How To Use This

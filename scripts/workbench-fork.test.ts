@@ -1,4 +1,4 @@
-import { cpSync, mkdtempSync, readFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -6,16 +6,29 @@ import { describe, expect, it } from "vitest";
 
 import { configureForkIdentity, validateForkIdentity } from "./workbench-fork";
 
-const fixture = () => {
-  const root = mkdtempSync(join(tmpdir(), "assistant-mk1-fork-"));
-  for (const path of ["config/product.json", "apps/mobile/app.json", "package.json"]) {
+const fixture = (withMobile = true) => {
+  const root = mkdtempSync(join(tmpdir(), "operloom-fork-"));
+  for (const path of ["config/product.json", "package.json"]) {
     const destination = resolve(root, path);
     cpSync(resolve(process.cwd(), path), destination, { recursive: true });
+  }
+  if (withMobile) {
+    mkdirSync(resolve(root, "apps/mobile"), { recursive: true });
+    writeFileSync(resolve(root, "apps/mobile/app.json"), JSON.stringify({ expo: {} }));
   }
   return root;
 };
 
 describe("fork identity configurator", () => {
+  it("configures and checks a web-only checkout", () => {
+    const root = fixture(false);
+    configureForkIdentity({
+      root,
+      mode: "init",
+      values: { id: "my-system", displayName: "My System" },
+    });
+    expect(() => configureForkIdentity({ root, mode: "check" })).not.toThrow();
+  });
   it("updates the public package and mobile identity without renaming SDK packages", () => {
     const root = fixture();
     configureForkIdentity({
@@ -34,7 +47,7 @@ describe("fork identity configurator", () => {
     const packageJson = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
     expect(product.webTitle).toBe("Founder Workbench");
     expect(packageJson.name).toBe("founder-workbench");
-    expect(packageJson.dependencies["@assistant-mk1/agent-sdk"]).toBe("workspace:*");
+    expect(packageJson.dependencies["@operloom/agent-sdk"]).toBe("workspace:*");
     expect(mobile.expo).toMatchObject({
       name: "Founder Workbench",
       slug: "founder-workbench",

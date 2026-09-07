@@ -9,7 +9,7 @@ import {
   useWorkbenchArtifacts,
   useWorkbenchRun,
   useWorkbenchRuns,
-} from "@assistant-mk1/workbench-react";
+} from "@operloom/workbench-react";
 import {
   CheckIcon,
   CircleAlertIcon,

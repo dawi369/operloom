@@ -40,7 +40,7 @@ site, npm publication, license changes, or changing Pack API/Runtime Module APIs
    Make `workbench:doctor` fail on the wrong Node major. Ensure CI, Docker, and
    Vercel use the same major. Do not upgrade Node in this slice.
 
-2. Align `@assistant-mk1/pack-baby-swordfish` package version with manifest
+2. Align `@operloom/pack-baby-swordfish` package version with manifest
    `1.2.0`. Extend pack validation so every package/manifest version mismatch is
    a compile failure. Keep Swordfish tools/workflows/triggers empty and document
    historical chat-only compatibility.

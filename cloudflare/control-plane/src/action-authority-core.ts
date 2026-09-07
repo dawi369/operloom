@@ -5,7 +5,7 @@ import {
   type AgentExecutionContext,
   type RuntimeToolBinding,
   type RuntimeResult,
-} from "@assistant-mk1/agent-sdk/control-plane";
+} from "@operloom/agent-sdk/control-plane";
 import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
 import { createBrokeredConnectionPort, issueFlyConnectionCapability } from "./connection-broker";

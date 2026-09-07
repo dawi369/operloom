@@ -1,6 +1,6 @@
-# @assistant-mk1/workbench-react
+# @operloom/workbench-react
 
-UI-agnostic React Query bindings for `@assistant-mk1/workbench-client`. The
+UI-agnostic React Query bindings for `@operloom/workbench-client`. The
 package works with React DOM and React Native and is the shared resource layer
 used by the bundled web and Expo applications.
 
@@ -9,7 +9,7 @@ import {
   WorkbenchClientProvider,
   createWorkbenchQueryClient,
   useWorkbenchAgents,
-} from "@assistant-mk1/workbench-react";
+} from "@operloom/workbench-react";
 
 const queryClient = createWorkbenchQueryClient();
 
@@ -38,4 +38,4 @@ This package is private and initially unpublished. Run
 `pnpm workbench client pack` to produce portable archives with the headless
 client.
 
-See the [frontend integration guide](https://github.com/dawi369/assistant-mk1/blob/main/docs/frontend-integration.md).
+See the [frontend integration guide](https://github.com/dawi369/operloom/blob/main/docs/frontend-integration.md).

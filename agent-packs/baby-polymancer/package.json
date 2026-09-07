@@ -1,5 +1,5 @@
 {
-  "name": "@assistant-mk1/pack-baby-polymancer",
+  "name": "@operloom/pack-baby-polymancer",
   "version": "1.1.1",
   "private": true,
   "type": "module",
@@ -11,6 +11,6 @@
     "./web": "./web.ts"
   },
   "dependencies": {
-    "@assistant-mk1/agent-sdk": "workspace:*"
+    "@operloom/agent-sdk": "workspace:*"
   }
 }

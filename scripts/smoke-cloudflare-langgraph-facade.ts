@@ -39,7 +39,7 @@ const main = async () => {
   console.log(`Smoking Cloudflare LangGraph facade at ${baseUrl}`);
 
   const health = await readJson<HealthResponse>("/health");
-  if (!health.ok || health.service !== "assistant-mk1-control-plane") {
+  if (!health.ok || health.service !== "operloom-control-plane") {
     throw new Error("Cloudflare control-plane health returned the wrong service response");
   }
 

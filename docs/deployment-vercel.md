@@ -29,7 +29,7 @@ When AuthKit provides an `organizationId`, Vercel maps it to an internal
 `workos-org:<organizationId>` account id. Cloudflare creates the account's
 default workspace if needed and resolves the active workspace from D1. That is
 the current B2B shape: a customer/company WorkOS organization owns one or more
-assistant-mk1 workspaces, with one default workspace created first. A signed-in
+operloom workspaces, with one default workspace created first. A signed-in
 WorkOS session without an organization gets a stable personal account id
 derived from the WorkOS `user.id`, with a default workspace under that account.
 

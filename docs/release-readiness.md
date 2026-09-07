@@ -1,6 +1,6 @@
 # Future 1.0.0 Production Readiness
 
-Document status: future public-release contract. Assistant-mk1 0.5 implements
+Document status: future public-release contract. Operloom 0.5 implements
 the local Operational L3 plus Authority A2 boundaries, but makes no production
 SLO or public 1.0 claim. Local conformance does not replace the same-commit
 hosted gates below.
@@ -57,12 +57,10 @@ edits the policy. General workspace mutation remains opt-in.
 | Supply chain      | `pnpm verify:security`, `pnpm verify:docker`                                         |
 | Public hosting    | `pnpm acceptance:hosted:public` (includes a live Vercel-to-Cloudflare facade probe)  |
 | Signed-in product | WorkOS browser acceptance across Vercel, Cloudflare, and Fly                         |
-| Native clients    | `conformance:mobile`, strict same-SHA iOS/Android device evidence                    |
 
-`pnpm verify:security` fails on every high or critical advisory except the two
-currently unpatched `image-size` findings confined to Expo Metro's build-time
-dependency path. The exception is path- and advisory-specific, does not cover
-runtime input, and must be removed when Expo/Metro ships a patched dependency.
+`pnpm verify:security` blocks high and critical advisories unless an explicit
+local remediation is verified. The former Expo exceptions were removed with
+the native app; mobile is WIP on `codex/mobile-wip` and is not a web release gate.
 
 Ignored evidence records must name one full commit SHA. Hosted Vault evidence
 must prove create/read-version/replace/revoke-delete without disclosing values.

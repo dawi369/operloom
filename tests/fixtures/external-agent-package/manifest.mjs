@@ -1,4 +1,4 @@
-import { defineAgentPack } from "@assistant-mk1/agent-sdk/manifest";
+import { defineAgentPack } from "@operloom/agent-sdk/manifest";
 
 export const manifest = defineAgentPack({
   id: "external-agent-fixture",

@@ -54,11 +54,11 @@ if (!existsSync(manifestPath) || readFileSync(manifestPath, "utf8") !== serializ
 }
 const changelog = readFileSync(resolve(root, "CHANGELOG.md"), "utf8");
 if (
-  !changelog.includes(`@assistant-mk1/agent-sdk`) ||
+  !changelog.includes(`@operloom/agent-sdk`) ||
   !changelog.includes(`SDK ${current.sdkVersion}`)
 ) {
   throw new Error(
-    `CHANGELOG.md must record the @assistant-mk1/agent-sdk SDK ${current.sdkVersion} contract.`,
+    `CHANGELOG.md must record the @operloom/agent-sdk SDK ${current.sdkVersion} contract.`,
   );
 }
 console.log(`Agent SDK contract verified: ${files.length} normalized public files.`);

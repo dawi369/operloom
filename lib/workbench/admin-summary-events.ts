@@ -1,4 +1,4 @@
-export const workbenchSummaryRefreshEvent = "assistant-mk1:workbench-summary-refresh";
+export const workbenchSummaryRefreshEvent = "operloom:workbench-summary-refresh";
 
 export type WorkbenchSummaryRefreshSource =
   | "initial"

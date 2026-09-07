@@ -1,8 +1,8 @@
 {
-  "name": "@assistant-mk1/workbench-client",
+  "name": "@operloom/workbench-client",
   "version": "0.1.1",
   "private": true,
-  "description": "Platform-neutral client contracts for Assistant-mk1 frontends.",
+  "description": "Platform-neutral client contracts for Operloom frontends.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "files": [
     "dist",

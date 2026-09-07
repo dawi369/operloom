@@ -1,8 +1,8 @@
 {
-  "name": "@assistant-mk1/workbench-react",
+  "name": "@operloom/workbench-react",
   "version": "0.1.1",
   "private": true,
-  "description": "React query bindings for the Assistant-mk1 workbench client.",
+  "description": "React query bindings for the Operloom workbench client.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "files": [
     "dist",
@@ -22,7 +22,7 @@
     "prepack": "pnpm clean && pnpm build"
   },
   "dependencies": {
-    "@assistant-mk1/workbench-client": "workspace:*",
+    "@operloom/workbench-client": "workspace:*",
     "@tanstack/react-query": "^5.90.21"
   },
   "devDependencies": {

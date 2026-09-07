@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
 
+import { getAuthConfiguration } from "@/lib/workbench/auth-configuration";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { workbenchProduct } from "@/lib/workbench/product-identity";
 import "./globals.css";
@@ -38,10 +39,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { localIdentityEnabled } = getAuthConfiguration();
   return (
     <html lang="en">
       <body className={`${plexSans.variable} ${plexMono.variable} antialiased`}>
-        <AuthKitProvider>
+        <AuthKitProvider
+          initialAuth={localIdentityEnabled ? { user: null } : undefined}
+          onSessionExpired={localIdentityEnabled ? false : undefined}
+        >
           <TooltipProvider>{children}</TooltipProvider>
         </AuthKitProvider>
       </body>

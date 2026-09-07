@@ -1,6 +1,6 @@
 # Context Engineering
 
-Assistant-mk1 should not rely on vague chat memory for important decisions. The framework needs durable, inspectable context records that explain what the agent believed, why it believed it, and what would change its mind.
+Operloom should not rely on vague chat memory for important decisions. The framework needs durable, inspectable context records that explain what the agent believed, why it believed it, and what would change its mind.
 
 For the build-ready context assembly algorithm, see
 `docs/context-assembly.md`. This page focuses on durable reasoning records and
@@ -35,7 +35,7 @@ Summaries are indexes, not truth. The agent should answer "why?" by retrieving d
 
 ## Context Assembly
 
-Context assembly should be explicit before assistant-mk1 adds compression or
+Context assembly should be explicit before operloom adds compression or
 advanced memory behavior.
 
 Suggested tiers:

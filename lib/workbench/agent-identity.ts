@@ -1,6 +1,7 @@
 import { withAuth } from "@workos-inc/authkit-nextjs";
 import { headers } from "next/headers";
 
+import { getAuthConfiguration } from "./auth-configuration";
 import type { Id } from "@/lib/workbench/core-contracts";
 import { resolveWorkbenchAgentIdentity } from "./agent-identity-resolution";
 import { WorkbenchAuthError, type WorkbenchAgentIdentity } from "./agent-identity-types";
@@ -12,20 +13,6 @@ const requiredEnv = (name: string) => {
   if (!value) throw new Error(`${name} is not configured`);
   return value;
 };
-
-const isWorkOsConfigured = () =>
-  Boolean(
-    process.env.WORKOS_CLIENT_ID?.trim() &&
-    process.env.WORKOS_API_KEY?.trim() &&
-    process.env.WORKOS_COOKIE_PASSWORD?.trim() &&
-    process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI?.trim(),
-  );
-
-const isProductionRuntime = () =>
-  process.env.NODE_ENV === "production" || process.env.VERCEL_ENV === "production";
-
-const isLocalDevIdentityAllowed = () =>
-  process.env.WORKBENCH_ALLOW_LOCAL_DEV_IDENTITY === "true" && !isProductionRuntime();
 
 const getDevAgentId = () => requiredEnv("WORKBENCH_DEV_AGENT_ID");
 
@@ -46,8 +33,9 @@ const getPersonalAccountId = (userId: Id): Id => `workos-personal:${userId}`;
 const getDefaultWorkspaceId = (accountId: Id): Id => `workspace:${accountId}:default`;
 
 const getCookieOrDevIdentity = async (): Promise<WorkbenchAgentIdentity> => {
-  if (!isWorkOsConfigured()) {
-    if (!isLocalDevIdentityAllowed()) {
+  const { workOsConfigured, localIdentityEnabled } = getAuthConfiguration();
+  if (!workOsConfigured) {
+    if (!localIdentityEnabled) {
       throw new WorkbenchAuthError(
         "WorkOS is not configured and local-dev workbench identity fallback is disabled",
         500,

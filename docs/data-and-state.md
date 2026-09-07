@@ -1,6 +1,6 @@
 # Data And State
 
-Assistant-mk1 needs clear ownership for every kind of state. Summaries are indexes, not truth. Durable state and linked artifacts are the source of truth.
+Operloom needs clear ownership for every kind of state. Summaries are indexes, not truth. Durable state and linked artifacts are the source of truth.
 
 This page maps storage ownership. See `docs/db-contracts.md` for docs-first durable entity contracts and data-client boundaries.
 

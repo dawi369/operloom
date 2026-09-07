@@ -43,9 +43,6 @@ jobs:
       - name: Verify portable frontend contract
         run: pnpm conformance:client
 
-      - name: Verify mobile bundles and delivery contract
-        run: pnpm conformance:mobile
-
       - name: Upload SDK and extension failure evidence
         if: failure()
         uses: actions/upload-artifact@v4
@@ -57,7 +54,6 @@ jobs:
             output/extension-contract
             output/sdk-consumer
             output/workbench-client-consumer
-            output/mobile
 
   docker:
     needs: verify
@@ -85,7 +81,7 @@ jobs:
         run: pnpm verify:docker
 
   browser:
-    needs: [verify, docker]
+    needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

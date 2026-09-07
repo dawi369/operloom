@@ -40,7 +40,7 @@ test.describe.serial("Level 3 executable conformance", () => {
     request,
   }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Hello there!" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What are we working on?" })).toBeVisible();
     const quiesceSeededApproval = await page.request.post(
       "/api/workbench/tools/approvals/e2e-approval/deny",
     );
@@ -69,6 +69,14 @@ test.describe.serial("Level 3 executable conformance", () => {
     expect(schedule.packTriggerId).toBe("scheduled-readiness");
     expect(schedule.nextTriggerAt).toBeTruthy();
 
+    // Exercise cancellation while the runner is active, not while Next compiles
+    // these routes for the first time. The fixed runner delay is intentionally short.
+    await listDispatches(page, schedule.id);
+    const missingRun = await page.request.post(
+      "/api/workbench/history/runs/level3-missing-run/cancel",
+    );
+    expect(missingRun.status()).toBe(404);
+
     const manualReceipt = await page.request.post(
       `/api/workbench/triggers/${encodeURIComponent(schedule.id)}/dispatches`,
       { data: { idempotencyKey: "level3-cancel-replay", payload: {} } },
@@ -91,7 +99,7 @@ test.describe.serial("Level 3 executable conformance", () => {
     const cancel = await page.request.post(
       `/api/workbench/history/runs/${encodeURIComponent(cancelledRunId)}/cancel`,
     );
-    expect(cancel.ok()).toBe(true);
+    expect(cancel.ok(), await cancel.text()).toBe(true);
     await expect
       .poll(
         async () =>

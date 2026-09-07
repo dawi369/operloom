@@ -6,26 +6,26 @@ import { useWorkbenchAgentConnection } from "@/lib/workbench/use-agent-connectio
 
 export const starterSuggestions = [
   {
-    title: "Run a readiness check",
-    description: "Confirm the chat loop is responding.",
+    title: "Explore what’s possible",
+    description: "Find a useful starting point for your task.",
     prompt:
       "Give me a concise readiness check for this chat session. Keep it practical and mention what you can help with next.",
   },
   {
     title: "Plan a project handoff",
-    description: "Test a workbench-style planning response.",
+    description: "Turn an idea into a concrete implementation plan.",
     prompt:
       "Help me turn a rough project idea into a short implementation plan with assumptions, risks, and next checks.",
   },
   {
-    title: "Test agent behavior",
-    description: "Ask for a focused operator-style answer.",
+    title: "Review a decision",
+    description: "Surface assumptions before committing to a direction.",
     prompt:
-      "Act as a concise operator assistant. List the first three checks you would run before taking action on a new workspace task.",
+      "Help me review a technical decision. Ask me what I am deciding, then help compare the tradeoffs, assumptions, and failure modes.",
   },
   {
     title: "Explain a failure",
-    description: "Practice debugging from symptoms.",
+    description: "Work from symptoms toward a testable explanation.",
     prompt:
       "If I tell you a chat message failed or did nothing, what exact facts should we inspect first?",
   },
@@ -48,10 +48,11 @@ export function ThreadWelcomeLayout({
         <div className="aui-thread-welcome-message flex size-full flex-col justify-center px-4">
           <span className="workbench-kicker mb-3">Active agent</span>
           <h1 className="aui-thread-welcome-message-inner font-display max-w-xl text-3xl leading-tight font-semibold tracking-[-0.025em] sm:text-4xl">
-            {welcome?.title ?? "Hello there!"}
+            {welcome?.title ?? "What are we working on?"}
           </h1>
           <p className="aui-thread-welcome-message-inner text-muted-foreground mt-2 max-w-xl text-base leading-6 sm:text-lg">
-            {welcome?.description ?? "How can I help you today?"}
+            {welcome?.description ??
+              "Bring a question, a problem, or a workflow. We’ll take it from here."}
           </p>
         </div>
       </div>

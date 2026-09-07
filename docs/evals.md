@@ -1,6 +1,6 @@
 # Evals
 
-Assistant-mk1 treats real-session evals as runtime contract checks, not offline
+Operloom treats real-session evals as runtime contract checks, not offline
 prompt grading.
 
 Real-session evals should drive the same HTTP/session/runtime surfaces that a

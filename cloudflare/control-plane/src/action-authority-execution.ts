@@ -4,7 +4,7 @@ import {
   type ActionPort,
   type ActionProposal,
   type RuntimeToolBinding,
-} from "@assistant-mk1/agent-sdk/control-plane";
+} from "@operloom/agent-sdk/control-plane";
 import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import { parseJson } from "./http";
 import { prepareOperatorAlertStatement } from "./operator-alerts";

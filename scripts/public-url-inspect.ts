@@ -119,7 +119,7 @@ export const pinnedRequestOptions = (
   headers: {
     host: url.host,
     accept: "text/html,application/xhtml+xml,application/json,text/plain;q=0.8,*/*;q=0.5",
-    "user-agent": "assistant-mk1-url-inspect/1",
+    "user-agent": "operloom-url-inspect/1",
   },
 });
 

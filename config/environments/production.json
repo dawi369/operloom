@@ -16,7 +16,7 @@
     "origin": "${WORKBENCH_PRODUCTION_FLY_ORIGIN}"
   },
   "vercel": {
-    "projectName": "assistant-mk1",
+    "projectName": "operloom",
     "organizationId": "${WORKBENCH_PRODUCTION_VERCEL_ORG_ID}",
     "projectId": "${WORKBENCH_PRODUCTION_VERCEL_PROJECT_ID}",
     "origin": "${WORKBENCH_PRODUCTION_VERCEL_ORIGIN}",

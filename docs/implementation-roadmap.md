@@ -1,5 +1,10 @@
 # Implementation Roadmap
 
+Current release focus: Operloom web adoption, extension DX, and reliable operator
+journeys. Native delivery is deferred to `codex/mobile-wip`; see
+[Mobile WIP](mobile-frontends.md). Historical native targets below do not block
+the web release.
+
 This roadmap keeps implementation sequencing visible without preserving every
 completed slice as live planning text. Current implementation truth still comes
 from the code and the current-runbook docs listed in `docs/README.md`.
@@ -82,7 +87,7 @@ kill-switch, ledger, and conformance boundaries rather than bypassing them.
 - `pnpm agent-packs:create` now scaffolds a complete Runtime Module v1 package
   and adds one `workbench.config.ts` entry. Pack connection descriptors can
   declare public or externally brokered requirements without storing credentials.
-- The unpublished `@assistant-mk1/agent-sdk`, deterministic compiler, generic
+- The unpublished `@operloom/agent-sdk`, deterministic compiler, generic
   execution kernel, environment registries, renderer fallback, and synthetic
   Complex Operator package make the extension boundary executable.
 - The repo now has a GitHub Actions verification gate for clean installs and

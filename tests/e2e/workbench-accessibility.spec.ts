@@ -126,6 +126,7 @@ test("keyboard, focus, responsive, and accessibility contracts cover workbench s
   await auditPage(page, testInfo, "admin");
   await page.getByRole("tab", { name: "Agents" }).press("Enter");
   const repositoryPack = page.locator("article").filter({ hasText: "Repository Analyst" });
+  await expect(repositoryPack).toBeVisible();
   const useRepositoryPack = repositoryPack.getByRole("button", { name: "Use agent" });
   if (await useRepositoryPack.count()) {
     await useRepositoryPack.press("Enter");

@@ -2,7 +2,7 @@ import {
   defineControlPlaneModule,
   type RuntimeRecord,
   type RuntimeResult,
-} from "@assistant-mk1/agent-sdk/control-plane";
+} from "@operloom/agent-sdk/control-plane";
 
 import {
   runPolymarketMarketSearch,

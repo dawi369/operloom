@@ -61,7 +61,7 @@ const sqliteJson = <Row>(databasePath: string, query: string): Row[] => {
 };
 
 const main = () => {
-  const tempRoot = mkdtempSync(join(tmpdir(), "assistant-mk1-d1-backup-"));
+  const tempRoot = mkdtempSync(join(tmpdir(), "operloom-d1-backup-"));
   const sourceState = join(tempRoot, "source");
   const restoredDatabase = join(tempRoot, "restored.sqlite");
   const backupPath = join(tempRoot, "backup.sql");

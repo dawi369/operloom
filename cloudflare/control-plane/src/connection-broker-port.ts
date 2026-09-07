@@ -2,7 +2,7 @@ import type {
   AgentPackConnectionDescriptor,
   ConnectionCapability,
   ConnectionPort,
-} from "@assistant-mk1/agent-sdk/control-plane";
+} from "@operloom/agent-sdk/control-plane";
 
 import { resolveCredentialVault } from "./credential-vault";
 import { connectionsEnabled } from "./feature-gates";

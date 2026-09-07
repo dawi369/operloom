@@ -1,6 +1,6 @@
 # Workbench UI
 
-Assistant-mk1 is an operator workbench built around chat, not a generic chatbot
+Operloom is an operator workbench built around chat, not a generic chatbot
 wrapper. The UI should make long-running agent work inspectable without hiding
 the underlying state.
 

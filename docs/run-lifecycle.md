@@ -13,7 +13,7 @@ engines, and tool runners.
 - assistant-ui owns the local chat/thread experience and streaming primitives.
 - LangGraph may own workflow-engine state, checkpoints, interrupts, and engine
   run IDs.
-- Assistant-mk1 owns `RunRecord` as the product-level control object.
+- Operloom owns `RunRecord` as the product-level control object.
 - Cloudflare-style control plane is the target owner for creating and updating
   run records.
 - Fly/LangGraph report status and durable outputs back through scoped data-client

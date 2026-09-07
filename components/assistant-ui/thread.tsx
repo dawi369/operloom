@@ -73,7 +73,14 @@ import {
   RefreshCwIcon,
   SquareIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, type FC, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  type FC,
+  type FormEvent,
+  type MouseEventHandler,
+} from "react";
 
 export const Thread: FC<{ pendingFirstTurn?: boolean }> = ({ pendingFirstTurn = false }) => {
   return (
@@ -233,13 +240,12 @@ const Composer: FC<{ pendingFirstTurn: boolean }> = ({ pendingFirstTurn }) => {
     [registerComposerInput],
   );
 
-  const executeExactSlashCommand = (event: FormEvent<HTMLFormElement>) => {
-    const submittedText = event.currentTarget.querySelector("textarea")?.value ?? composerText;
+  const runExactSlashCommand = (submittedText: string, preventDefault: () => void) => {
     const normalizedText = submittedText.trim().toLowerCase();
     const command = commands.find((item) => normalizedText === `/${item.id.toLowerCase()}`);
     if (!command) return;
 
-    event.preventDefault();
+    preventDefault();
     aui.thread().composer().setText("");
     void command.execute(commandContext);
     focusComposerAfterInteraction();
@@ -273,21 +279,43 @@ const Composer: FC<{ pendingFirstTurn: boolean }> = ({ pendingFirstTurn }) => {
       <ComposerPrimitive.Root
         ref={composerRootRef}
         className="aui-composer-root relative flex w-full flex-col"
-        onSubmit={executeExactSlashCommand}
+        onSubmit={(event: FormEvent<HTMLFormElement>) =>
+          runExactSlashCommand(
+            event.currentTarget.querySelector("textarea")?.value ?? composerText,
+            () => event.preventDefault(),
+          )
+        }
+        onKeyDownCapture={(event) => {
+          if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+          if (!(event.target instanceof HTMLTextAreaElement)) return;
+          // Resolve from the input before the popover or send handler consumes Enter.
+          runExactSlashCommand(event.target.value, () => {
+            event.preventDefault();
+            event.stopPropagation();
+          });
+        }}
       >
         <ComposerPrimitive.AttachmentDropzone asChild>
           <div data-slot="aui_composer-shell" className={workbenchComposerShellClassName}>
             <ComposerAttachments />
             <ComposerPrimitive.Input
               ref={registerInput}
-              placeholder="Send a message..."
+              placeholder="Message or / for commands…"
               className={workbenchComposerInputClassName}
               rows={1}
               autoFocus
               disabled={pendingFirstTurn}
               aria-label="Message input"
             />
-            <ComposerAction pendingFirstTurn={pendingFirstTurn} />
+            <ComposerAction
+              pendingFirstTurn={pendingFirstTurn}
+              onSend={(event) =>
+                runExactSlashCommand(
+                  composerRootRef.current?.querySelector("textarea")?.value ?? composerText,
+                  () => event.preventDefault(),
+                )
+              }
+            />
           </div>
         </ComposerPrimitive.AttachmentDropzone>
         <ComposerSlashCommandPopover
@@ -374,7 +402,10 @@ const ComposerSlashCommandPopover: FC<{
   );
 };
 
-const ComposerAction: FC<{ pendingFirstTurn: boolean }> = ({ pendingFirstTurn }) => {
+const ComposerAction: FC<{
+  pendingFirstTurn: boolean;
+  onSend: MouseEventHandler<HTMLButtonElement>;
+}> = ({ pendingFirstTurn, onSend }) => {
   if (pendingFirstTurn) {
     return (
       <div className="aui-composer-action-wrapper relative flex h-8 items-center justify-between">
@@ -405,7 +436,7 @@ const ComposerAction: FC<{ pendingFirstTurn: boolean }> = ({ pendingFirstTurn })
       <ComposerAddAttachment />
       <div className="flex min-w-0 items-center gap-2">
         <AuiIf condition={(s) => !s.thread.isRunning}>
-          <ComposerPrimitive.Send asChild>
+          <ComposerPrimitive.Send asChild onClick={onSend}>
             <TooltipIconButton
               tooltip="Send message"
               side="top"

@@ -4,7 +4,8 @@ import type { useAui } from "@assistant-ui/react";
 import { createContext, useContext, type ComponentType, type ReactNode } from "react";
 
 export type AssistantSlashCommandContext = {
-  aui: ReturnType<typeof useAui>;
+  /** Absent while the first thread is still being materialized. */
+  aui?: ReturnType<typeof useAui>;
   isLoadingThread: boolean;
   isThreadRunning: boolean;
 };

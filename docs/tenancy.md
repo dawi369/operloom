@@ -1,6 +1,6 @@
 # Tenancy And Isolation
 
-Multi-user support is a foundation, not an add-on. Every durable object in assistant-mk1 must be scoped by both `userId` and `workspaceId`.
+Multi-user support is a foundation, not an add-on. Every durable object in operloom must be scoped by both `userId` and `workspaceId`.
 
 ## Tenant Scope
 
@@ -26,16 +26,16 @@ This scope applies to:
 
 ## Identity, Workspace, And Agent Model
 
-Assistant-mk1 is meant to serve many customer environments and many internal
+Operloom is meant to serve many customer environments and many internal
 use cases without confusing product organization with tenant identity.
 
 - WorkOS User: the authenticated person. WorkOS owns sign-in, sessions, and
   enterprise identity features such as SSO or directory sync when they are
   added.
 - WorkOS Organization: the customer or company account source in a B2B
-  deployment. It maps to an assistant-mk1 account id, not directly to a
+  deployment. It maps to an operloom account id, not directly to a
   workspace id.
-- Assistant-mk1 Workspace: the internal tenant boundary used by Cloudflare and
+- Operloom Workspace: the internal tenant boundary used by Cloudflare and
   D1. The current baseline creates one default workspace per WorkOS
   organization or personal account source, and workspace management v0 allows
   additional workspaces to be created and activated from Admin.
@@ -48,7 +48,7 @@ use cases without confusing product organization with tenant identity.
 For a business customer, the current hosted mapping is:
 
 ```txt
-WorkOS organization -> assistant-mk1 account -> active workspace -> agents
+WorkOS organization -> operloom account -> active workspace -> agents
 ```
 
 The default workspace id is stable:
@@ -60,7 +60,7 @@ WorkOS organization -> workos-org:<organizationId> -> workspace:workos-org:<orga
 Cloudflare stores the current user's active workspace preference for the
 account. If no preference exists, Cloudflare falls back to the default
 workspace. The WorkOS organization remains the account source and each
-assistant-mk1 workspace is an operational boundary under that account.
+operloom workspace is an operational boundary under that account.
 
 For current solo/pre-user development, a signed-in WorkOS user without an
 organization gets a stable personal account id:
@@ -117,7 +117,7 @@ agent are the committed authorization boundaries.
   memberships through a server-only WorkOS API call and switches organization
   context with AuthKit session refresh. Organization IDs never become trusted
   browser tenant scope.
-- Active members may switch among assistant-mk1 workspaces where they have an
+- Active members may switch among operloom workspaces where they have an
   active membership. Owners/admins may create workspaces and manage members;
   admins can only manage the `member` role, self-lockout is blocked, and the
   final active owner cannot be removed.
@@ -141,17 +141,17 @@ connection health, policy, approval, and kill switches remain platform-owned.
 
 ## Ownership Roadmap
 
-The next steps should keep WorkOS and assistant-mk1 responsibilities separate:
+The next steps should keep WorkOS and operloom responsibilities separate:
 
 1. Admin visibility: expose the Cloudflare-resolved account, workspace,
    membership, default agent, recent events, and last error in Admin.
 2. Workspace management model: one WorkOS organization or personal account can
-   own multiple assistant-mk1 workspaces. Active members can switch assigned
+   own multiple operloom workspaces. Active members can switch assigned
    workspaces; owners/admins can create workspaces and manage membership, with
    Cloudflare storing the active workspace preference.
 3. Membership source of truth: WorkOS answers who signed in and which external
    organization they came through; Cloudflare D1 answers what they can do inside
-   an assistant-mk1 workspace. The current v0 keeps reads open to active
+   an operloom workspace. The current v0 keeps reads open to active
    members and gates workspace writes to `owner`/`admin`.
 4. Agent routing: agents remain scoped to workspaces. The current v0 keeps
    customer-facing agent provisioning out of scope while Cloudflare stores

@@ -1,5 +1,5 @@
 {
-  "name": "@assistant-mk1/external-agent-fixture",
+  "name": "@operloom/external-agent-fixture",
   "version": "1.0.0",
   "private": true,
   "files": [
@@ -26,6 +26,6 @@
     }
   },
   "dependencies": {
-    "@assistant-mk1/agent-sdk": "^1.0.0"
+    "@operloom/agent-sdk": "^1.0.0"
   }
 }

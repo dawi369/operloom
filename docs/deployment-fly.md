@@ -39,7 +39,7 @@ Optional:
 ```bash
 fly secrets set LANGSMITH_API_KEY=...
 fly secrets set LANGSMITH_TRACING=true
-fly secrets set --app <target-app> LANGSMITH_PROJECT=assistant-mk1-<target>
+fly secrets set --app <target-app> LANGSMITH_PROJECT=operloom-<target>
 ```
 
 ## First Deploy

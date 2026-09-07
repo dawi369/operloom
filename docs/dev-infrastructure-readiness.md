@@ -24,7 +24,7 @@ default.
 - Cloudflare Workers: distinct acceptance and production names
 - Cloudflare D1/R2/DO: distinct acceptance and production resources
 - D1 binding: `DB`
-- Sentry: org `t23`, project `assistant-mk1`. Vercel and Cloudflare share the
+- Sentry: org `t23`, project `operloom`. Vercel and Cloudflare share the
   project and are separated by `runtime.surface` tags.
 - Runtime evidence aliases:
   - `pnpm conformance:agent-system` exercises package execution through the

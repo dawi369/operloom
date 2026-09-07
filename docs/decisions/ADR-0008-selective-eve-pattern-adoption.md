@@ -7,11 +7,11 @@ Date: 2026-06-17
 ## Context
 
 Vercel Eve is a filesystem-first framework for durable backend AI agents. Its
-public beta docs validate several assistant-mk1 product primitives: durable
+public beta docs validate several operloom product primitives: durable
 sessions, typed tools, human approvals, resumable work, sandboxed execution,
 schedules, subagents, and real-session evals.
 
-Assistant-mk1 already has its own hosted architecture:
+Operloom already has its own hosted architecture:
 
 - Vercel owns the WorkOS-backed browser session and same-origin frontend
   ergonomics.
@@ -20,13 +20,13 @@ Assistant-mk1 already has its own hosted architecture:
   product writes.
 - Fly/LangGraph owns explicit heavy workflow and server-side tool execution.
 
-The useful move is selective adaptation. Eve should pressure assistant-mk1's
+The useful move is selective adaptation. Eve should pressure operloom's
 contracts and operator experience, but it should not replace the current
 control-plane boundary.
 
 ## Decision
 
-Adopt selected Eve-inspired patterns where they strengthen assistant-mk1's own
+Adopt selected Eve-inspired patterns where they strengthen operloom's own
 architecture:
 
 - Replayable event streams: durable stream and reconnect semantics should
@@ -119,7 +119,7 @@ template migrations, and browser prompt editing remain deferred.
 
 ## Rejected
 
-- Eve as the core runtime for assistant-mk1.
+- Eve as the core runtime for operloom.
 - Vercel-owned durable agent state as the product source of truth.
 - Running `npx eve@latest init .` or adding Eve dependencies to this repo.
 - Broad built-in filesystem or bash tools as default model-visible
@@ -140,7 +140,7 @@ template migrations, and browser prompt editing remain deferred.
 - Secrets stay out of app code, browser responses, model output, logs,
   artifacts, and sandbox state unless a specific redacted metadata surface
   requires them.
-- Future Eve-inspired work should be scoped as concrete assistant-mk1 gaps,
+- Future Eve-inspired work should be scoped as concrete operloom gaps,
   not broad framework adoption.
 
 ## Deferred

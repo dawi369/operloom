@@ -3,7 +3,7 @@ import {
   type AgentExecutionContext,
   type RuntimeRecord,
   type RuntimeToolBinding,
-} from "@assistant-mk1/agent-sdk/control-plane";
+} from "@operloom/agent-sdk/control-plane";
 
 import { selectAgent, selectMembership } from "./authz-store";
 import { resolveAgentBehaviorConfig } from "./agent-records";

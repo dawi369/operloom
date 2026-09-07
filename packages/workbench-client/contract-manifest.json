@@ -12,7 +12,7 @@
   ],
   "packages": [
     {
-      "name": "@assistant-mk1/workbench-client",
+      "name": "@operloom/workbench-client",
       "version": "0.1.1",
       "files": [
         {
@@ -70,12 +70,12 @@
       ]
     },
     {
-      "name": "@assistant-mk1/workbench-react",
+      "name": "@operloom/workbench-react",
       "version": "0.1.1",
       "files": [
         {
           "path": "workbench-react/dist/index.d.ts",
-          "sha256": "c6da3feb76c89e5e2c705bcefef58b09c67e62bfb339f3821f6c8313c0eea26c"
+          "sha256": "fc027c06e56ca08416dbb7d8310617d11a850274770da696e4b04a8358d926df"
         }
       ]
     }

@@ -1,4 +1,4 @@
-import { defineRunnerModule, type RunnerRuntimeModule } from "@assistant-mk1/agent-sdk/runner";
+import { defineRunnerModule, type RunnerRuntimeModule } from "@operloom/agent-sdk/runner";
 
 import { operatorActionTool, operatorSnapshotTool } from "./control-plane.js";
 

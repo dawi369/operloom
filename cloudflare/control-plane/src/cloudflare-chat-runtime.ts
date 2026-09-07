@@ -284,7 +284,7 @@ const openRouterHeaders = (env: Env) => ({
   authorization: `Bearer ${env.OPENROUTER_API_KEY ?? ""}`,
   "content-type": "application/json",
   "http-referer": env.OPENROUTER_SITE_URL ?? "https://assistant-mk1.vercel.app",
-  "x-title": env.OPENROUTER_APP_NAME ?? "assistant-mk1-cloudflare-chat",
+  "x-title": env.OPENROUTER_APP_NAME ?? "operloom-cloudflare-chat",
 });
 
 const readOpenRouterError = async (response: Response) => {

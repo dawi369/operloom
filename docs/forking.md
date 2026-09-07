@@ -2,17 +2,20 @@
 
 Document status: current downstream compatibility and update policy.
 
-`fork-base-v1.0.1` is the recommended immutable full-repository foundation for
-new downstream agent products. `fork-base-v1` remains immutable and supported
+New Operloom users should fork the current `main` branch and record the commit
+they adopt. `fork-base-v1.0.1` is the historical immutable full-repository
+foundation from before the Operloom rename. `fork-base-v1` remains immutable and supported
 as historical compatibility evidence. Neither tag promises that future
-Assistant-mk1 source changes merge without conflicts; each is a compatibility
+Operloom source changes merge without conflicts; each is a compatibility
 checkpoint enforced by the SDK contract, compiler, runtime resolution,
 installed-package conformance, and CI.
 
-`fork-base-v1.1.0` is the next mobile-capable foundation candidate. It must not
-be created or recommended until `pnpm fork:mobile-release-check` passes for the
+`fork-base-v1.1.0` remains an uncut future candidate. Native delivery is deferred
+to `codex/mobile-wip`; it is not required for the web release. Any future native
+foundation must carry device acceptance evidence for the
 same commit on real iOS and Android devices and the hosted services report that
-commit. Until then, `fork-base-v1.0.1` remains the accepted base.
+commit. `fork-base-v1.0.1` remains historical compatibility evidence, not the current
+Operloom onboarding path.
 
 ## Boundaries
 
@@ -57,15 +60,14 @@ Configure the fork's public product identity before provider setup:
 pnpm workbench fork init \
   --id my-workbench \
   --name "My Workbench" \
-  --origin https://workbench.example.com \
-  --mobile-bundle com.example.workbench
+  --origin https://workbench.example.com
 pnpm workbench fork --check
 ```
 
 The command updates the root application identity and Expo name, slug, scheme,
 bundle identifier, deep-link host, and associated domain from
 `config/product.json`. It intentionally retains the stable internal
-`@assistant-mk1/*` package namespace and does not invent provider-owned Expo,
+`@operloom/*` package namespace and does not invent provider-owned Expo,
 EAS, WorkOS, Sentry, Vercel, Cloudflare, or Fly identifiers. Configure those
 through their existing environment manifests and provider setup commands.
 
@@ -89,7 +91,7 @@ candidate merge:
 ```bash
 git fetch upstream --tags
 git switch main
-git switch -c update/assistant-mk1-<date>
+git switch -c update/operloom-<date>
 git merge --no-commit upstream/main
 ```
 
@@ -110,17 +112,7 @@ unit/type/lint/security/build checks, Docker containment, Level 2-3, lifecycle,
 connection, action, agent-system, and browser journeys. A merge is eligible only
 when local evidence and GitHub checks are green for the same commit.
 
-For a mobile-capable foundation tag, additionally run:
-
-```bash
-WORKBENCH_MOBILE_DEVICE_EVIDENCE=output/mobile/device-acceptance.json \
-  pnpm fork:mobile-release-check
-```
-
-This adds both native bundles, the shared client/chat/rendering contracts, and
-strict physical-device evidence. The evidence is intentionally ignored and
-must be retained with the internal release record; it cannot be synthesized by
-CI or replaced by an Expo export.
+Native delivery is deferred; see [Mobile WIP](mobile-frontends.md).
 
 ## Rollback
 

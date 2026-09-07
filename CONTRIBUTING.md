@@ -1,6 +1,6 @@
 # Contributing
 
-Assistant-mk1 is production-oriented application code. Changes should preserve
+Operloom is production-oriented application code. Changes should preserve
 the Vercel session, Cloudflare control-plane, and Fly execution boundaries while
 keeping the reusable assistant-ui layer product-agnostic.
 

@@ -4,7 +4,7 @@ Status: superseded by Cloudflare-owned simple chat for normal messages
 
 ## Context
 
-Assistant-mk1 uses assistant-ui with the LangGraph SDK-shaped contract for chat
+Operloom uses assistant-ui with the LangGraph SDK-shaped contract for chat
 threads and streaming. The north-star runtime says Cloudflare should own the
 user-facing control-plane boundary, while Fly remains the execution plane for
 LangGraph workflows and heavy tools.

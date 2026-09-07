@@ -1,6 +1,6 @@
 # Agent Packs
 
-Agent Packs are the code-first extension boundary for Assistant-mk1. A pack
+Agent Packs are the code-first extension boundary for Operloom. A pack
 bundles reviewed behavior, declared tools and workflows, user-facing starters,
 risk metadata, and verification scenarios. Creating an agent snapshots the
 installed pack version into the workspace-scoped D1 agent record.

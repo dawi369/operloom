@@ -17,7 +17,7 @@ import { signFacadeRequest } from "../lib/workbench/control-plane-signing";
  * and direct-scope (chat-boundary, session-boundary, events …) smoke patterns.
  *
  * Each script populates only the fields its test needs.  `headersFor` maps
- * whatever is present to the matching `x-assistant-mk1-*` request headers.
+ * whatever is present to the matching `x-operloom-*` request headers.
  */
 export type TenantIdentity = {
   userId: string;

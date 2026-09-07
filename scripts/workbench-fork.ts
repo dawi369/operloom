@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -126,7 +126,8 @@ export const configureForkIdentity = ({ root, mode, values }: ForkOptions) => {
   };
   validateForkIdentity(identity);
 
-  const mobile = readJson<Record<string, any>>(root, mobilePath);
+  const hasMobile = existsSync(resolve(root, mobilePath));
+  const mobile = hasMobile ? readJson<Record<string, any>>(root, mobilePath) : {};
   const expectedMobile = expectedMobileConfig(identity, mobile);
   const packageJson = readJson<Record<string, any>>(root, "package.json");
   const expectedPackage = { ...packageJson, name: identity.id, description: identity.description };
@@ -134,7 +135,9 @@ export const configureForkIdentity = ({ root, mode, values }: ForkOptions) => {
   if (mode === "check") {
     const errors = [
       ...differences(existing, identity).map((path) => `${productPath}:${path}`),
-      ...differences(mobile, expectedMobile).map((path) => `${mobilePath}:${path}`),
+      ...(hasMobile
+        ? differences(mobile, expectedMobile).map((path) => `${mobilePath}:${path}`)
+        : []),
       ...differences(packageJson, expectedPackage).map((path) => `package.json:${path}`),
     ];
     if (errors.length) throw new Error(`Fork identity drift:\n${errors.join("\n")}`);
@@ -142,7 +145,7 @@ export const configureForkIdentity = ({ root, mode, values }: ForkOptions) => {
   }
 
   writeJson(root, productPath, identity);
-  writeJson(root, mobilePath, expectedMobile);
+  if (hasMobile) writeJson(root, mobilePath, expectedMobile);
   writeJson(root, "package.json", expectedPackage);
   return identity;
 };

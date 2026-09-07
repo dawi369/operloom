@@ -24,7 +24,7 @@ import {
   type ConnectionPort,
   type RuntimeResult,
   type RuntimeToolBinding,
-} from "@assistant-mk1/agent-sdk/control-plane";
+} from "@operloom/agent-sdk/control-plane";
 import { agentManifestRegistry } from "../generated/agent-runtime/manifests";
 import { agentRunnerRegistry } from "../generated/agent-runtime/runner";
 import { compiledWorkbenchVersion } from "../generated/agent-runtime/platform";
@@ -48,7 +48,7 @@ if (sentryDsn) {
     beforeBreadcrumb: scrubSentryBreadcrumb,
     initialScope: {
       tags: {
-        service: "assistant-mk1",
+        service: "operloom",
         "runtime.surface": "fly-langgraph",
         "runtime.target": "gateway",
       },
@@ -117,7 +117,7 @@ const assistantHeaders = (request: IncomingMessage) => {
   const headers: Record<string, string> = {};
   for (const [key, value] of Object.entries(request.headers)) {
     const item = firstHeader(value);
-    if (item && key.toLowerCase().startsWith("x-assistant-mk1-")) {
+    if (item && key.toLowerCase().startsWith("x-operloom-")) {
       headers[key.toLowerCase()] = item;
     }
   }
@@ -1009,7 +1009,7 @@ const server = createServer((request, response) => {
     if (request.method === "GET" && url.pathname === "/health/live") {
       json(response, 200, {
         ok: true,
-        service: "assistant-mk1-langgraph-runtime",
+        service: "operloom-langgraph-runtime",
         version: compiledWorkbenchVersion,
         gatewayReady: true,
         release: process.env.WORKBENCH_RELEASE_SHA ?? "development",
@@ -1021,7 +1021,7 @@ const server = createServer((request, response) => {
       const langGraphReady = await isLangGraphReady();
       json(response, langGraphReady ? 200 : 503, {
         ok: langGraphReady,
-        service: "assistant-mk1-langgraph-runtime",
+        service: "operloom-langgraph-runtime",
         version: compiledWorkbenchVersion,
         langGraphReady,
         release: process.env.WORKBENCH_RELEASE_SHA ?? "development",

@@ -1,1 +1,1 @@
-export { scrubSentryBreadcrumb, scrubSentryEvent } from "@assistant-mk1/observability";
+export { scrubSentryBreadcrumb, scrubSentryEvent } from "@operloom/observability";

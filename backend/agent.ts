@@ -9,7 +9,7 @@ import { ChatOpenRouter } from "@langchain/openrouter";
 import { MessagesAnnotation, StateGraph } from "@langchain/langgraph";
 
 const model = new ChatOpenRouter({
-  model: process.env.OPENROUTER_MODEL,
+  model: process.env.OPENROUTER_MODEL?.trim() || "openai/gpt-5.2",
   siteUrl: process.env.OPENROUTER_SITE_URL,
   siteName: process.env.OPENROUTER_APP_NAME,
 });

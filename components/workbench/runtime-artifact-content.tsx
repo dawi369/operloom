@@ -7,7 +7,7 @@ import {
   type ErrorInfo,
   type ReactNode,
 } from "react";
-import type { ArtifactRendererProps } from "@assistant-mk1/agent-sdk/web";
+import type { ArtifactRendererProps } from "@operloom/agent-sdk/web";
 
 import { resolveArtifactRenderer, sanitizeRendererValue } from "@/lib/agent-runtime/web-registry";
 import type { ArtifactSummary } from "@/lib/workbench/workbench-types";

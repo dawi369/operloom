@@ -1,6 +1,6 @@
 # DB Contracts
 
-Assistant-mk1 uses docs-first DB contracts before adding migrations or storage
+Operloom uses docs-first DB contracts before adding migrations or storage
 implementations. These contracts define durable entity shapes and repository
 operations, not final D1 table schemas, SQL migrations, or stable public APIs.
 
@@ -64,7 +64,7 @@ Minimum fields:
 
 ### WorkspaceRecord
 
-Operational boundary under an assistant-mk1 account source. In B2B
+Operational boundary under an operloom account source. In B2B
 deployments, the account source is usually a WorkOS organization. The current
 slice creates one default workspace per account source; the north star allows
 multiple workspaces per account later. Workspaces isolate tools, secrets,
@@ -476,7 +476,7 @@ service clients to satisfy this contract layer.
 
 ## App Extension Model
 
-Assistant-mk1 stays generic by keeping shared fields small and putting app
+Operloom stays generic by keeping shared fields small and putting app
 fields in `data`.
 
 Examples:

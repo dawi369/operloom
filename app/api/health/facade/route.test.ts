@@ -43,7 +43,7 @@ describe("signed facade health", () => {
         );
         return Response.json({
           ok: true,
-          service: "assistant-mk1-control-plane-facade",
+          service: "operloom-control-plane-facade",
           version: "0.5.1",
           release,
         });
@@ -55,7 +55,7 @@ describe("signed facade health", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       ok: true,
-      service: "assistant-mk1-facade",
+      service: "operloom-facade",
       version: "0.5.1",
       release,
     });
@@ -70,7 +70,7 @@ describe("signed facade health", () => {
     const response = await GET();
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({ ok: false, service: "assistant-mk1-facade" });
+    expect(await response.json()).toEqual({ ok: false, service: "operloom-facade" });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -97,6 +97,6 @@ describe("signed facade health", () => {
     const response = await GET();
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({ ok: false, service: "assistant-mk1-facade" });
+    expect(await response.json()).toEqual({ ok: false, service: "operloom-facade" });
   });
 });

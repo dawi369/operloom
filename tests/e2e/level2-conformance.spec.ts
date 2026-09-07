@@ -35,7 +35,7 @@ test.describe.serial("Level 2 executable conformance", () => {
     request,
   }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Hello there!" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What are we working on?" })).toBeVisible();
 
     await page.getByRole("button", { name: "Workspace access" }).click();
     const workspaceDialog = page.getByRole("dialog", { name: "Workspace" });

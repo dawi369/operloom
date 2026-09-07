@@ -4,7 +4,7 @@ Status: accepted
 
 ## Context
 
-Assistant-mk1 needs fast frontend iteration and a realistic hosted runtime for agent workflows. Agent projects also need stable URLs, runtime secrets, logs, scheduled work, and external callbacks.
+Operloom needs fast frontend iteration and a realistic hosted runtime for agent workflows. Agent projects also need stable URLs, runtime secrets, logs, scheduled work, and external callbacks.
 
 ## Decision
 

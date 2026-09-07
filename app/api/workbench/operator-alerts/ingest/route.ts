@@ -36,11 +36,11 @@ export async function POST(request: Request) {
       { status: 503 },
     );
   }
-  Sentry.captureMessage(`Assistant-mk1 operator alert: ${alert.code}`, {
+  Sentry.captureMessage(`Operloom operator alert: ${alert.code}`, {
     level: alert.severity === "critical" ? "error" : "warning",
-    fingerprint: ["assistant-mk1-operator-alert", alert.code],
+    fingerprint: ["operloom-operator-alert", alert.code],
     tags: {
-      service: "assistant-mk1",
+      service: "operloom",
       "operator_alert.code": alert.code,
       "operator_alert.severity": alert.severity,
     },

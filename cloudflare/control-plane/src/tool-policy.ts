@@ -12,7 +12,7 @@ import {
   type ToolPermissionStatus,
 } from "./types";
 import { agentControlPlaneRegistry } from "../../../generated/agent-runtime/control-plane";
-import type { RuntimeToolBinding } from "@assistant-mk1/agent-sdk/control-plane";
+import type { RuntimeToolBinding } from "@operloom/agent-sdk/control-plane";
 import { platformDiagnosticPolicyDefaults } from "../../../lib/workbench/admin-test-tools";
 
 export {

@@ -1,7 +1,7 @@
 {
-  "name": "@assistant-mk1/agent-sdk",
+  "name": "@operloom/agent-sdk",
   "version": "1.0.1",
-  "description": "Build-time Agent Pack and Runtime Module contracts for Assistant-mk1.",
+  "description": "Build-time Agent Pack and Runtime Module contracts for Operloom.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "files": [
     "dist",

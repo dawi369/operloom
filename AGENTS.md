@@ -1,4 +1,4 @@
-# Assistant-mk1 Agent Instructions
+# Operloom Agent Instructions
 
 This repo is a reusable agent workbench built from the assistant-ui LangGraph starter. Treat it as production-oriented application code, not a demo.
 
@@ -22,7 +22,16 @@ This repo is a reusable agent workbench built from the assistant-ui LangGraph st
 - `backend/agent.ts` is the LangGraph graph/provider seam.
 - `app/api/[..._path]/route.ts` proxies browser requests to the LangGraph API.
 - `app/api/external-signals/[publicId]/route.ts` is the signed facade for per-trigger Agent Pack webhooks; the unscoped legacy route is retired.
-- LangGraph threads/runs/interrupts/crons/webhooks are the default primitives for long-running work.
+- Cloudflare owns normal chat, authorization, durable run/control state, policy, and audit.
+- Use the signed Node.js runner for process/heavy tools; use LangGraph only for delegated graph orchestration. Read `docs/architecture.md` before moving ownership across these boundaries.
+- Native clients are WIP on `codex/mobile-wip`; main targets the web workbench and shared client contracts.
+- Preserve existing signed header and provider resource identities during branding changes; see `docs/operloom-release.md`.
+
+## Local resource safety
+
+- Run browser acceptance and Docker builds sequentially, never together.
+- Use the supervised development commands; they enforce process-group cleanup and resource budgets on macOS/Linux.
+- Development uses Webpack. Reproduce bundler changes only under the supervisor; never retry unbounded Turbopack workers.
 
 ## Verification
 
@@ -37,7 +46,7 @@ pnpm lint
 For runtime work, also smoke:
 
 ```bash
-pnpm dev
+pnpm operloom dev
 curl http://localhost:3000/api/health
 ```
 
@@ -47,4 +56,4 @@ For Fly staging work, deploy only after local checks pass and then smoke the hos
 
 - Do not run destructive Git commands unless explicitly requested.
 - Do not echo secrets into logs, docs, commits, or chat.
-- Before adding persistence, volumes, queues, or new service dependencies, document why LangGraph's built-in primitives are insufficient.
+- Before adding persistence, volumes, queues, or new service dependencies, document why the existing Cloudflare and LangGraph primitives are insufficient.

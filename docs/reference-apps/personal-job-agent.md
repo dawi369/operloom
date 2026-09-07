@@ -1,13 +1,13 @@
 # Personal Job Agent Reference App
 
-The Personal Job Agent is a demanding reference target for assistant-mk1. It
+The Personal Job Agent is a demanding reference target for operloom. It
 proves the framework can support web-browsing, long-running, stateful agents
 that discover opportunities, build a durable application database, and act
 through policy-controlled tools.
 
 It is not a separate runtime. It is a reference mapping for a personal job
 search operator built on the same generic primitives as Polymancer, deployment
-agents, and future assistant-mk1 apps.
+agents, and future operloom apps.
 
 ## Vision
 
@@ -71,7 +71,7 @@ personal operators that browse, decide, submit forms, track outcomes, and answer
 
 ## Framework Mapping
 
-Personal Job Agent behavior must map to generic assistant-mk1 primitives:
+Personal Job Agent behavior must map to generic operloom primitives:
 
 - Live chat -> Cloudflare `AIChatAgent` thread runtime for conversation only;
   job records, browser tools, profile data, policies, credentials, schedules,
@@ -246,5 +246,5 @@ analyze, draft, dry-run, and queue for approval or later execution.
 
 The Personal Job Agent is a reference mapping, not a special-case runtime. Its
 browser tools, applications, ledgers, triggers, managed state, decision records,
-and audit events must use the same assistant-mk1 contracts as Polymancer,
+and audit events must use the same operloom contracts as Polymancer,
 deployment agents, and future reference apps.

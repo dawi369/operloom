@@ -1,6 +1,6 @@
 # Capability Model
 
-Assistant-mk1 measures operational sophistication separately from external
+Operloom measures operational sophistication separately from external
 authority. A pack cannot acquire either by prompt wording or manifest metadata:
 the compiled runtime, workspace policy, platform gates, and executable evidence
 must all agree.

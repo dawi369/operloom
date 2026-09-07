@@ -1,7 +1,4 @@
-import {
-  createWorkbenchClient,
-  createWorkbenchRealtimeAdapter,
-} from "@assistant-mk1/workbench-client";
+import { createWorkbenchClient, createWorkbenchRealtimeAdapter } from "@operloom/workbench-client";
 
 export const browserWorkbenchClient = createWorkbenchClient({
   baseUrl: "",

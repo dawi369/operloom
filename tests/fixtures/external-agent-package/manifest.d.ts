@@ -1,3 +1,3 @@
-import type { LocalAgentPackManifest } from "@assistant-mk1/agent-sdk/manifest";
+import type { LocalAgentPackManifest } from "@operloom/agent-sdk/manifest";
 
 export declare const manifest: LocalAgentPackManifest;

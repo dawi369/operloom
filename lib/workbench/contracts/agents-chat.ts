@@ -1,1 +1,1 @@
-export * from "@assistant-mk1/workbench-client/contracts/agents-chat";
+export * from "@operloom/workbench-client/contracts/agents-chat";

@@ -5,7 +5,7 @@ import { signFacadeRequest } from "../../../../lib/workbench/control-plane-signi
 
 export const runtime = "nodejs";
 
-const service = "assistant-mk1-facade";
+const service = "operloom-facade";
 
 const unavailable = () => NextResponse.json({ ok: false, service }, { status: 503 });
 
@@ -34,7 +34,7 @@ export async function GET() {
     if (
       !response.ok ||
       body?.ok !== true ||
-      body.service !== "assistant-mk1-control-plane-facade" ||
+      body.service !== "operloom-control-plane-facade" ||
       body.version !== compiledWorkbenchVersion ||
       body.release !== release
     ) {

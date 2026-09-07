@@ -51,7 +51,7 @@ export const buildProviderSecretConfiguration = (
     WORKBENCH_ENVIRONMENT: manifest.target,
     WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE: String(manifest.target === "acceptance"),
     SENTRY_ORG: "t23",
-    SENTRY_PROJECT: "assistant-mk1",
+    SENTRY_PROJECT: "operloom",
     SENTRY_ENVIRONMENT: manifest.target,
     NEXT_PUBLIC_SENTRY_ENVIRONMENT: manifest.target,
     SENTRY_TRACES_SAMPLE_RATE: "0.02",

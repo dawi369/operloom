@@ -1,4 +1,4 @@
-import { defineAgentPack, type LocalAgentPackManifest } from "@assistant-mk1/agent-sdk/manifest";
+import { defineAgentPack, type LocalAgentPackManifest } from "@operloom/agent-sdk/manifest";
 
 export const manifest: LocalAgentPackManifest = defineAgentPack({
   id: "complex-operator",
