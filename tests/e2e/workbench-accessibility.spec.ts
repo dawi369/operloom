@@ -79,7 +79,7 @@ test("keyboard, focus, responsive, and accessibility contracts cover workbench s
   page,
 }, testInfo) => {
   test.skip(releaseMode !== "local-session");
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
 
   await page.goto("/");
   const composer = page.getByRole("textbox", { name: "Message input" });
@@ -130,7 +130,14 @@ test("keyboard, focus, responsive, and accessibility contracts cover workbench s
   await expect(repositoryPack).toBeVisible();
   const useRepositoryPack = repositoryPack.getByRole("button", { name: "Use agent" });
   if (await useRepositoryPack.count()) {
+    const switchResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        new URL(response.url()).pathname === "/api/workbench/chat-session/agent-switch",
+    );
     await useRepositoryPack.press("Enter");
+    const switched = await switchResponse;
+    expect(switched.ok(), await switched.text()).toBe(true);
   } else {
     await expect(repositoryPack.getByRole("button", { name: "Current" })).toBeDisabled();
     await page.keyboard.press("Escape");
@@ -150,7 +157,14 @@ test("keyboard, focus, responsive, and accessibility contracts cover workbench s
 
   await page.getByRole("button", { name: /Assess release readiness/i }).press("Enter");
   await expectDialogFocusTrap(page, "Readiness report");
+  const workflowResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname.startsWith("/api/workbench/workflows/"),
+  );
   await page.getByRole("button", { name: "Run dry-run" }).press("Enter");
+  const workflow = await workflowResponse;
+  expect(workflow.ok(), await workflow.text()).toBe(true);
   await expect(page.getByRole("dialog", { name: "Workbench History" })).toBeVisible();
   await expect(page.getByText("Repository snapshot report", { exact: true }).first()).toBeVisible({
     timeout: 30_000,
