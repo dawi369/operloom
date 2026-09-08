@@ -23,6 +23,9 @@ const json = (body: unknown) =>
  */
 export const createAgentPackTestFetch = (): typeof fetch => async (input) => {
   const url = new URL(input instanceof Request ? input.url : String(input));
+  if (url.origin === "https://gamma-api.polymarket.com" && url.pathname === "/public-search") {
+    return json({ events: [{ markets: [polymarketFixture] }] });
+  }
   if (url.origin === "https://gamma-api.polymarket.com" && url.pathname === "/markets") {
     return json([polymarketFixture]);
   }

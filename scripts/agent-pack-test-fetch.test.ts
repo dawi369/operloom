@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createAgentPackTestFetch } from "./agent-pack-test-fetch";
+import { runAgentPackConformance } from "./test-agent-pack";
 
 describe("agent-pack deterministic fetch", () => {
   it("serves bounded Polymarket fixtures without provider traffic", async () => {
@@ -21,6 +22,22 @@ describe("agent-pack deterministic fetch", () => {
     await expect(book.json()).resolves.toEqual(
       expect.objectContaining({ asset_id: "conformance-token-yes" }),
     );
+  });
+
+  it("executes Polymancer conformance against the deterministic provider fixtures", async () => {
+    vi.stubGlobal("fetch", createAgentPackTestFetch());
+    try {
+      const report = await runAgentPackConformance(process.cwd(), "baby-polymancer");
+      expect(report.ok).toBe(true);
+      expect(report.results).toContainEqual(
+        expect.objectContaining({
+          id: "workflow.polymancer.market_research",
+          ok: true,
+        }),
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("fails closed on undeclared external requests", async () => {
