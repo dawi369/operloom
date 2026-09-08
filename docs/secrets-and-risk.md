@@ -1,6 +1,6 @@
 # Secrets And Risk
 
-Assistant-mk1 must assume tools can be powerful. Secret custody and execution policy are framework primitives, not app-specific extras.
+Operloom must assume tools can be powerful. Secret custody and execution policy are framework primitives, not app-specific extras.
 
 ## Secret Custody
 

@@ -7,6 +7,7 @@
  * active workspace/thread/agent session, mints the short-lived Agent token, and
  * the browser talks to the per-thread Durable Object through the Agents SDK.
  */
+import { useAssistantSlashCommands } from "@/components/assistant-ui/slash-command-context";
 import {
   useCallback,
   useEffect,
@@ -311,6 +312,34 @@ function PreRuntimeDraftSurface({
   initialSignedOutPresentation: boolean;
 }) {
   const { registerComposerInput } = useWorkbenchComposerFocus();
+  const commands = useAssistantSlashCommands();
+  const [commandIndex, setCommandIndex] = useState(0);
+  const [commandsDismissed, setCommandsDismissed] = useState(false);
+  const commandQuery = /^\/\S*$/.test(draft) ? draft.slice(1).toLowerCase() : null;
+  const matchingCommands =
+    commandQuery !== null && !commandsDismissed
+      ? commands.filter(
+          (command) =>
+            command.id.toLowerCase().startsWith(commandQuery) ||
+            command.label.toLowerCase().replace(/\s+/g, "-").startsWith(commandQuery),
+        )
+      : [];
+  const highlightedIndex = Math.min(commandIndex, Math.max(0, matchingCommands.length - 1));
+  const executeDraftCommand = async (command: (typeof commands)[number]) => {
+    onDraftChange("");
+    setCommandsDismissed(true);
+    await command.execute({ isLoadingThread: false, isThreadRunning: false });
+  };
+  const submitDraft = async () => {
+    const command =
+      matchingCommands[highlightedIndex] ??
+      commands.find((item) => draft.trim().toLowerCase() === `/${item.id.toLowerCase()}`);
+    if (command) {
+      await executeDraftCommand(command);
+      return;
+    }
+    await onSubmit();
+  };
   const { user, loading: authLoading, refreshAuth } = useAuth();
   const [hasRememberedSignOut, setHasRememberedSignOut] = useState(initialSignedOutPresentation);
   const hasSessionAccess = hasWorkbenchSessionAccess({
@@ -450,18 +479,92 @@ function PreRuntimeDraftSurface({
           )}
 
           <div className="sticky bottom-0 mt-auto flex flex-col overflow-visible rounded-t-(--composer-radius) bg-gradient-to-t from-background via-background/95 to-transparent pt-7 pb-4 md:pb-6">
+            {matchingCommands.length > 0 ? (
+              <div
+                id="draft-slash-commands"
+                role="listbox"
+                aria-label="Commands"
+                className="bg-popover text-popover-foreground absolute bottom-full left-0 z-30 mb-2 w-80 max-w-[calc(100vw-2rem)] rounded-lg border p-1 shadow-lg"
+              >
+                {matchingCommands.map((command, index) => {
+                  const Icon = command.icon;
+                  return (
+                    <button
+                      key={command.id}
+                      id={`draft-command-${command.id}`}
+                      type="button"
+                      role="option"
+                      tabIndex={-1}
+                      aria-selected={index === highlightedIndex}
+                      className={`flex w-full items-start gap-2 rounded-md px-2.5 py-2 text-left text-sm outline-none ${index === highlightedIndex ? "bg-accent text-accent-foreground" : ""}`}
+                      onPointerDown={(event) => event.preventDefault()}
+                      onPointerMove={() => setCommandIndex(index)}
+                      onClick={() => void executeDraftCommand(command)}
+                    >
+                      {Icon ? (
+                        <Icon
+                          aria-hidden="true"
+                          className="text-muted-foreground mt-0.5 size-4 shrink-0"
+                        />
+                      ) : null}
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">{command.label}</span>
+                        {command.description ? (
+                          <span className="text-muted-foreground mt-0.5 block text-xs">
+                            {command.description}
+                          </span>
+                        ) : null}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             <div data-slot="aui_composer-shell" className={workbenchComposerShellClassName}>
               <textarea
                 ref={registerComposerInput}
                 value={draft}
-                onChange={(event) => onDraftChange(event.target.value)}
-                onFocus={onFocus}
+                onChange={(event) => {
+                  setCommandIndex(0);
+                  setCommandsDismissed(false);
+                  onDraftChange(event.target.value);
+                }}
+                onFocus={() => {
+                  setCommandsDismissed(false);
+                  onFocus();
+                }}
+                onBlur={() => setCommandsDismissed(true)}
+                aria-autocomplete="list"
+                aria-controls={matchingCommands.length ? "draft-slash-commands" : undefined}
+                aria-activedescendant={
+                  matchingCommands.length
+                    ? `draft-command-${matchingCommands[highlightedIndex]!.id}`
+                    : undefined
+                }
                 onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing) return;
+                  if (matchingCommands.length) {
+                    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                      event.preventDefault();
+                      setCommandIndex(
+                        (highlightedIndex +
+                          (event.key === "ArrowDown" ? 1 : -1) +
+                          matchingCommands.length) %
+                          matchingCommands.length,
+                      );
+                      return;
+                    }
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      setCommandsDismissed(true);
+                      return;
+                    }
+                  }
                   if (event.key !== "Enter" || event.shiftKey) return;
                   event.preventDefault();
-                  void onSubmit();
+                  void submitDraft();
                 }}
-                placeholder="Send a message..."
+                placeholder="Message or / for commands…"
                 className={workbenchComposerInputClassName}
                 rows={1}
                 autoFocus
@@ -503,7 +606,7 @@ function PreRuntimeDraftSurface({
                         ? "Create the chat and send this message"
                         : "Send is available when the Agent connection is ready"
                     }
-                    onClick={() => void onSubmit()}
+                    onClick={() => void submitDraft()}
                   >
                     <ArrowUpIcon className="size-4" />
                   </Button>

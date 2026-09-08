@@ -1,10 +1,10 @@
-# Assistant-mk1 Architecture Overview Diagram
+# Operloom Architecture Overview Diagram
 
 Last updated: 2026-06-25
 
 ## Purpose
 
-Show the current hosted implementation topology of assistant-mk1 after WorkOS,
+Show the current hosted implementation topology of operloom after WorkOS,
 Cloudflare Agent chat, workspace/agent routing, `/agents`, active-agent slash
 actions, `/history`, read-only tools, pack workflows, callbacks, and
 control-plane event visibility landed. This diagram is an overview only: it

@@ -1,4 +1,4 @@
-import { type AgentExecutionContext } from "@assistant-mk1/agent-sdk/control-plane";
+import { type AgentExecutionContext } from "@operloom/agent-sdk/control-plane";
 
 import { json } from "./http";
 import {

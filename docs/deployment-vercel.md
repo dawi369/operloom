@@ -29,13 +29,15 @@ When AuthKit provides an `organizationId`, Vercel maps it to an internal
 `workos-org:<organizationId>` account id. Cloudflare creates the account's
 default workspace if needed and resolves the active workspace from D1. That is
 the current B2B shape: a customer/company WorkOS organization owns one or more
-assistant-mk1 workspaces, with one default workspace created first. A signed-in
+operloom workspaces, with one default workspace created first. A signed-in
 WorkOS session without an organization gets a stable personal account id
 derived from the WorkOS `user.id`, with a default workspace under that account.
 
 ## Required Environment
 
-Create distinct protected Vercel projects for `acceptance` and `production`.
+For separate hosted acceptance, create distinct protected Vercel projects for
+`acceptance` and `production`. The personal deployment keeps only one active
+[testing stack](minimal-hosted-testing.md).
 Resolve the non-secret project IDs and origins required by
 `config/environments/<target>.json`, then set these in that target only:
 
@@ -65,7 +67,8 @@ stable WorkOS user ids.
 Do not mirror local `.env.local` into Vercel Production blindly:
 
 - Local redirect URI: `http://localhost:3000/auth/callback`
-- Production redirect URI: `https://assistant-mk1.vercel.app/auth/callback`
+- Production redirect URI: `https://operloom.vercel.app/auth/callback` (register it
+  in WorkOS first; see the compatibility callback in the testing runbook)
 
 The Vercel `/api` proxy authenticates to Cloudflare with a signed facade
 request. Hosted targets reject the local development transport token and trust

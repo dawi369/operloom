@@ -14,8 +14,10 @@ const maxBytes = 128 * 1024;
 const maxRedirects = 3;
 
 type PublicUrlInspectPolicy = {
-  allowedHosts?: string[];
-  deniedHosts?: string[];
+  egress?: "none" | "public_web" | "broker_only";
+  allowedSchemes?: readonly string[];
+  allowedHosts?: readonly string[];
+  deniedHosts?: readonly string[];
 };
 
 const matchesHost = (hostname: string, pattern: string) => {
@@ -119,7 +121,7 @@ export const pinnedRequestOptions = (
   headers: {
     host: url.host,
     accept: "text/html,application/xhtml+xml,application/json,text/plain;q=0.8,*/*;q=0.5",
-    "user-agent": "assistant-mk1-url-inspect/1",
+    "user-agent": "operloom-url-inspect/1",
   },
 });
 
@@ -209,6 +211,18 @@ export const inspectPublicUrl = async (
 
   try {
     for (let redirects = 0; redirects <= maxRedirects; redirects += 1) {
+      if (
+        (policy.egress !== undefined && policy.egress !== "public_web") ||
+        (policy.allowedSchemes && !policy.allowedSchemes.includes(url.protocol.slice(0, -1)))
+      ) {
+        return {
+          ok: false,
+          error: urlInspectError(
+            "sandbox_egress_not_allowed",
+            "The signed runner policy blocks this request.",
+          ),
+        };
+      }
       if (url.protocol !== "http:" && url.protocol !== "https:") {
         return {
           ok: false,
@@ -233,7 +247,10 @@ export const inspectPublicUrl = async (
       if (policy.deniedHosts?.some((pattern) => matchesHost(url.hostname, pattern))) {
         return {
           ok: false,
-          error: urlInspectError("url_host_blocked", "The URL host is blocked by tool policy."),
+          error: urlInspectError(
+            policy.egress ? "sandbox_egress_not_allowed" : "url_host_blocked",
+            "The URL host is blocked by tool policy.",
+          ),
         };
       }
       if (
@@ -242,7 +259,10 @@ export const inspectPublicUrl = async (
       ) {
         return {
           ok: false,
-          error: urlInspectError("url_host_blocked", "The URL host is not allowed by tool policy."),
+          error: urlInspectError(
+            policy.egress ? "sandbox_egress_not_allowed" : "url_host_blocked",
+            "The URL host is not allowed by tool policy.",
+          ),
         };
       }
       if (visited.has(url.toString())) {

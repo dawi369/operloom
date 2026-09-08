@@ -15,7 +15,7 @@
     "SENTRY_TRACES_SAMPLE_RATE": "0.02",
   },
   "triggers": {
-    "crons": ["* * * * *"],
+    "crons": [],
   },
   "d1_databases": [
     {

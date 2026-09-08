@@ -2,7 +2,7 @@ import {
   defineControlPlaneModule,
   type ControlPlaneRuntimeModule,
   type RuntimeRecord,
-} from "@assistant-mk1/agent-sdk/control-plane";
+} from "@operloom/agent-sdk/control-plane";
 
 const objectSchema = { type: "object", additionalProperties: false } as const;
 const policy = (reference: string, modelVisible = false) => ({

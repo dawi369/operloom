@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components";
 
+import { getAuthConfiguration } from "@/lib/workbench/auth-configuration";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { workbenchProduct } from "@/lib/workbench/product-identity";
 import "./globals.css";
@@ -38,10 +39,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { workOsConfigured } = getAuthConfiguration();
   return (
     <html lang="en">
       <body className={`${plexSans.variable} ${plexMono.variable} antialiased`}>
-        <AuthKitProvider>
+        <AuthKitProvider
+          // Without an auth provider there is no session to restore. Local
+          // identity remains a separate, server-authorized workspace decision.
+          initialAuth={workOsConfigured ? undefined : { user: null }}
+          onSessionExpired={workOsConfigured ? undefined : false}
+        >
           <TooltipProvider>{children}</TooltipProvider>
         </AuthKitProvider>
       </body>

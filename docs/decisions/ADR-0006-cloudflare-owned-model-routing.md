@@ -4,7 +4,7 @@ Status: accepted as north-star direction
 
 ## Context
 
-Assistant-mk1 now has Cloudflare resolving the signed-in WorkOS account,
+Operloom now has Cloudflare resolving the signed-in WorkOS account,
 workspace, membership, and active agent before normal chat runs. Current simple
 chat still uses worker-level provider configuration such as `OPENROUTER_MODEL`.
 That is acceptable as a development default, but it is not the right long-term

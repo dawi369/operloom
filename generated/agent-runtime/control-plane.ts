@@ -7,22 +7,22 @@ import { controlPlane as module3 } from "../../examples/complex-operator/control
 export const agentControlPlaneRegistry = {
   "repo-analyst": {
     module: module0,
-    package: "@assistant-mk1/pack-repo-analyst",
+    package: "@operloom/pack-repo-analyst",
     conformanceOnly: false,
   },
   "baby-polymancer": {
     module: module1,
-    package: "@assistant-mk1/pack-baby-polymancer",
+    package: "@operloom/pack-baby-polymancer",
     conformanceOnly: false,
   },
   "baby-swordfish": {
     module: module2,
-    package: "@assistant-mk1/pack-baby-swordfish",
+    package: "@operloom/pack-baby-swordfish",
     conformanceOnly: false,
   },
   "complex-operator": {
     module: module3,
-    package: "@assistant-mk1/pack-complex-operator",
+    package: "@operloom/pack-complex-operator",
     conformanceOnly: true,
   },
 } as const;

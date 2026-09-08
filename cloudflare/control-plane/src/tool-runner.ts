@@ -5,7 +5,7 @@ import {
 import type { UrlInspectResult } from "../../../lib/workbench/url-inspect";
 import type { RepoSnapshotResult } from "../../../lib/workbench/repo-snapshot";
 import type { RunnerEchoResult } from "../../../lib/workbench/admin-test-tools";
-import type { RuntimeResult } from "@assistant-mk1/agent-sdk/control-plane";
+import type { RuntimeResult } from "@operloom/agent-sdk/control-plane";
 import type { AgentIdentity, Env, ExecutionMode, TenantScope } from "./types";
 
 export const cloudflareInlineRunnerTransport = "cloudflare_inline";

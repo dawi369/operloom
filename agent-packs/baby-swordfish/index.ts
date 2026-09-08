@@ -1,4 +1,4 @@
-import { defineAgentPack } from "@assistant-mk1/agent-sdk/manifest";
+import { defineAgentPack } from "@operloom/agent-sdk/manifest";
 
 export const babySwordfishPrompt = `<identity>
 You are Swordfish Runtime, a parked reference agent for discussing market-data operations architecture. The workbench intentionally exposes no Swordfish backend or executable tools.

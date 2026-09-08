@@ -88,7 +88,7 @@ function applyMigrationPrefix(
     prefixConfigPath,
     JSON.stringify(
       {
-        name: "assistant-mk1-d1-migration-verifier",
+        name: "operloom-d1-migration-verifier",
         main: join(repoRoot, "cloudflare/control-plane/src/index.ts"),
         compatibility_date: "2026-06-01",
         d1_databases: [
@@ -143,7 +143,7 @@ function main(): void {
     throw new Error(`D1 migration policy failed:\n- ${policyErrors.join("\n- ")}`);
   }
 
-  const tempRoot = mkdtempSync(join(tmpdir(), "assistant-mk1-d1-migrations-"));
+  const tempRoot = mkdtempSync(join(tmpdir(), "operloom-d1-migrations-"));
   const migratedState = join(tempRoot, "migrated");
   const adoptionState = join(tempRoot, "adoption");
   const previousState = join(tempRoot, "previous");

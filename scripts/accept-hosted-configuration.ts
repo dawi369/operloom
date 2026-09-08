@@ -100,9 +100,9 @@ const readHealth = async (origin: string, path: string, expectedService: string)
 };
 const main = async () => {
   const health = await Promise.all([
-    readHealth(manifest.vercel.origin, "/api/health", "assistant-mk1"),
-    readHealth(manifest.cloudflare.origin, "/health", "assistant-mk1-control-plane"),
-    readHealth(manifest.fly.origin, "/health", "assistant-mk1-langgraph-runtime"),
+    readHealth(manifest.vercel.origin, "/api/health", "operloom"),
+    readHealth(manifest.cloudflare.origin, "/health", "operloom-control-plane"),
+    readHealth(manifest.fly.origin, "/health", "operloom-langgraph-runtime"),
   ]);
   if (new Set(health.map((item) => item.release)).size !== 1) {
     failures.push("hosted services report different releases");

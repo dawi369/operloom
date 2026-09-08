@@ -43,9 +43,6 @@ jobs:
       - name: Verify portable frontend contract
         run: pnpm conformance:client
 
-      - name: Verify mobile bundles and delivery contract
-        run: pnpm conformance:mobile
-
       - name: Upload SDK and extension failure evidence
         if: failure()
         uses: actions/upload-artifact@v7
@@ -57,7 +54,6 @@ jobs:
             output/extension-contract
             output/sdk-consumer
             output/workbench-client-consumer
-            output/mobile
 
   docker:
     needs: verify
@@ -85,7 +81,7 @@ jobs:
         run: pnpm verify:docker
 
   browser:
-    needs: [verify, docker]
+    needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -112,6 +108,9 @@ jobs:
       - name: Install runner dependencies
         run: sudo apt-get update && sudo apt-get install --yes ripgrep
 
+      - name: Verify Level 2 conformance
+        run: pnpm conformance:level2
+
       - name: Verify agent extension system
         run: pnpm conformance:agent-system
 
@@ -123,9 +122,6 @@ jobs:
 
       - name: Verify mutation authority
         run: pnpm conformance:actions
-
-      - name: Verify Level 2 conformance
-        run: pnpm conformance:level2
 
       - name: Verify Level 3 conformance
         run: pnpm conformance:level3

@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { serviceMemoryBudgetMb, startManagedProcess } from "./managed-process";
 import { createServer } from "node:net";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -78,7 +78,15 @@ export const createLocalWorkbenchConfiguration = (
       {
         name: "frontend",
         command: "pnpm",
-        args: ["dev:frontend"],
+        args: [
+          "exec",
+          "next",
+          "dev",
+          "--webpack",
+          "--disable-source-maps",
+          "--hostname",
+          "127.0.0.1",
+        ],
         port: frontendPort,
         healthUrl: `http://127.0.0.1:${frontendPort}`,
         env: { ...shared, PORT: String(frontendPort) },
@@ -118,13 +126,17 @@ const assertPortAvailable = (port: number) =>
     server.listen(port, "127.0.0.1", () => server.close(() => resolveAvailable()));
   });
 
-const waitForHealth = async (service: LocalWorkbenchService, timeoutMs = 60_000) => {
+const waitForHealth = async (
+  service: LocalWorkbenchService,
+  signal: AbortSignal,
+  timeoutMs = 60_000,
+) => {
   const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
+  while (Date.now() < deadline && !signal.aborted) {
     try {
       const response = await fetch(service.healthUrl, {
         redirect: "manual",
-        signal: AbortSignal.timeout(2_000),
+        signal: AbortSignal.any([signal, AbortSignal.timeout(2_000)]),
       });
       if (response.status < 500) return;
     } catch {
@@ -149,40 +161,44 @@ const main = async () => {
     console.log(`- ${service.name.padEnd(10)} ${service.healthUrl}`);
   }
 
-  const children = new Map<ServiceName, ChildProcess>();
+  const children = new Map<ServiceName, ReturnType<typeof startManagedProcess>>();
   let stopping = false;
+  const startup = new AbortController();
   const stop = (exitCode: number) => {
     if (stopping) return;
     stopping = true;
-    for (const child of children.values()) child.kill("SIGTERM");
+    startup.abort();
+    for (const child of children.values()) child.stop();
     process.exitCode = exitCode;
   };
-  process.once("SIGINT", () => stop(130));
-  process.once("SIGTERM", () => stop(143));
+  process.on("SIGINT", () => stop(130));
+  process.on("SIGTERM", () => stop(143));
 
   for (const service of configuration.services) {
-    const child = spawn(service.command, service.args, {
+    const managed = startManagedProcess(service.command, service.args, {
+      label: service.name,
       cwd: resolve(root),
       env: service.env as NodeJS.ProcessEnv,
       stdio: "inherit",
+      maxRssMb: serviceMemoryBudgetMb(service.name),
     });
-    children.set(service.name, child);
-    child.once("error", (error) => {
-      console.error(`${service.name} failed to start: ${error.message}`);
-      stop(1);
-    });
-    child.once("exit", (code, signal) => {
+    children.set(service.name, managed);
+    void managed.completion.then(({ code, signal, reason }) => {
       if (stopping) return;
-      console.error(`${service.name} exited (${signal ?? code ?? "unknown"}); stopping workbench`);
+      console.error(
+        reason ?? `${service.name} exited (${signal ?? code ?? "unknown"}); stopping workbench`,
+      );
       stop(code && code > 0 ? code : 1);
     });
   }
 
   try {
-    await Promise.all(configuration.services.map((service) => waitForHealth(service)));
+    await Promise.all(
+      configuration.services.map((service) => waitForHealth(service, startup.signal)),
+    );
     console.log("Workbench is ready. Run `pnpm workbench doctor` in another terminal.");
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+    if (!stopping) console.error(error instanceof Error ? error.message : String(error));
     stop(1);
   }
 };

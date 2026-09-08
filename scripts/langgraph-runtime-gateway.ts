@@ -24,7 +24,7 @@ import {
   type ConnectionPort,
   type RuntimeResult,
   type RuntimeToolBinding,
-} from "@assistant-mk1/agent-sdk/control-plane";
+} from "@operloom/agent-sdk/control-plane";
 import { agentManifestRegistry } from "../generated/agent-runtime/manifests";
 import { agentRunnerRegistry } from "../generated/agent-runtime/runner";
 import { compiledWorkbenchVersion } from "../generated/agent-runtime/platform";
@@ -48,7 +48,7 @@ if (sentryDsn) {
     beforeBreadcrumb: scrubSentryBreadcrumb,
     initialScope: {
       tags: {
-        service: "assistant-mk1",
+        service: "operloom",
         "runtime.surface": "fly-langgraph",
         "runtime.target": "gateway",
       },
@@ -642,6 +642,18 @@ const handleToolRunnerInvocation = async (
 
   {
     const network = isRecord(parsed.runner?.sandbox) ? parsed.runner.sandbox.network : null;
+    if (!isRecord(network)) {
+      json(response, 403, {
+        ok: false,
+        error: {
+          code: "sandbox_required",
+          message: "A signed runner network policy is required.",
+          retryable: false,
+          redacted: true,
+        },
+      });
+      return;
+    }
     const manifestEntry = genericRunnerEntry
       ? agentManifestRegistry[
           genericRunnerEntry.module.packId as keyof typeof agentManifestRegistry
@@ -660,7 +672,11 @@ const handleToolRunnerInvocation = async (
         parsed.execution?.mode as "ask" | "dry_run" | "execute",
       ) ||
       !isRecord(network) ||
-      network.privateNetwork !== "deny"
+      network.privateNetwork !== "deny" ||
+      !["none", "public_web", "broker_only"].includes(String(network.egress)) ||
+      ![network.allowedSchemes, network.allowedHosts, network.deniedHosts].every(
+        (value) => Array.isArray(value) && value.every((entry) => typeof entry === "string"),
+      )
     ) {
       json(response, 403, {
         ok: false,
@@ -713,6 +729,12 @@ const handleToolRunnerInvocation = async (
         workflowIntentId,
         executionMode: parsed.execution!.mode as "ask" | "dry_run" | "execute",
         source: "user",
+      },
+      networkPolicy: {
+        egress: network.egress as "none" | "public_web" | "broker_only",
+        allowedSchemes: network.allowedSchemes as string[],
+        allowedHosts: network.allowedHosts as string[],
+        deniedHosts: network.deniedHosts as string[],
       },
       signal: new AbortController().signal,
       connections: runnerConnectionPort(
@@ -818,15 +840,19 @@ const handleToolRunnerInvocation = async (
           }
         }
       }
-      json(response, result.ok ? 200 : 502, {
-        ...result,
-        runner: parsed.runner,
-        metrics: {
-          transport: "fly",
-          durationMs: Date.now() - startedAt,
-          callback: parsed.callback ? { status: "progress_published" } : { status: "skipped" },
+      json(
+        response,
+        result.ok ? 200 : result.error.code === "sandbox_egress_not_allowed" ? 403 : 502,
+        {
+          ...result,
+          runner: parsed.runner,
+          metrics: {
+            transport: "fly",
+            durationMs: Date.now() - startedAt,
+            callback: parsed.callback ? { status: "progress_published" } : { status: "skipped" },
+          },
         },
-      });
+      );
     } catch (error) {
       Sentry.captureException(error, {
         tags: { "gateway.operation": "runner.invoke" },
@@ -1009,7 +1035,7 @@ const server = createServer((request, response) => {
     if (request.method === "GET" && url.pathname === "/health/live") {
       json(response, 200, {
         ok: true,
-        service: "assistant-mk1-langgraph-runtime",
+        service: "operloom-langgraph-runtime",
         version: compiledWorkbenchVersion,
         gatewayReady: true,
         release: process.env.WORKBENCH_RELEASE_SHA ?? "development",
@@ -1021,7 +1047,7 @@ const server = createServer((request, response) => {
       const langGraphReady = await isLangGraphReady();
       json(response, langGraphReady ? 200 : 503, {
         ok: langGraphReady,
-        service: "assistant-mk1-langgraph-runtime",
+        service: "operloom-langgraph-runtime",
         version: compiledWorkbenchVersion,
         langGraphReady,
         release: process.env.WORKBENCH_RELEASE_SHA ?? "development",

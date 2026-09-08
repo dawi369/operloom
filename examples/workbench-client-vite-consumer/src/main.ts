@@ -1,5 +1,5 @@
-import { createWorkbenchClient } from "@assistant-mk1/workbench-client";
-import { workbenchQueryKeys } from "@assistant-mk1/workbench-react";
+import { createWorkbenchClient } from "@operloom/workbench-client";
+import { workbenchQueryKeys } from "@operloom/workbench-react";
 
 const client = createWorkbenchClient({
   baseUrl: "https://example.invalid",

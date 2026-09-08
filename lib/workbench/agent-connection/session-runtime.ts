@@ -3,7 +3,7 @@ import {
   sanitizeThread,
   type PendingSessionTransition,
 } from "@/lib/workbench/chat-session-state";
-import { workbenchChatProtocolVersion } from "@assistant-mk1/workbench-client";
+import { workbenchChatProtocolVersion } from "@operloom/workbench-client";
 import { browserWorkbenchClient } from "@/lib/workbench/browser-client";
 import type {
   AgentSummary,
@@ -19,7 +19,7 @@ export const tokenRefreshSkewMs = 60_000;
 export const minimumRefreshDelayMs = 5_000;
 const cacheTtlMs = 12 * 60 * 60 * 1000;
 const cacheVersion = 1;
-const lastSessionShellCacheKey = "assistant-mk1:chat-session:last";
+const lastSessionShellCacheKey = "operloom:chat-session:last";
 export const warmupFreshMs = 15_000;
 export const archivedThreadsFreshMs = 60_000;
 
@@ -173,7 +173,7 @@ export const sessionEventTypes: WorkbenchSessionEvent["type"][] = [
   "admin.summary.invalidated",
 ];
 
-const workspaceCacheKey = (workspaceId: string) => `assistant-mk1:chat-session:${workspaceId}`;
+const workspaceCacheKey = (workspaceId: string) => `operloom:chat-session:${workspaceId}`;
 
 const cachedShellFromSession = (session: ChatSessionResponse): CachedChatSessionShell | null => {
   if (!session.workspace) return null;

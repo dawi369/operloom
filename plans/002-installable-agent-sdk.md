@@ -58,7 +58,7 @@ Runtime Module v2, Pack API v3, runtime sandboxing, or publishing to npm.
    `build`, `clean`, and `prepack`. Keep JSON schemas in the archive and export
    stable schema subpaths if consumers need them.
 
-   **Verify**: `pnpm --filter @assistant-mk1/agent-sdk pack --pack-destination output/sdk-consumer`
+   **Verify**: `pnpm --filter @operloom/agent-sdk pack --pack-destination output/sdk-consumer`
    produces a tarball containing `dist/*.js`, `dist/*.d.ts`, schemas, README, and
    no `src` dependency for execution.
 

@@ -16,7 +16,7 @@ function advisory(overrides: Record<string, unknown> = {}) {
 }
 
 describe("security audit policy", () => {
-  it("allows only the known unpatched Expo Metro build-time advisories", () => {
+  it("blocks the former Expo exceptions now that mobile is deferred", () => {
     const decision = evaluateSecurityAudit({
       advisories: {
         one: advisory(),
@@ -24,8 +24,8 @@ describe("security audit policy", () => {
       },
     });
 
-    expect(decision.blocked).toEqual([]);
-    expect(decision.allowed.map((item) => item.githubAdvisoryId)).toEqual([
+    expect(decision.allowed).toEqual([]);
+    expect(decision.blocked.map((item) => item.githubAdvisoryId)).toEqual([
       "GHSA-w3rx-r6r6-pgpr",
       "GHSA-5p2g-fcmc-qvqq",
     ]);

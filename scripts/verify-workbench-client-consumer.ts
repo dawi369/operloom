@@ -6,7 +6,6 @@ const root = process.cwd();
 const output = resolve(root, "output/workbench-client-consumer");
 const consumer = resolve(output, "consumer");
 const viteConsumer = resolve(output, "vite-consumer");
-const expoConsumer = resolve(output, "expo-consumer");
 const run = (command: string, args: string[], cwd: string) => {
   const result = spawnSync(command, args, { cwd, encoding: "utf8", env: process.env });
   if (result.status !== 0) {
@@ -26,8 +25,8 @@ rmSync(output, { recursive: true, force: true });
 mkdirSync(consumer, { recursive: true });
 run("pnpm", ["pack", "--pack-destination", output], resolve(root, "packages/workbench-client"));
 run("pnpm", ["pack", "--pack-destination", output], resolve(root, "packages/workbench-react"));
-const clientArchive = archive("assistant-mk1-workbench-client-");
-const reactArchive = archive("assistant-mk1-workbench-react-");
+const clientArchive = archive("operloom-workbench-client-");
+const reactArchive = archive("operloom-workbench-react-");
 for (const packageArchive of [clientArchive, reactArchive]) {
   const entries = run("tar", ["-tzf", packageArchive], root).split("\n");
   if (entries.some((entry) => entry.startsWith("package/src/"))) {
@@ -48,7 +47,7 @@ writeFileSync(
       private: true,
       type: "module",
       dependencies: {
-        "@assistant-mk1/workbench-client": `file:${relative(consumer, clientArchive)}`,
+        "@operloom/workbench-client": `file:${relative(consumer, clientArchive)}`,
       },
     },
     null,
@@ -58,7 +57,7 @@ writeFileSync(
 run("pnpm", ["install", "--ignore-workspace", "--prefer-offline"], consumer);
 writeFileSync(
   resolve(consumer, "consumer.ts"),
-  `import { createWorkbenchClient, workbenchChatProtocolVersion } from "@assistant-mk1/workbench-client";
+  `import { createWorkbenchClient, workbenchChatProtocolVersion } from "@operloom/workbench-client";
 
 const client = createWorkbenchClient({ baseUrl: "https://example.invalid", client: { platform: "ios", version: "test" }, fetch });
 void [client, workbenchChatProtocolVersion];
@@ -87,7 +86,7 @@ writeFileSync(
 run("pnpm", ["exec", "tsc", "-p", "tsconfig.json"], consumer);
 writeFileSync(
   resolve(consumer, "runtime.mjs"),
-  `import { createWorkbenchClient } from "@assistant-mk1/workbench-client";
+  `import { createWorkbenchClient } from "@operloom/workbench-client";
 
 const response = (body, requestId) => new Response(JSON.stringify(body), {
   headers: { "content-type": "application/json", "x-request-id": requestId },
@@ -118,7 +117,7 @@ run(
   "pnpm",
   [
     "--filter",
-    "@assistant-mk1/workbench-client-vite-consumer",
+    "@operloom/workbench-client-vite-consumer",
     "deploy",
     "--prod",
     "--legacy",
@@ -127,10 +126,10 @@ run(
   root,
 );
 const deployedViteClient = realpathSync(
-  resolve(viteConsumer, "node_modules/@assistant-mk1/workbench-client"),
+  resolve(viteConsumer, "node_modules/@operloom/workbench-client"),
 );
 const deployedViteReact = realpathSync(
-  resolve(viteConsumer, "node_modules/@assistant-mk1/workbench-react"),
+  resolve(viteConsumer, "node_modules/@operloom/workbench-react"),
 );
 if (
   !deployedViteClient.startsWith(viteConsumer) ||
@@ -141,23 +140,7 @@ if (
   throw new Error("Vite consumer retained a workspace/source link instead of packaged clients.");
 }
 run("pnpm", ["run", "build"], viteConsumer);
-run(
-  "pnpm",
-  ["--filter", "@assistant-mk1/mobile", "deploy", "--prod", "--legacy", expoConsumer],
-  root,
-);
-const deployedClient = realpathSync(
-  resolve(expoConsumer, "node_modules/@assistant-mk1/workbench-client"),
-);
-if (!deployedClient.startsWith(expoConsumer) || readdirSync(deployedClient).includes("src")) {
-  throw new Error("Expo consumer retained a workspace/source link instead of a packaged client.");
-}
-run(
-  "pnpm",
-  ["exec", "expo", "export", "--platform", "android", "--output-dir", "dist-expo"],
-  expoConsumer,
-);
 const manifest = JSON.parse(
   readFileSync(resolve(root, "packages/workbench-client/package.json"), "utf8"),
 ) as { name: string };
-console.log(`${manifest.name} packed zero-context Vite and Expo consumers verified.`);
+console.log(`${manifest.name} packed zero-context Vite consumer verified.`);

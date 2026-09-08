@@ -106,6 +106,13 @@ export type AgentExecutionContext = {
     executionMode: AgentPackExecutionMode;
     source: "user" | "trigger" | "retry";
   }>;
+  /** Signed runner restrictions; network tools must enforce these on every hop. */
+  networkPolicy?: Readonly<{
+    egress: "none" | "public_web" | "broker_only";
+    allowedSchemes: readonly string[];
+    allowedHosts: readonly string[];
+    deniedHosts: readonly string[];
+  }>;
   signal: AbortSignal;
   connections: ConnectionPort;
   actions: ActionPort;

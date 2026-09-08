@@ -133,8 +133,8 @@ const main = () => {
   );
 
   const packages = [
-    inspectArchive(archiveFor(output, "assistant-mk1-workbench-client-")),
-    inspectArchive(archiveFor(output, "assistant-mk1-workbench-react-")),
+    inspectArchive(archiveFor(output, "operloom-workbench-client-")),
+    inspectArchive(archiveFor(output, "operloom-workbench-react-")),
   ];
   const application = JSON.parse(readFileSync(resolve(repositoryRoot, "package.json"), "utf8")) as {
     version: string;

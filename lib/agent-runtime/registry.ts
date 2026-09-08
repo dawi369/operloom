@@ -4,12 +4,12 @@ import type {
   RuntimeRecord,
   RuntimeWorkflowBinding,
   WorkflowFormField,
-} from "@assistant-mk1/agent-sdk";
+} from "@operloom/agent-sdk";
 import {
   assertSchemaValue,
   isPackVersionCompatible,
   isWorkbenchVersionCompatible,
-} from "@assistant-mk1/agent-sdk";
+} from "@operloom/agent-sdk";
 
 import { agentControlPlaneRegistry } from "../../generated/agent-runtime/control-plane";
 import { agentManifestRegistry } from "../../generated/agent-runtime/manifests";

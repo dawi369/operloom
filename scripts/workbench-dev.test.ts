@@ -15,7 +15,7 @@ afterEach(() => {
 
 describe("local workbench supervisor", () => {
   it("builds one matched frontend, Worker, LangGraph, and signed-runner process set", async () => {
-    const root = mkdtempSync(resolve(tmpdir(), "assistant-mk1-dev-"));
+    const root = mkdtempSync(resolve(tmpdir(), "operloom-dev-"));
     roots.push(root);
     mkdirSync(resolve(root, "cloudflare/control-plane"), { recursive: true });
     copyFileSync(resolve(process.cwd(), ".env.example"), resolve(root, ".env.example"));
@@ -33,6 +33,15 @@ describe("local workbench supervisor", () => {
       "langgraph",
       "worker",
       "runner",
+    ]);
+    expect(configuration.services.find((service) => service.name === "frontend")?.args).toEqual([
+      "exec",
+      "next",
+      "dev",
+      "--webpack",
+      "--disable-source-maps",
+      "--hostname",
+      "127.0.0.1",
     ]);
     const runner = configuration.services.find((service) => service.name === "runner")!;
     const worker = readFileSync(resolve(root, "cloudflare/control-plane/.dev.vars"), "utf8");

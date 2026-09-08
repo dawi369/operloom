@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://assistant-mk1.dev/schemas/runtime-module-v1.schema.json",
-  "title": "Assistant-mk1 Runtime Module v1 metadata",
+  "title": "Operloom Runtime Module v1 metadata",
   "oneOf": [
     { "$ref": "#/$defs/controlPlane" },
     { "$ref": "#/$defs/runner" },

@@ -12,7 +12,7 @@ export const agentPackExportName = (id: string) =>
   `${id.replace(/-([a-z0-9])/g, (_, character: string) => character.toUpperCase())}Pack`;
 
 export const renderAgentPackPrompt = (name: string) => `<identity>
-You are ${name}, an Assistant-mk1 Agent Pack. Use only the trusted context and read-only tools exposed by the workbench. Explain uncertainty and preserve tenant boundaries.
+You are ${name}, an Operloom Agent Pack. Use only the trusted context and read-only tools exposed by the workbench. Explain uncertainty and preserve tenant boundaries.
 </identity>
 
 <operating_policy>
@@ -33,7 +33,7 @@ export const renderAgentPackIndex = (input: { id: string; name: string }) => {
   const { id, name } = validateAgentPackScaffoldInput(input);
   const exportName = agentPackExportName(id);
   const prompt = renderAgentPackPrompt(name);
-  return `import { defineAgentPack } from "@assistant-mk1/agent-sdk/manifest";
+  return `import { defineAgentPack } from "@operloom/agent-sdk/manifest";
 
 export const ${exportName}Prompt = ${JSON.stringify(prompt)};
 
@@ -50,7 +50,7 @@ export const ${exportName} = defineAgentPack({
   promptPath: "agent-packs/${id}/prompt.xml",
   tools: [
     {
-      id: "${id}.inspect",
+      id: "${id.replaceAll("-", "_")}.inspect",
       invocation: "workflow",
       required: false,
       executionModes: ["dry_run"],
@@ -60,7 +60,7 @@ export const ${exportName} = defineAgentPack({
   ],
   workflows: [
     {
-      type: "${id}.inspect",
+      type: "${id.replaceAll("-", "_")}.inspect",
       engine: "cloudflare",
       status: "declared",
       userInvocable: true,
@@ -112,13 +112,13 @@ export const ${exportName} = defineAgentPack({
   healthChecks: [
     {
       id: "inspect.binding",
-      target: { kind: "tool", id: "${id}.inspect" },
+      target: { kind: "tool", id: "${id.replaceAll("-", "_")}.inspect" },
       description: "Verify the starter read-only tool is registered before making it required.",
       required: true,
     },
     {
       id: "workflow.binding",
-      target: { kind: "workflow", type: "${id}.inspect" },
+      target: { kind: "workflow", type: "${id.replaceAll("-", "_")}.inspect" },
       description: "Verify the starter workflow is compiled.",
       required: true,
     },
@@ -154,7 +154,7 @@ export const renderAgentPackPackageJson = (input: { id: string; name: string }) 
   const { id } = validateAgentPackScaffoldInput(input);
   return `${JSON.stringify(
     {
-      name: `@assistant-mk1/pack-${id}`,
+      name: `@operloom/pack-${id}`,
       version: "0.1.0",
       private: true,
       type: "module",
@@ -165,7 +165,7 @@ export const renderAgentPackPackageJson = (input: { id: string; name: string }) 
         "./runner": "./runner.ts",
         "./web": "./web.ts",
       },
-      dependencies: { "@assistant-mk1/agent-sdk": "workspace:*" },
+      dependencies: { "@operloom/agent-sdk": "workspace:*" },
     },
     null,
     2,
@@ -174,14 +174,14 @@ export const renderAgentPackPackageJson = (input: { id: string; name: string }) 
 
 export const renderAgentPackControlPlane = (input: { id: string; name: string }) => {
   const { id, name } = validateAgentPackScaffoldInput(input);
-  return `import { defineControlPlaneModule } from "@assistant-mk1/agent-sdk/control-plane";
+  return `import { defineControlPlaneModule } from "@operloom/agent-sdk/control-plane";
 
 export const controlPlane = defineControlPlaneModule({
   packId: ${JSON.stringify(id)},
   runtimeVersion: "1.0.0",
   compatiblePackVersions: "^0.1.0",
   tools: [{
-    id: ${JSON.stringify(`${id}.inspect`)},
+    id: ${JSON.stringify(`${id.replaceAll("-", "_")}.inspect`)},
     description: "Starter deterministic read-only tool.",
     inputSchema: { type: "object", additionalProperties: false },
     outputSchema: { type: "object", required: ["status"] },
@@ -191,7 +191,7 @@ export const controlPlane = defineControlPlaneModule({
     timeoutMs: 1000,
     maxArtifactBytes: 8192,
     policy: {
-      reference: ${JSON.stringify(`${id}.inspect.v1`)},
+      reference: ${JSON.stringify(`${id.replaceAll("-", "_")}.inspect.v1`)},
       adminVisible: true,
       modelVisible: false,
       requiresApproval: false,
@@ -205,17 +205,17 @@ export const controlPlane = defineControlPlaneModule({
     }),
   }],
   workflows: [{
-    type: ${JSON.stringify(`${id}.inspect`)},
+    type: ${JSON.stringify(`${id.replaceAll("-", "_")}.inspect`)},
     engine: "cloudflare",
     label: "Inspect",
     description: "Run the starter deterministic read-only workflow.",
     inputSchema: { type: "object", additionalProperties: false },
     outputSchema: { type: "object", required: ["status"] },
     form: [],
-    toolIds: [${JSON.stringify(`${id}.inspect`)}],
+    toolIds: [${JSON.stringify(`${id.replaceAll("-", "_")}.inspect`)}],
     cancellation: { adapter: "none", physicalAbort: "unsupported" },
     async execute(_input, context) {
-      return context.tools.invoke(${JSON.stringify(`${id}.inspect`)}, {});
+      return context.tools.invoke(${JSON.stringify(`${id.replaceAll("-", "_")}.inspect`)}, {});
     },
   }],
   health: [
@@ -231,7 +231,7 @@ export const controlPlane = defineControlPlaneModule({
 
 export const renderAgentPackRunner = (
   id: string,
-) => `import { defineRunnerModule } from "@assistant-mk1/agent-sdk/runner";
+) => `import { defineRunnerModule } from "@operloom/agent-sdk/runner";
 
 export const runner = defineRunnerModule({
   packId: ${JSON.stringify(id)},
@@ -243,7 +243,7 @@ export const runner = defineRunnerModule({
 
 export const renderAgentPackWeb = (
   id: string,
-) => `import { defineWebModule } from "@assistant-mk1/agent-sdk/web";
+) => `import { defineWebModule } from "@operloom/agent-sdk/web";
 
 export const web = defineWebModule({
   packId: ${JSON.stringify(id)},
@@ -258,7 +258,7 @@ export const renderAgentPackReadme = (input: { id: string; name: string }) => {
   const { id, name } = validateAgentPackScaffoldInput(input);
   return `# ${name}
 
-Trusted build-time Agent Pack for Assistant-mk1. This package starts as a bounded,
+Trusted build-time Agent Pack for Operloom. This package starts as a bounded,
 read-only Runtime Module v1 example; replace the starter inspection with domain behavior.
 
 ## Development loop
@@ -315,10 +315,10 @@ describe(${JSON.stringify(`${name} runtime package`)}, () => {
 
   it("passes required deterministic package health and eval bindings", async () => {
     for (const health of controlPlane.health.filter((item) => item.required)) {
-      await expect(health.check()).resolves.toMatchObject({ ok: true });
+      expect(await health.check()).toMatchObject({ ok: true });
     }
     for (const evaluation of controlPlane.evals.filter((item) => item.required)) {
-      await expect(evaluation.run()).resolves.toMatchObject({ ok: true });
+      expect(await evaluation.run()).toMatchObject({ ok: true });
     }
   });
 });
@@ -327,7 +327,7 @@ describe(${JSON.stringify(`${name} runtime package`)}, () => {
 
 export const registerWorkbenchModuleSource = (source: string, id: string) => {
   if (!agentPackIdPattern.test(id)) throw new Error("Agent Pack id is invalid.");
-  const packageName = `@assistant-mk1/pack-${id}`;
+  const packageName = `@operloom/pack-${id}`;
   if (source.includes(`package: "${packageName}"`)) {
     throw new Error(`Agent Pack ${id} is already configured.`);
   }

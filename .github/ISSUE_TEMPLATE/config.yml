@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/dawi369/assistant-mk1/security/advisories/new
+    url: https://github.com/dawi369/operloom/security/advisories/new
     about: Report security issues privately. Do not include exploit details in a public issue.
   - name: Commercial use
-    url: https://github.com/dawi369/assistant-mk1/blob/main/COMMERCIAL_USE.md
+    url: https://github.com/dawi369/operloom/blob/main/COMMERCIAL_USE.md
     about: Review the commercial licensing terms and contact path.

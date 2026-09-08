@@ -5,7 +5,7 @@ import {
   useActivateWorkspace,
   useWorkbenchAccounts,
   useWorkbenchWorkspaces,
-} from "@assistant-mk1/workbench-react";
+} from "@operloom/workbench-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import {
   ArrowLeftIcon,
@@ -376,7 +376,7 @@ export function WorkbenchWorkspacePanel({
               </DialogTitle>
               <DialogDescription>
                 {view === "switcher"
-                  ? "Choose where Assistant works."
+                  ? "Choose the workspace for your agents."
                   : `Manage ${activeWorkspace?.name ?? "this workspace"}.`}
               </DialogDescription>
             </div>

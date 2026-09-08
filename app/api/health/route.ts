@@ -13,9 +13,11 @@ export const runtime = "nodejs";
 export function GET() {
   return NextResponse.json({
     ok: true,
-    service: "assistant-mk1",
+    service: "operloom",
     version: compiledWorkbenchVersion,
     release:
-      process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.WORKBENCH_RELEASE_SHA ?? "development",
+      process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
+      process.env.WORKBENCH_RELEASE_SHA?.trim() ||
+      "development",
   });
 }

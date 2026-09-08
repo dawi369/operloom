@@ -8,7 +8,7 @@ import { initializeWorkbench } from "./workbench-init";
 
 const roots: string[] = [];
 const fixtureRoot = () => {
-  const root = mkdtempSync(resolve(tmpdir(), "assistant-mk1-init-"));
+  const root = mkdtempSync(resolve(tmpdir(), "operloom-init-"));
   roots.push(root);
   mkdirSync(resolve(root, "cloudflare/control-plane"), { recursive: true });
   copyFileSync(resolve(process.cwd(), ".env.example"), resolve(root, ".env.example"));

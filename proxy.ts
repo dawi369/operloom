@@ -2,6 +2,7 @@
 import { authkit, handleAuthkitHeaders } from "@workos-inc/authkit-nextjs";
 import { type NextRequest, NextResponse } from "next/server";
 
+import { getAuthConfiguration } from "@/lib/workbench/auth-configuration";
 import { applyWorkbenchClientCors } from "@/lib/workbench/client-cors";
 
 export default async function proxy(request: NextRequest) {
@@ -17,7 +18,10 @@ export default async function proxy(request: NextRequest) {
     return allowed || !origin ? response : new NextResponse(null, { status: 403 });
   }
 
-  if (isWorkbenchApi && request.headers.has("authorization")) {
+  if (
+    getAuthConfiguration().localIdentityEnabled ||
+    (isWorkbenchApi && request.headers.has("authorization"))
+  ) {
     const response = NextResponse.next();
     applyWorkbenchClientCors(response.headers, {
       configuredOrigins: process.env.WORKBENCH_CLIENT_ORIGINS,

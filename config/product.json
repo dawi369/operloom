@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "id": "assistant-mk1",
-  "displayName": "Assistant",
-  "webTitle": "Assistant · mk1",
-  "description": "A focused workbench for trusted agents, durable workflows, and inspected action.",
+  "id": "operloom",
+  "displayName": "Operloom",
+  "webTitle": "Operloom",
+  "description": "Build and run agent systems you own. TypeScript workflows, durable execution, approvals, and an inspectable workspace.",
   "webOrigin": "https://assistant-mk1.vercel.app",
   "mobile": {
-    "displayName": "Assistant MK1",
-    "slug": "assistant-mk1",
-    "scheme": "assistantmk1",
-    "bundleIdentifier": "com.dawi369.assistantmk1"
+    "displayName": "Operloom",
+    "slug": "operloom",
+    "scheme": "operloom",
+    "bundleIdentifier": "com.dawi369.operloom"
   }
 }

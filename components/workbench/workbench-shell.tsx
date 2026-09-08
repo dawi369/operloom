@@ -1,7 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRunWorkflow, WorkbenchClientProvider } from "@assistant-mk1/workbench-react";
+import { useRunWorkflow, WorkbenchClientProvider } from "@operloom/workbench-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import {
   ActivityIcon,
@@ -34,16 +35,11 @@ import {
   useWorkbenchComposerFocus,
   WorkbenchComposerFocusProvider,
 } from "@/components/workbench/composer-focus-context";
-import { AdminPanel } from "@/components/workbench/dev-monitor-drawer";
 import { ThreadHistorySidebar } from "@/components/workbench/thread-history-sidebar";
-import { WorkbenchAgentsPanel } from "@/components/workbench/workbench-agents-panel";
 import { WorkbenchAssistantEvents } from "@/components/workbench/workbench-assistant-events";
-import { WorkbenchCapabilitiesPanel } from "@/components/workbench/workbench-capabilities-panel";
-import { WorkbenchHistoryPanel } from "@/components/workbench/workbench-history-panel";
 import { WorkbenchMark } from "@/components/workbench/workbench-mark";
 import { WorkbenchRuntimeHint } from "@/components/workbench/workbench-runtime-hint";
 import { PackWorkflowProvider } from "@/components/workbench/pack-workflow-context";
-import { WorkbenchWorkspacePanel } from "@/components/workbench/workbench-workspace-panel";
 import { requestWorkbenchSummaryRefresh } from "@/lib/workbench/admin-summary-events";
 import { resolveAgentSlashWorkflowActions } from "@/lib/workbench/agent-slash-actions";
 import { browserWorkbenchClient } from "@/lib/workbench/browser-client";
@@ -59,6 +55,43 @@ import {
 } from "@/lib/workbench/pack-workflow-bindings";
 import type { AgentSlashWorkflowAction } from "@/lib/workbench/agent-slash-actions";
 import { hasWorkbenchSessionAccess } from "@/lib/workbench/session-access";
+
+const AdminPanel = dynamic(
+  () => import("@/components/workbench/dev-monitor-drawer").then((module) => module.AdminPanel),
+  { ssr: false },
+);
+
+const WorkbenchAgentsPanel = dynamic(
+  () =>
+    import("@/components/workbench/workbench-agents-panel").then(
+      (module) => module.WorkbenchAgentsPanel,
+    ),
+  { ssr: false },
+);
+
+const WorkbenchCapabilitiesPanel = dynamic(
+  () =>
+    import("@/components/workbench/workbench-capabilities-panel").then(
+      (module) => module.WorkbenchCapabilitiesPanel,
+    ),
+  { ssr: false },
+);
+
+const WorkbenchHistoryPanel = dynamic(
+  () =>
+    import("@/components/workbench/workbench-history-panel").then(
+      (module) => module.WorkbenchHistoryPanel,
+    ),
+  { ssr: false },
+);
+
+const WorkbenchWorkspacePanel = dynamic(
+  () =>
+    import("@/components/workbench/workbench-workspace-panel").then(
+      (module) => module.WorkbenchWorkspacePanel,
+    ),
+  { ssr: false },
+);
 
 const adminAccessPath = "/api/workbench/admin-access";
 const toolRunsPath = "/api/workbench/tools/runs";

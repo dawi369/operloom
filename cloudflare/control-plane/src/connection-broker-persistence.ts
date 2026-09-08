@@ -1,4 +1,4 @@
-import type { AgentPackConnectionDescriptor } from "@assistant-mk1/agent-sdk/control-plane";
+import type { AgentPackConnectionDescriptor } from "@operloom/agent-sdk/control-plane";
 
 import { resolveAgentBehaviorConfig } from "./agent-records";
 import { selectAgent, selectMembership } from "./authz-store";

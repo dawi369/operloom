@@ -1,8 +1,8 @@
 {
-  "name": "@assistant-mk1/observability",
+  "name": "@operloom/observability",
   "version": "0.1.0",
   "private": true,
-  "description": "Runtime-neutral observability privacy boundary for Assistant-mk1.",
+  "description": "Runtime-neutral observability privacy boundary for Operloom.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "files": [
     "dist"

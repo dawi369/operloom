@@ -1,4 +1,4 @@
-import type { RuntimeToolBinding } from "@assistant-mk1/agent-sdk/runner";
+import type { RuntimeToolBinding } from "@operloom/agent-sdk/runner";
 
 import {
   runnerEchoAdapterVersion,

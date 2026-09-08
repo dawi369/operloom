@@ -1,6 +1,6 @@
 # Architecture
 
-Assistant-mk1 is a reusable agent workbench with a conversational control
+Operloom is a reusable agent workbench with a conversational control
 plane, a heavy execution plane, and a hosted dev/staging split across Vercel,
 Cloudflare, and Fly.
 
@@ -37,9 +37,9 @@ Document status: this page is the concise current system map. Use
 - OpenRouter is configured server-side for Cloudflare Agent chat and the
   Fly/LangGraph runtime.
 
-The browser is the production-supported product client in `0.5.1`; the Expo app
-is an internal native reference client pending device acceptance. Both use the
-runtime-validated `@assistant-mk1/workbench-client` contract, while cookie auth
+The browser is the supported product client in `0.5.1`; the Expo app
+is WIP on `codex/mobile-wip`, outside the web release. Shared clients use the
+runtime-validated `@operloom/workbench-client` contract, while cookie auth
 and Cloudflare Agent React remain web adapters. The native boundary is specified
 in `docs/mobile-frontends.md`; native clients never receive the Vercel facade
 signing secret or bypass Cloudflare authorization.

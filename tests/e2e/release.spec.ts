@@ -1,4 +1,4 @@
-import { expect, test, type ConsoleMessage } from "@playwright/test";
+import { expect, test, type ConsoleMessage } from "./fixtures";
 
 const releaseMode = process.env.E2E_RELEASE_MODE;
 const hydrationErrors: string[] = [];
@@ -18,10 +18,10 @@ test("signed-out refresh stays on the deliberate access screen", async ({ page, 
   test.skip(releaseMode !== "signed-out");
 
   await page.goto("/");
-  await expect(page).toHaveTitle("Assistant · mk1");
+  await expect(page).toHaveTitle("Operloom");
   await expect(page.getByRole("heading", { name: "Resume your workspace" })).toBeVisible();
   await expect(page.getByText("Pick up your chats, agents, and history.")).toBeVisible();
-  await expect(page.getByText("agent workbench · mk1", { exact: true })).toBeVisible();
+  await expect(page.getByText("agent workbench", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sign in" })).toHaveCount(1);
   await expect(page.getByText("Recent chats", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Workspace access" })).toHaveCount(0);
@@ -38,7 +38,7 @@ test("signed-out refresh stays on the deliberate access screen", async ({ page, 
   expect(response).not.toBeNull();
   const firstFrameHtml = await response!.text();
   expect(firstFrameHtml).toContain("Resume your workspace");
-  expect(firstFrameHtml).not.toContain("How can I help you today?");
+  expect(firstFrameHtml).not.toContain("Bring a question, a problem, or a workflow.");
   await expect(page.getByRole("heading", { name: "Resume your workspace" })).toBeVisible();
   expect(hydrationErrors).toEqual([]);
 });
@@ -120,15 +120,16 @@ test("trusted local session is immediately usable and exposes release controls",
 }) => {
   test.skip(releaseMode !== "local-session");
 
+  test.setTimeout(120_000);
   let adminSummaryRequests = 0;
   page.on("request", (request) => {
     if (request.url().includes("/api/workbench/admin-summary")) adminSummaryRequests += 1;
   });
 
   await page.goto("/");
-  await expect(page).toHaveTitle("Assistant · mk1");
-  await expect(page.getByText("agent workbench · mk1", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Hello there!" })).toBeVisible();
+  await expect(page).toHaveTitle("Operloom");
+  await expect(page.getByText("agent workbench", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What are we working on?" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Message input" })).toBeEditable();
   await expect.poll(() => adminSummaryRequests).toBeGreaterThan(0);
   await expect
@@ -165,9 +166,9 @@ test("trusted local session is immediately usable and exposes release controls",
   });
   const welcome = page.locator(".aui-thread-welcome-root");
   await expect(welcome).toHaveClass(/workbench-enter/);
-  await expect(page.getByRole("button", { name: /Run a readiness check/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Explore what’s possible/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /Plan a project handoff/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Test agent behavior/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Review a decision/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /Explain a failure/i })).toBeVisible();
   const materializeResponsePromise = page.waitForResponse(
     (response) =>
@@ -209,9 +210,19 @@ test("trusted local session is immediately usable and exposes release controls",
     )
     .toEqual(optimisticComposerStyle);
 
+  await composer.fill("/history");
+  await page.getByRole("button", { name: "Send message", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Workbench History" })).toBeVisible();
+  await page
+    .getByRole("dialog", { name: "Workbench History" })
+    .getByRole("button", { name: "Close" })
+    .click();
+
   await page.getByRole("button", { name: "Workspace access" }).click();
   await expect(page.getByRole("dialog", { name: "Workspace" })).toBeVisible();
-  await expect(page.getByText("Default Workspace", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("dialog", { name: "Workspace" }).getByText("Default Workspace", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Manage workspace" }).click();
   await page.getByRole("tab", { name: "Members" }).click();
   await expect(page.getByRole("combobox", { name: "Role for e2e-owner" })).toHaveValue("owner");
@@ -238,7 +249,14 @@ test("trusted local session is immediately usable and exposes release controls",
   await expect(repositoryPack).toContainText("v1.2.1");
   await expect(page.getByText("Polymancer Research", { exact: true })).toBeVisible();
   await expect(page.getByText("Swordfish Runtime", { exact: true })).toBeVisible();
+  const agentSwitchResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname === "/api/workbench/chat-session/agent-switch",
+  );
   await repositoryPack.getByRole("button", { name: "Use agent" }).click();
+  const agentSwitch = await agentSwitchResponse;
+  expect(agentSwitch.ok(), await agentSwitch.text()).toBe(true);
 
   await expect(page.getByRole("dialog", { name: "Admin" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Repository Analyst" })).toBeVisible();
@@ -267,7 +285,14 @@ test("trusted local session is immediately usable and exposes release controls",
   await page.getByRole("button", { name: /Assess release readiness/i }).click();
   await expect(page.getByRole("dialog", { name: "Readiness report" })).toBeVisible();
   await expect(page.getByText("Documentation", { exact: true })).toBeVisible();
+  const workflowResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname.startsWith("/api/workbench/workflows/"),
+  );
   await page.getByRole("button", { name: "Run dry-run" }).click();
+  const workflow = await workflowResponse;
+  expect(workflow.ok(), await workflow.text()).toBe(true);
   await expect(page.getByRole("dialog", { name: "Workbench History" })).toBeVisible();
   await expect(page.getByText("Repository snapshot report", { exact: true })).toBeVisible({
     timeout: 30_000,
@@ -308,7 +333,7 @@ test("trusted local session is immediately usable and exposes release controls",
   await page.evaluate((requiredGeneratedAt) => {
     for (const source of ["event", "fallback-poll"]) {
       window.dispatchEvent(
-        new CustomEvent("assistant-mk1:workbench-summary-refresh", {
+        new CustomEvent("operloom:workbench-summary-refresh", {
           detail: { source, minimumGeneratedAt: requiredGeneratedAt },
         }),
       );
@@ -330,4 +355,27 @@ test("trusted local session is immediately usable and exposes release controls",
   await expect(page.getByRole("dialog", { name: "Admin" })).toBeVisible();
 
   expect(hydrationErrors).toEqual([]);
+});
+
+test("chat renaming stays in the app and persists after refresh", async ({ page }) => {
+  test.skip(releaseMode !== "local-session");
+  await page.goto("/");
+  const created = await page.request.post("/api/workbench/chat-session/threads", {
+    data: { title: "Rename fixture" },
+  });
+  expect(created.ok()).toBe(true);
+  const body = await created.json();
+  await page.reload();
+  const item = page.getByTestId(`thread-history-item-${body.activeThread.threadId}`);
+  await item.getByRole("button", { name: "Rename chat" }).click();
+  const dialog = page.getByRole("dialog", { name: "Rename chat", exact: true });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Chat name").fill("  ");
+  await expect(dialog.getByRole("button", { name: "Save name" })).toBeDisabled();
+  await dialog.getByLabel("Chat name").fill("Release planning");
+  await dialog.getByLabel("Chat name").press("Enter");
+  await expect(dialog).not.toBeVisible();
+  await expect(item).toContainText("Release planning");
+  await page.reload();
+  await expect(item).toContainText("Release planning");
 });

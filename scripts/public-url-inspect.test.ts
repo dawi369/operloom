@@ -1,12 +1,24 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  inspectPublicUrl,
   isPublicInternetAddress,
   pinnedRequestOptions,
   validatePublicUrlPort,
 } from "./public-url-inspect";
 
 describe("public URL runner egress", () => {
+  it.each([
+    { egress: "none" as const },
+    { egress: "broker_only" as const },
+    { egress: "public_web" as const, allowedHosts: ["allowed.example"] },
+    { egress: "public_web" as const, deniedHosts: ["example.com"] },
+    { egress: "public_web" as const, allowedSchemes: ["http"] },
+  ])("enforces signed network policy before fetching: %j", async (policy) => {
+    const result = await inspectPublicUrl(new URL("https://example.com"), policy);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("sandbox_egress_not_allowed");
+  });
   it("rejects private, metadata, documentation, multicast, and mapped addresses", () => {
     for (const address of [
       "127.0.0.1",

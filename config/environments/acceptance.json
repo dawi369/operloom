@@ -5,18 +5,18 @@
   "vaultBackend": "workos",
   "mutationDefaultEnabled": false,
   "cloudflare": {
-    "workerName": "assistant-mk1-acceptance-control-plane",
-    "d1DatabaseName": "assistant_mk1_acceptance",
+    "workerName": "operloom-acceptance-control-plane",
+    "d1DatabaseName": "operloom_acceptance",
     "d1DatabaseId": "${WORKBENCH_ACCEPTANCE_D1_DATABASE_ID}",
-    "r2BucketName": "assistant-mk1-acceptance-artifacts",
+    "r2BucketName": "operloom-acceptance-artifacts",
     "origin": "${WORKBENCH_ACCEPTANCE_CLOUDFLARE_ORIGIN}"
   },
   "fly": {
-    "appName": "assistant-mk1-acceptance-runner",
+    "appName": "operloom-acceptance-runner",
     "origin": "${WORKBENCH_ACCEPTANCE_FLY_ORIGIN}"
   },
   "vercel": {
-    "projectName": "assistant-mk1-acceptance",
+    "projectName": "operloom-acceptance",
     "organizationId": "${WORKBENCH_ACCEPTANCE_VERCEL_ORG_ID}",
     "projectId": "${WORKBENCH_ACCEPTANCE_VERCEL_PROJECT_ID}",
     "origin": "${WORKBENCH_ACCEPTANCE_VERCEL_ORIGIN}",
@@ -24,7 +24,7 @@
     "nodeVersion": "24.x"
   },
   "workos": {
-    "applicationName": "assistant-mk1-acceptance",
+    "applicationName": "Operloom Acceptance",
     "applicationId": "${WORKBENCH_ACCEPTANCE_WORKOS_APPLICATION_ID}",
     "acceptanceWorkspaceId": "${WORKBENCH_ACCEPTANCE_WORKSPACE_ID}"
   },

@@ -65,6 +65,11 @@ export function ThreadHistorySidebar({
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<ChatThreadSummary | null>(null);
   const deleteTriggerRef = useRef<HTMLElement | null>(null);
+  const renameTriggerRef = useRef<HTMLElement | null>(null);
+  const [renameCandidate, setRenameCandidate] = useState<ChatThreadSummary | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [isRenaming, setIsRenaming] = useState(false);
   const { focusComposerAfterInteraction } = useWorkbenchComposerFocus();
   const creatingThread = pending?.type === "create";
   const isNavigatingThread =
@@ -146,14 +151,33 @@ export function ThreadHistorySidebar({
 
   const handleRename = async (thread: ChatThreadSummary) => {
     if (actionsDisabled) return;
-    const nextTitle = window.prompt("Rename chat", thread.title || "New chat");
-    if (nextTitle === null) return;
-    const title = nextTitle.trim();
-    if (!title || title === thread.title) return;
-    await runThreadAction(async () => {
-      await renameThread(thread.threadId, title);
+    renameTriggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setRenameDraft(thread.title || "New chat");
+    setRenameError(null);
+    setRenameCandidate(thread);
+  };
+
+  const confirmRename = async () => {
+    const title = renameDraft.trim();
+    if (!renameCandidate || !title || isRenaming || actionsDisabled) return;
+    if (title === renameCandidate.title) {
+      setRenameCandidate(null);
+      return;
+    }
+    setIsRenaming(true);
+    setRenameError(null);
+    try {
+      await renameThread(renameCandidate.threadId, title);
       await reloadArchived();
-    }, "Failed to rename chat");
+      setRenameCandidate(null);
+    } catch (nextError) {
+      setRenameError(
+        nextError instanceof Error ? nextError.message : "Could not rename the chat. Try again.",
+      );
+    } finally {
+      setIsRenaming(false);
+    }
   };
 
   const handleArchive = async (thread: ChatThreadSummary) => {
@@ -291,6 +315,68 @@ export function ThreadHistorySidebar({
           )}
         </div>
       </div>
+      <Dialog
+        open={Boolean(renameCandidate)}
+        onOpenChange={(open) => {
+          if (!open && !isRenaming) setRenameCandidate(null);
+        }}
+      >
+        <DialogContent
+          className="gap-4 p-5 sm:max-w-[24rem]"
+          showCloseButton={false}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            renameTriggerRef.current?.focus();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Rename chat</DialogTitle>
+            <DialogDescription>Give this conversation a name you can find later.</DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void confirmRename();
+            }}
+          >
+            <div className="space-y-2">
+              <label htmlFor="chat-title" className="text-sm font-medium">
+                Chat name
+              </label>
+              <input
+                id="chat-title"
+                value={renameDraft}
+                disabled={isRenaming}
+                onChange={(event) => setRenameDraft(event.target.value)}
+                onFocus={(event) => event.target.select()}
+                className="border-input bg-background focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-2"
+                aria-invalid={Boolean(renameError)}
+                aria-describedby={renameError ? "rename-error" : undefined}
+              />
+              {renameError ? (
+                <p id="rename-error" role="alert" className="text-destructive text-sm">
+                  {renameError}
+                </p>
+              ) : null}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isRenaming}
+                onClick={() => setRenameCandidate(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!renameDraft.trim() || isRenaming || actionsDisabled}>
+                {isRenaming ? <Loader2Icon className="size-4 animate-spin" /> : null}
+                {isRenaming ? "Saving…" : "Save name"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       {deleteCandidate ? (
         <Dialog
           open

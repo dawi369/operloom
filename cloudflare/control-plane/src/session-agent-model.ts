@@ -1,4 +1,4 @@
-import { workbenchChatProtocolVersion } from "@assistant-mk1/workbench-client";
+import { workbenchChatProtocolVersion } from "@operloom/workbench-client";
 
 import { toAgentSummary, toAgentRuntimeMetadata } from "./agent-records";
 import { signAgentConnectionClaims } from "./agent-connection-token";

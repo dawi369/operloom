@@ -2,7 +2,7 @@
 
 Document status: current deployment security boundary and operator runbook.
 
-Assistant-mk1 has three explicit targets. The checked-in
+Operloom has three explicit targets. The checked-in
 `config/environments/*.json` files contain only non-secret names and environment
 variable references. `cloudflare/control-plane/wrangler.jsonc` and
 `fly.langgraph.toml` are local-only; neither is a hosted deployment default.
@@ -12,6 +12,11 @@ variable references. `cloudflare/control-plane/wrangler.jsonc` and
 | `local`      | none           | enabled     | memory | off              |
 | `acceptance` | synthetic only | enabled     | WorkOS | off              |
 | `production` | allowed        | disabled    | WorkOS | off              |
+
+Hosted targets default to cost-idle operation: Cloudflare Cron Triggers are
+empty and Fly keeps zero Machines running when idle. Scheduled and monitor
+triggers remain dormant until a deliberate deployment re-enables the scheduler;
+explicit LangGraph or runner traffic cold-starts the existing Fly Machine.
 
 Worker names, D1 names and IDs, R2 buckets, Fly apps, Vercel projects, WorkOS
 applications/workspaces, public origins, and every signing-secret reference are

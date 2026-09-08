@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useConnectionAction, useWorkbenchConnections } from "@assistant-mk1/workbench-react";
+import { useConnectionAction, useWorkbenchConnections } from "@operloom/workbench-react";
 import {
   BotIcon,
   CircleUserRoundIcon,

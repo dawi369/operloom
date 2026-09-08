@@ -1,6 +1,6 @@
 # Deployment Agent Reference App
 
-A deployment agent is an operational reference target for assistant-mk1. It
+A deployment agent is an operational reference target for operloom. It
 proves the framework can support complex production work across domains.
 
 ## Vision
@@ -118,4 +118,4 @@ collect artifacts. Mutation-capable deploy and rollback tools must support
 
 The deployment agent is a reference mapping, not a special-case runtime. Its
 tools, ledgers, triggers, managed state, and decision records must use the same
-assistant-mk1 contracts as Polymancer and future reference apps.
+operloom contracts as Polymancer and future reference apps.

@@ -1,6 +1,6 @@
 # Fly Tool Runners
 
-Fly is the preferred heavy execution plane for assistant-mk1.
+Fly is the preferred heavy execution plane for operloom.
 
 ## Role
 

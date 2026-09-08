@@ -58,6 +58,7 @@ export const renderEnvironmentConfig = (
   const wrangler = {
     $schema: "../../../node_modules/wrangler/config-schema.json",
     name: manifest.cloudflare.workerName,
+    preview_urls: false,
     main: "../../../cloudflare/control-plane/src/index.ts",
     compatibility_date: "2026-06-01",
     compatibility_flags: ["nodejs_compat", "nodejs_als"],
@@ -67,7 +68,7 @@ export const renderEnvironmentConfig = (
       LANGGRAPH_ASSISTANT_ID: "agent",
       OPENROUTER_MODEL: "deepseek/deepseek-v4-flash",
       OPENROUTER_SITE_URL: manifest.vercel.origin,
-      OPENROUTER_APP_NAME: `assistant-mk1-${target}-cloudflare-chat`,
+      OPENROUTER_APP_NAME: `operloom-${target}-cloudflare-chat`,
       WORKBENCH_CALLBACK_URL: `${manifest.cloudflare.origin}/workbench/run-callbacks`,
       WORKBENCH_RUNNER_TRANSPORT: "fly",
       WORKBENCH_RUNNER_URL: `${manifest.fly.origin}/workbench/tool-runners/invocations`,
@@ -83,7 +84,7 @@ export const renderEnvironmentConfig = (
       SENTRY_ENVIRONMENT: target,
       SENTRY_TRACES_SAMPLE_RATE: "0.02",
     },
-    ...(bootstrap ? {} : { triggers: { crons: ["* * * * *"] } }),
+    ...(bootstrap ? {} : { triggers: { crons: [] } }),
     d1_databases: [
       {
         binding: "DB",
@@ -143,7 +144,7 @@ dockerfile = "../../../Dockerfile.langgraph"
 [env]
 LANGGRAPH_PORT = "2024"
 LANGGRAPH_UPSTREAM_URL = "http://127.0.0.1:2024"
-OPENROUTER_APP_NAME = "assistant-mk1-${target}-runner"
+OPENROUTER_APP_NAME = "operloom-${target}-runner"
 OPENROUTER_MODEL = "deepseek/deepseek-v4-flash"
 OPENROUTER_SITE_URL = "${manifest.fly.origin}"
 WORKBENCH_CONFORMANCE_MODE = "${manifest.conformanceMode}"
@@ -155,7 +156,7 @@ internal_port = 3000
 force_https = true
 auto_stop_machines = "stop"
 auto_start_machines = true
-min_machines_running = 1
+min_machines_running = 0
 processes = ["app"]
 
 [[http_service.checks]]

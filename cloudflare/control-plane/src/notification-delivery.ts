@@ -543,9 +543,7 @@ export const processNotificationQueue = async (
       const result = await port.deliver({
         token: token.value,
         title: approval ? "Action needed" : "Workbench update",
-        body: approval
-          ? "Open Assistant MK1 to review."
-          : "Open Assistant MK1 for the latest result.",
+        body: approval ? "Open Operloom to review." : "Open Operloom for the latest result.",
         data: { route: delivery.route, recordId: delivery.target_id },
       });
       const timestamp = new Date().toISOString();

@@ -1,4 +1,4 @@
-# Assistant-mk1 0.5 Foundation Release
+# Operloom 0.5 Foundation Release
 
 Document status: current internal pre-1.0 release candidate contract.
 

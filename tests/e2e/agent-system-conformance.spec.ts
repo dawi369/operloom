@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 import { controlPlane as complexOperatorRuntime } from "../../examples/complex-operator/control-plane";
 

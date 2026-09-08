@@ -10,7 +10,7 @@ import type {
   RunnerRuntimeModule,
   WebRuntimeModule,
   WorkbenchConfig,
-} from "@assistant-mk1/agent-sdk";
+} from "@operloom/agent-sdk";
 import {
   assertSchemaDefinition,
   assertSchemaValue,
@@ -18,7 +18,7 @@ import {
   isPackVersionCompatible,
   isWorkbenchVersionCompatible,
   parseSemanticVersion,
-} from "@assistant-mk1/agent-sdk";
+} from "@operloom/agent-sdk";
 import { format } from "oxfmt";
 import ts from "typescript";
 

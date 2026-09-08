@@ -3,7 +3,7 @@ import {
   type AgentExecutionContext,
   type RuntimeResult,
   type RuntimeToolBinding,
-} from "@assistant-mk1/agent-sdk/control-plane";
+} from "@operloom/agent-sdk/control-plane";
 
 import {
   invokeFlyToolRunner,

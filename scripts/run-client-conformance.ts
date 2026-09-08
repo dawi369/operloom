@@ -9,7 +9,7 @@ const suites = [
   },
   {
     command: ["workbench-client:verify"],
-    guarantees: ["packed-vite-consumer", "packed-expo-consumer", "no-workspace-resolution"],
+    guarantees: ["packed-vite-consumer", "no-workspace-resolution"],
   },
   {
     command: [

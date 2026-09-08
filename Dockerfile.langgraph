@@ -6,6 +6,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches patches
 COPY packages/agent-sdk/package.json packages/agent-sdk/package.json
 COPY packages/observability/package.json packages/observability/package.json
+COPY packages/workbench-client/package.json packages/workbench-client/package.json
+COPY packages/workbench-react/package.json packages/workbench-react/package.json
 COPY agent-packs/repo-analyst/package.json agent-packs/repo-analyst/package.json
 COPY agent-packs/baby-polymancer/package.json agent-packs/baby-polymancer/package.json
 COPY agent-packs/baby-swordfish/package.json agent-packs/baby-swordfish/package.json
@@ -33,6 +35,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches patches
 COPY packages/agent-sdk/package.json packages/agent-sdk/package.json
 COPY packages/observability/package.json packages/observability/package.json
+COPY packages/workbench-client/package.json packages/workbench-client/package.json
+COPY packages/workbench-react/package.json packages/workbench-react/package.json
 COPY agent-packs/repo-analyst/package.json agent-packs/repo-analyst/package.json
 COPY agent-packs/baby-polymancer/package.json agent-packs/baby-polymancer/package.json
 COPY agent-packs/baby-swordfish/package.json agent-packs/baby-swordfish/package.json

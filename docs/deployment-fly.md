@@ -1,5 +1,8 @@
 # Fly.io Acceptance And Production Deployment
 
+The personal deployment uses the [minimal hosted testing profile](minimal-hosted-testing.md).
+Separate acceptance and production stacks are optional fork configurations.
+
 Fly is the hosted dev/staging execution runtime. Local development remains the
 primary coding loop. Vercel owns the hosted frontend; Fly owns LangGraph and
 signed executor work.
@@ -9,8 +12,8 @@ signed executor work.
 Each hosted target has its own app and public gateway, declared in
 `config/environments/<target>.json`. `fly.langgraph.toml` is local-only.
 
-- Acceptance app: `assistant-mk1-acceptance-runner`
-- Production app: `assistant-mk1-production-runner`
+- Acceptance app: `operloom-acceptance-runner`
+- Production app: `operloom-runner`
 - Gateway on `PORT`, default `3000`
 - LangGraph dev server on `LANGGRAPH_PORT`, default `2024`
 - Gateway proxies LangGraph traffic to `LANGGRAPH_UPSTREAM_URL`
@@ -39,13 +42,13 @@ Optional:
 ```bash
 fly secrets set LANGSMITH_API_KEY=...
 fly secrets set LANGSMITH_TRACING=true
-fly secrets set --app <target-app> LANGSMITH_PROJECT=assistant-mk1-<target>
+fly secrets set --app <target-app> LANGSMITH_PROJECT=operloom-<target>
 ```
 
 ## First Deploy
 
 ```bash
-fly apps create assistant-mk1-acceptance-runner --region fra
+fly apps create operloom-acceptance-runner --region fra
 pnpm environment:check --target acceptance
 pnpm deploy:fly -- --target acceptance
 ```
@@ -113,6 +116,13 @@ that should prove the gateway can reach the LangGraph `/ok` endpoint. A healthy
 steady-state Fly log should show startup plus Fly health state changes, not
 recurring LangGraph `/ok` lines every 15 seconds from machine checks.
 
+The deployment wrapper uses `--ha=false` to create one Machine per process group.
+This deliberately trades redundancy for a small testing footprint.
+Hosted Fly targets keep `min_machines_running = 0`, with automatic stop and
+start enabled. Idle Machines therefore release CPU and RAM and cold-start only
+when explicit LangGraph or runner traffic arrives. Do not raise the minimum
+without an approved latency-versus-cost decision.
+
 The Fly image installs the root production dependency set and boots the checked
 in LangGraph CLI/graph pair. Dependency updates must pass
 `pnpm verify:security`, the LangGraph runtime boot smoke, and
@@ -153,9 +163,8 @@ Frontend:
 
 ## Health Checks
 
-`fly.langgraph.toml` checks `/health`. That endpoint confirms the runtime
-gateway is up and reports its configured LangGraph upstream URL. It does not
-call the model provider.
+`fly.langgraph.toml` checks `/health/live`. That endpoint confirms the runtime
+gateway is up without calling LangGraph or the model provider.
 
 ## Persistence Warning
 

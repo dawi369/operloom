@@ -13,7 +13,7 @@ import {
 import {
   usePublishWorkbenchSession,
   useWorkbenchSessionEventInvalidation,
-} from "@assistant-mk1/workbench-react";
+} from "@operloom/workbench-react";
 
 import { requestWorkbenchSummaryRefresh } from "@/lib/workbench/admin-summary-events";
 import { browserWorkbenchClient } from "@/lib/workbench/browser-client";

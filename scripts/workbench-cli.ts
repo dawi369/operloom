@@ -3,18 +3,18 @@ import { pathToFileURL } from "node:url";
 
 type ResolvedCommand = { script: string; args: string[] };
 
-const help = `Assistant-mk1 developer commands
+const help = `Operloom developer commands
 
-  pnpm workbench init [--check|--no-migrate]
-  pnpm workbench fork init --id <id> --name <name> --origin <url> --mobile-bundle <id>
-  pnpm workbench fork --check
-  pnpm workbench dev
-  pnpm workbench doctor [--offline]
-  pnpm workbench verify [fast|full|release]
-  pnpm workbench pack create --id <id> --name <name>
-  pnpm workbench pack <compile|validate|inspect|test|check> [arguments]
-  pnpm workbench client pack
-  pnpm workbench env check [--target <local|acceptance|production>]
+  pnpm operloom init [--check|--no-migrate]
+  pnpm operloom fork init --id <id> --name <name> --origin <url>
+  pnpm operloom fork --check
+  pnpm operloom dev
+  pnpm operloom doctor [--offline]
+  pnpm operloom verify [fast|full|release]
+  pnpm operloom pack create --id <id> --name <name>
+  pnpm operloom pack <compile|validate|inspect|test|check> [arguments]
+  pnpm operloom client pack
+  pnpm operloom env check [--target <local|acceptance|production>]
 
 Existing package-script aliases remain supported for CI and automation.`;
 

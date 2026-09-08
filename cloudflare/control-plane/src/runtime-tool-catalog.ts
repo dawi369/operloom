@@ -1,4 +1,4 @@
-import type { RuntimeToolBinding } from "@assistant-mk1/agent-sdk/control-plane";
+import type { RuntimeToolBinding } from "@operloom/agent-sdk/control-plane";
 import type { AgentPackConnectionDescriptor } from "../../../agent-packs";
 
 import { resolveAgentBehaviorConfig } from "./agent-records";

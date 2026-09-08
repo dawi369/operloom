@@ -1,268 +1,220 @@
-# Assistant-mk1
+<div align="center">
 
-A code-first agent workbench for durable runs, approvals, tool policy, artifacts,
-audit, and tenant-safe operations.
+# Operloom
 
-[![Version](https://img.shields.io/badge/version-0.5.1-111827)](#release-status)
-[![Verify](https://github.com/dawi369/assistant-mk1/actions/workflows/verify.yml/badge.svg)](https://github.com/dawi369/assistant-mk1/actions/workflows/verify.yml)
-[![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-2563eb)](LICENSE)
+**Your agents. Your workflows. Your code.**
 
-[Hosted workbench](https://assistant-mk1.vercel.app) ·
-[Documentation](docs/README.md) ·
-[Baseline readiness](docs/release-readiness.md)
+A TypeScript workbench for agent systems you can inspect, extend, and own.
 
-## Release Status
+[![Version](https://img.shields.io/badge/version-0.5.1-183f46)](#status)
+[![Verify](https://github.com/dawi369/operloom/actions/workflows/verify.yml/badge.svg)](https://github.com/dawi369/operloom/actions/workflows/verify.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-end_to_end-3178c6)](#the-stack-and-the-decisions)
+[![License](https://img.shields.io/badge/license-PolyForm_Noncommercial-52656b)](#license)
 
-Assistant-mk1 `0.5.1` is the internal pre-1.0 foundation: an authenticated,
-tenant-scoped workbench implementing the local Operational L3 plus Authority A2
-contracts. It includes forward-only retained-data migrations, workspace export
-and deletion lifecycle, WorkOS Vault custody, OAuth/API-key brokerage, and
-policy-controlled durable mutation. The public `1.0.0` claim remains blocked on
-the hosted and operational evidence in [Release Readiness](docs/release-readiness.md).
+[Get started](#run-it-locally) · [Build an agent](docs/first-agent.md) · [Architecture](docs/architecture.md) · [Documentation](docs/README.md)
 
-## Product Tour
+</div>
 
-Assistant-mk1 keeps chat immediate while moving serious agent work into durable,
-inspectable control-plane state. Runs, tools, approvals, artifacts, traces, and
-tenant scope are visible outside the model conversation.
+![Operloom workspace: conversation, agent selection, and execution controls](docs/assets/release/workbench.png)
 
-![Assistant-mk1 workbench with live runtime state](docs/assets/release/workbench.png)
+Define agents and tools in code. Give them a workspace, run their workflows,
+review actions before they execute, and follow the result through history and
+artifacts. Fork the whole application when your system needs to work differently.
 
-### Workbench
+## Why I built this
 
-- Cloudflare Agents chat with optimistic new-chat rendering and durable threads.
-- WorkOS-backed accounts, workspaces, memberships, roles, and agent selection.
-- Searchable run history with cancellation, retry, reconnect, and approval recovery.
-- Server-enforced tool visibility, execution modes, policy, and audit.
+I wanted a home for my own agent systems: somewhere a useful experiment could
+become a tool I actually trust. Chat is a good starting point. Once an agent can
+run in the background or touch another system, I also want to know what it did,
+which permissions it used, what failed, and how to recover.
 
-![Workbench History with recovery fixtures and a synthetic action ledger](docs/assets/release/history-and-action-ledger.png)
+Operloom is my answer to that problem. It brings the interface, execution
+contracts, and operational controls together, while keeping the behavior in
+ordinary TypeScript. It is also a deliberate record of how I approach software:
+make ownership explicit, keep authority outside the model, and make failures
+inspectable.
 
-### Agent Operations
+— [David](https://github.com/dawi369)
 
-- Code-first Agent Pack API v2 with behavior, tools, workflows, managed state,
-  read-only schedules/webhooks, connection declarations, risk, health, eval,
-  and resource metadata.
-- Durable unattended-failure alerts, bounded retention, and deterministic D1
-  backup/restore evidence.
-- Current-agent Tools separates user-run workflows, agent-only tools, and
-  workflow-internal adapters.
-- Typed workflows with bounded inputs, inspectable artifacts, durable action
-  proposals, approvals, kill switches, and reconciliation.
-- Signed per-trigger webhooks, Cloudflare schedules, and callback-backed
-  Fly/LangGraph execution.
-- Sentry and first-party runtime traces across Vercel, Cloudflare, and Fly.
+## What you can do
 
-![Built-in Agent Packs with executable and parked runtime boundaries](docs/assets/release/agent-packs.png)
+- **Work with agents in a real workspace.** Streaming chat, persistent threads,
+  agent switching, and scoped access to tools and history.
+- **Run work beyond a chat turn.** Durable workflows, cancellation, retry,
+  scheduled/webhook triggers, and artifacts you can return to.
+- **Keep control of side effects.** Server-enforced tool policy, approvals,
+  credential brokerage, kill switches, and an action ledger with reconciliation.
+- **Make it your own.** Typed agent packs contribute behavior, tools, workflows,
+  managed state, and artifact renderers. The compiler connects them to the
+  runtime; you do not edit a central switch statement for each agent.
+- **Reuse the frontend boundary.** A framework-neutral client and React Query
+  bindings support a different interface without duplicating the authorization
+  and execution logic.
 
-![Brokered connections and current-agent tools](docs/assets/release/tools-and-connections.png)
+The included **Repository Analyst** demonstrates bounded repository inspection
+and a readiness report. **Polymancer Research** demonstrates read-only market
+research. **Complex Operator** is the synthetic fixture used to exercise
+connections, approvals, and mutations. Their domains stay out of the core UI.
 
-![Workspace retention policy and asynchronous export controls](docs/assets/release/workspace-retention-and-export.png)
+<details>
+<summary><strong>See execution history and tools</strong></summary>
 
-## Why Assistant-mk1
+![Workflow history and a repository snapshot report](docs/assets/release/history-and-action-ledger.png)
 
-Most agent starters optimize for the first chat response. Assistant-mk1 focuses
-on what comes after that: who the agent acts for, which tools it can see, how
-long-running work is controlled, where results live, and how an operator recovers
-when execution fails or pauses for approval.
+![Tools and brokered connections](docs/assets/release/tools-and-connections.png)
 
-The base workbench stays domain-neutral. Product behavior belongs in agent packs,
-workspace configuration, policy, tools, and integrations rather than hard-coded
-application assumptions.
+Screenshots use an isolated local workspace with synthetic data.
 
-## Architecture
+</details>
 
-| Surface          | Responsibility                                                                               |
-| ---------------- | -------------------------------------------------------------------------------------------- |
-| Vercel / Next.js | WorkOS browser session, workbench UI, and signed same-origin facades                         |
-| Cloudflare       | Authorization, D1 control state, Durable Object chat, policy, audit, events, and normal chat |
-| Fly              | Signed heavy tool execution; runner transport is recorded separately from run orchestration  |
-| LangGraph        | Graph-shaped orchestration only when an actual delegated run and external run id exist       |
+## Run it locally
 
-Trusted tenant scope is derived server-side. The browser never chooses trusted
-`userId`, `workspaceId`, `agentId`, or provider credentials.
-
-See [Architecture](docs/architecture.md), [Tenancy](docs/tenancy.md), and the
-[current topology](docs/diagrams/current-implementation-topology.mmd).
-
-## Quick Start
-
-Requirements:
-
-- Node.js 24 LTS for release parity; Node.js 26 is accepted for local development
-- pnpm 10.33.0
-- an OpenRouter API key
-
-CI, Docker, LangGraph, Fly, and hosted Vercel builds remain pinned to Node 24.
-Node 26 local development is a convenience compatibility path; reproduce any
-runtime-sensitive failure under Node 24 before release.
+You need **Node.js 24 LTS**, **pnpm 10.33.0**, **ripgrep** for the repository
+inspection example, and an **OpenRouter API key** for model responses. Node 26
+is also supported for local development. Hosted accounts are not required for
+the local workspace. Budget about 10 GiB of available RAM for the full local
+stack and browser; [resource limits](docs/getting-started.md#local-resource-limits)
+keep development and verification bounded.
 
 ```bash
+git clone https://github.com/dawi369/operloom.git
+cd operloom
 pnpm install --frozen-lockfile
-pnpm workbench init
+pnpm operloom init
 ```
 
-`workbench init` creates missing local environment files, generates matching
-local-only transport secrets, enables the local Admin user, applies forward D1
-migrations, and preserves configured credentials and custom endpoints. It
-upgrades the retired inline local-runner default to the complete signed path. Set `OPENROUTER_API_KEY` in
-both `.env.local` and `cloudflare/control-plane/.dev.vars`, then verify the
-configuration:
+Add `OPENROUTER_API_KEY` to both generated server-side files:
+`.env.local` and `cloudflare/control-plane/.dev.vars`. Then:
 
 ```bash
-pnpm workbench doctor --offline
+pnpm operloom doctor --offline
+pnpm operloom dev
 ```
 
-The migration command preserves existing development data. The separate
-`db:cloudflare:rebuild:*` commands drop Worker tables and are only for an
-intentional reset.
+Open **[localhost:3000](http://localhost:3000)**. The development command starts
+the web app, local Cloudflare runtime, LangGraph, and signed runner together.
+In another terminal, `pnpm operloom doctor` checks their reachability.
 
-Start the complete workbench:
+Initialization generates local transport secrets and applies forward database
+migrations. It preserves configured credentials and existing development data.
+The local identity fallback is explicit and unavailable in hosted deployments.
+
+[Setup details and troubleshooting →](docs/getting-started.md)
+
+## Build your first agent
 
 ```bash
-pnpm workbench dev
+pnpm operloom pack create --id my-agent --name "My Agent"
+pnpm install
+pnpm operloom pack compile
+pnpm operloom pack check --pack my-agent
 ```
 
-This starts Next.js, LangGraph, the Cloudflare Worker, and the signed local runner
-gateway. Then run `pnpm workbench doctor` in another terminal to verify provider
-configuration, Worker/D1 identity, LangGraph, and runner reachability.
+This generates a complete, deterministic read-only example and registers it in
+`workbench.config.ts`. Edit its purpose and tools, then run the same check again.
 
-To inspect an existing checkout without creating files or applying migrations,
-run `pnpm workbench init --check`.
+| File in your pack       | What you own                                                           |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `index.ts`              | Agent identity, declared capabilities, policy metadata, and welcome UI |
+| `prompt.xml`            | The checked-in behavior prompt; keep the manifest prompt in sync       |
+| `control-plane.ts`      | Typed tool bindings, workflows, and execution results                  |
+| `runner.ts`             | Work that needs the Node.js runner                                     |
+| `web.ts`                | Optional artifact and managed-state presentation                       |
+| `control-plane.test.ts` | Executable checks for your behavior                                    |
 
-| Service           | Local URL               |
-| ----------------- | ----------------------- |
-| Next.js workbench | `http://localhost:3000` |
-| LangGraph         | `http://localhost:2024` |
-| Cloudflare Worker | `http://localhost:8787` |
+Packs are **trusted code installed at build time**, not sandboxed third-party
+plugins. A pack can declare a capability; it cannot grant itself credentials,
+workspace access, or permission to execute a mutation.
 
-Local development can use the explicit `WORKBENCH_ALLOW_LOCAL_DEV_IDENTITY`
-fallback from `.env.example`. Hosted deployments fail closed and require WorkOS.
+[Walk through the example →](docs/first-agent.md) · [Full extension contract →](docs/agent-runtime-kit.md)
 
-## Agent Packs
+## The stack and the decisions
 
-Agent packs are trusted build-time packages. Pack API v2 snapshots behavior and
-declarations; Runtime Module v1 supplies schema-checked Cloudflare, Fly, and web
-bindings without bypassing workspace policy or tenant authorization.
+**Next.js 16 · React 19 · TypeScript · assistant-ui · Tailwind CSS 4 · Cloudflare
+Agents / Workers / Durable Objects / D1 / R2 · LangGraph · WorkOS · OpenRouter ·
+Sentry · Vitest · Playwright**
 
-The bundled API v2 examples are **Repository Analyst**, **Polymancer Research**, and
-**Swordfish Runtime**. Repository Analyst and Polymancer provide live, bounded,
-read-only workflows. Swordfish is packaged and chat-capable, but intentionally
-parked: it registers no executable tools, workflows, triggers, connections,
-managed state, or renderers. Allowlisted
-operators can reuse or instantiate the current pack version from Admin without
-mutating older agent snapshots.
+```mermaid
+flowchart LR
+    Browser["React + assistant-ui"] --> Web["Next.js\nSession + signed API facade"]
+    Browser -. "Scoped realtime connection" .-> Chat["Durable Object\nLive chat"]
+    Web --> Control["Cloudflare Worker\nAuthorization · policy · runs"]
+    Control --> Chat
+    Control --> Data["D1 + R2\nHistory · audit · artifacts"]
+    Control --> Runner["Fly / Node.js\nSigned tool execution"]
+    Runner --> Graph["LangGraph\nDelegated graph workflows"]
+    Runner -. "Signed results" .-> Control
+```
+
+| Decision                                                        | Reason and tradeoff                                                                                                                                                                                                         |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cloudflare owns application state and authority.**            | Chat, permissions, runs, and audit have an explicit owner. D1 stores control records; Durable Objects own live chat; R2 holds artifacts and exports. This couples the default deployment to Cloudflare.                     |
+| **Next.js owns the web session and interface.**                 | WorkOS identity is resolved server-side; signed facades carry trusted scope to the Worker. The browser never grants itself a workspace, role, or credential. This adds a service boundary, but keeps secrets out of the UI. |
+| **Use Node.js for tools that need it.**                         | A signed Fly runner provides the process environment for repository tools and heavier execution. Ordinary chat stays on Cloudflare. Fly can stop when idle; the tradeoff is a cold start.                                   |
+| **Use LangGraph where graph orchestration is actually needed.** | Delegated graph runs use its orchestration primitives. A runner call alone is not represented as a LangGraph run. Normal chat does not take this detour.                                                                    |
+| **Put policy outside the model.**                               | Tool visibility, execution modes, tenant scope, approvals, and reconciliation are application rules. Prompts explain behavior; they are not the security boundary.                                                          |
+| **Compile agent packs.**                                        | Explicit contracts and generated registries make extensions inspectable and testable. Adding trusted code requires a build and deployment.                                                                                  |
+| **Share a client, not a second backend.**                       | `@operloom/workbench-client` validates API responses; `@operloom/workbench-react` adds scoped caching and hooks. Alternate frontends reuse the same authority boundary.                                                     |
+
+This is a multi-service application, not a single-process automation script.
+That cost earns its place when you need an interface, persistent workspaces,
+background execution, and controlled actions together. For a small scheduled
+script, a smaller tool may be a better fit.
+
+[Architecture and code seams →](docs/architecture.md) · [Decision records →](docs/README.md#decisions)
+
+## Adapting and deploying
+
+Change product identity without renaming the SDK packages:
 
 ```bash
-pnpm agent-packs:create --id my-agent --name "My Agent" --dry-run
-pnpm agent-packs:compile --check
-pnpm agent-packs:validate
-pnpm agent-packs:inspect --pack repo-analyst
-pnpm agent-packs:smoke --pack repo-analyst # static manifest/registry mapping smoke
-pnpm agent-packs:test --pack repo-analyst  # executable package health/eval gate
-pnpm workbench pack check --pack repo-analyst # focused authoring gate
-pnpm conformance:agent-system              # aggregate SDK/compiler/runtime gate
-pnpm test:service-boundaries               # live local Worker/Fly/browser workflow smoke
+pnpm operloom fork init --id my-system --name "My System" --origin https://agents.example.com
+pnpm operloom fork --check
 ```
 
-Installing a package requires its files, one `workbench.config.ts` entry, and a
-deterministic compile. Packs can declare brokered connections and mutation
-bindings, but cannot grant themselves credentials or authority. Remote
-executable installation remains unsupported. See [Agent Packs](docs/agent-packs.md),
-the [Agent Runtime Kit](docs/agent-runtime-kit.md),
-the [Complex Agent Golden Path](docs/complex-agent-golden-path.md),
-the [Capability Model](docs/capability-model.md), and
-[Agent Profile Authoring](docs/agent-profile-authoring.md).
+The default hosted topology is **Vercel + Cloudflare + Fly**, with **WorkOS**
+for authentication and credential custody. Configure your own resource IDs,
+origins, and secrets; the checked-in deployment manifests describe the original
+installation and are not resources supplied to forks.
 
-## Frontend Integration
+Deployment order is Cloudflare, Fly, then Vercel. Retained data, connections,
+and external mutation are separately gated and default off. Scheduled triggers
+also remain dormant until you deliberately enable the scheduler. Provider usage
+and model calls have their own costs.
 
-The bundled Next.js and Expo applications dogfood the same private frontend
-boundary. `@assistant-mk1/workbench-client` supplies runtime-validated,
-framework-neutral product APIs and chat/realtime contracts;
-`@assistant-mk1/workbench-react` supplies tenant-safe React Query keys, hooks,
-and invalidation for React DOM or React Native.
+[Deployment guide →](docs/environment-separation.md) · [Forking and upgrades →](docs/forking.md)
+
+## Quality and status
+
+<a id="status"></a>
+
+Operloom `0.5.1` is a **pre-1.0 developer workbench**. The web app and extension
+contracts are the supported focus. A public production/SLO claim remains
+subject to the hosted acceptance evidence in [Release Readiness](docs/release-readiness.md).
+
+**Mobile is WIP / future work**, preserved on
+[`codex/mobile-wip`](https://github.com/dawi369/operloom/tree/codex/mobile-wip).
+The web installation does not pull in Expo or require native builds.
 
 ```bash
-pnpm workbench client pack       # portable archives plus checksum manifest
-pnpm workbench-client:verify     # zero-context Vite and Expo consumers
-pnpm conformance:client          # client contract and behavior evidence
+pnpm verify          # docs, contracts, unit tests, types, lint, audit, build
+pnpm test:e2e        # isolated browser and service-boundary journeys
+pnpm release:check   # extended conformance and Docker checks
 ```
 
-See [Frontend Integration](docs/frontend-integration.md) for cookie, bearer,
-Vite, Expo, caching, chat, and generic Agent Pack rendering guidance.
+The tests cover tenant boundaries, signed requests, durable chat delivery,
+approval/recovery behavior, extension contracts, and data lifecycle. Browser
+fixtures use isolated local state. Local checks do not substitute for a
+signed-in hosted acceptance run.
 
-## Verification
-
-```bash
-pnpm docs:check     # validate local documentation and image links
-pnpm verify:fast   # packs, eval posture, unit tests, types, lint, format
-pnpm verify        # fast gate, high-severity audit, and production build
-pnpm test:e2e      # signed-out and trusted-local browser journeys
-pnpm conformance:level2       # executable Level 0-2 evidence report
-pnpm conformance:level3       # executable local Level 3 evidence report
-pnpm conformance:agent-system # executable package and extension-system report
-pnpm conformance:extension-contract # installed external-package contract proof
-pnpm conformance:data-lifecycle # retention, export, recovery, and purge
-pnpm conformance:connections    # Vault and OAuth/API-key brokerage
-pnpm conformance:actions        # policy-controlled synthetic mutation
-pnpm verify:docker            # non-root image and excluded-context proof
-pnpm acceptance:hosted:public # hosted unauthenticated health parity
-pnpm acceptance:hosted:level3:preflight # read-only hosted prerequisites
-pnpm acceptance:hosted:level3 # guarded non-customer hosted failure drills
-pnpm acceptance:hosted:vault  # guarded WorkOS Vault lifecycle evidence
-pnpm acceptance:hosted:mutation # guarded isolated synthetic mutation evidence
-pnpm release:check            # repository, Docker, and Level 2-3 local gates
-pnpm fork:check               # complete downstream update acceptance gate
-```
-
-The browser suite uses isolated D1 state under `output/playwright/`. Runtime
-changes should also run the affected Cloudflare or Fly smoke documented in
-[Contributing](CONTRIBUTING.md).
-
-## Repository Map
-
-- `app/assistant.tsx`: assistant-ui and Cloudflare Agents runtime bridge.
-- `app/api/workbench/*`: signed Vercel facades over Cloudflare.
-- `components/assistant-ui/*`: reusable assistant-ui composition.
-- `components/workbench/*`: product workbench, history, workspace, and Admin UI.
-- `packages/workbench-client/*`: portable runtime-validated product client.
-- `packages/workbench-react/*`: shared React Query resource layer.
-- `cloudflare/control-plane/*`: Worker, D1 schema, Durable Objects, policy, and audit.
-- `backend/agent.ts`: LangGraph graph and provider seam.
-- `agent-packs/*`: code-first agent packages.
-- `scripts/smoke-*.ts`: service-boundary and tenant-isolation checks.
-- `docs/README.md`: authoritative current-state and target-contract map.
-
-## Deployment
-
-Deploy Cloudflare and Fly before a Vercel release that depends on them:
-
-- [Environment separation and release evidence](docs/environment-separation.md)
-- [Vercel](docs/deployment-vercel.md)
-- [Cloudflare and local infrastructure](docs/dev-infrastructure-readiness.md)
-- [Fly](docs/deployment-fly.md)
-
-Production enablement is gated in order: retained data, connections, then
-mutation for an isolated acceptance workspace. Migration, export, recovery,
-purge, Vault, and mutation evidence are tracked in
-[Migrations and Retention](docs/migrations-and-retention.md) and
-[Release Readiness](docs/release-readiness.md).
-
-## Contributing and Security
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing runtime boundaries.
-Report vulnerabilities through [SECURITY.md](SECURITY.md), not a public issue.
-
-This repository uses pnpm. Do not update the lockfile with npm or yarn.
+[Release notes and compatibility →](docs/operloom-release.md) · [Contributing →](CONTRIBUTING.md) · [Security →](SECURITY.md)
 
 ## License
 
-Assistant-mk1 is source-available under the
-[PolyForm Noncommercial License 1.0.0](LICENSE). Noncommercial use is permitted
-under those terms. Commercial use requires a separate written agreement; see
-[Commercial Use](COMMERCIAL_USE.md).
+**Source-available under [PolyForm Noncommercial 1.0.0](LICENSE).**
+Noncommercial use is permitted under its terms. Commercial use requires a
+separate written agreement; see [Commercial Use](COMMERCIAL_USE.md).
+This is not an OSI-approved open-source license.
 
-This license is not an OSI-approved open-source license.
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=dawi369/assistant-mk1&type=Date)](https://www.star-history.com/#dawi369/assistant-mk1&Date)
+Built on the assistant-ui LangGraph starter, with gratitude to the maintainers
+of the tools that make this project possible.

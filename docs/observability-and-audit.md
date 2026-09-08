@@ -94,7 +94,7 @@ Audit summaries should be safe for UI display.
 
 ## External Error Monitoring
 
-Sentry is the first external exception and trace sink for assistant-mk1.
+Sentry is the first external exception and trace sink for operloom.
 Cloudflare D1 remains the source of truth for product state, runtime summaries,
 audit records, and "what happened?" answers; Sentry is for debugging runtime
 failures, regressions, and cross-surface traces.
@@ -102,9 +102,9 @@ failures, regressions, and cross-surface traces.
 The current Sentry org/project is:
 
 - Org: `t23`
-- Project: `assistant-mk1`
+- Project: `operloom`
 
-Use one project for the Assistant-MK1 product and distinguish runtime surfaces
+Use one project for the Operloom product and distinguish runtime surfaces
 with tags instead of creating separate projects too early:
 
 - `runtime.surface=vercel-next` for the Vercel/Next web app and server facade.
@@ -130,7 +130,7 @@ code/status metadata, and redacted exception text. Verify this boundary with
 Source maps should use `SENTRY_AUTH_TOKEN` only in trusted CI/deploy
 environments. Never commit the auth token or print it in logs.
 
-Native builds use `@sentry/react-native` with the same runtime-neutral scrubber
+Native builds on the [mobile WIP branch](mobile-frontends.md) use `@sentry/react-native` with the same runtime-neutral scrubber
 as web, Worker, and Fly. The public mobile binary may contain only the DSN,
 environment, and full-SHA release. `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and
 `SENTRY_PROJECT` are build-time EAS/local-build values and must never use the

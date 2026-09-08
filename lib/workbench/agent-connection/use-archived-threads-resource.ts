@@ -6,7 +6,7 @@ import {
   useWorkbenchQueryClient,
   workbenchQueryKeys,
   type QueryClient,
-} from "@assistant-mk1/workbench-react";
+} from "@operloom/workbench-react";
 
 import type { ChatThreadsResponse, ChatThreadSummary } from "@/lib/workbench/workbench-types";
 import type { ArchivedThreadsLoadInput } from "./session-runtime";

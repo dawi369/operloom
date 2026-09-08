@@ -6,7 +6,7 @@ import {
   type RuntimeResult,
   type RuntimeToolBinding,
   type RuntimeWorkflowBinding,
-} from "@assistant-mk1/agent-sdk";
+} from "@operloom/agent-sdk";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 

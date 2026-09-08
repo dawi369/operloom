@@ -35,8 +35,8 @@ const main = async () => {
     ["pack", "--pack-destination", output],
     resolve(root, "tests/fixtures/external-agent-package"),
   );
-  const sdkArchive = findArchive(output, "assistant-mk1-agent-sdk-");
-  const packArchive = findArchive(output, "assistant-mk1-external-agent-fixture-");
+  const sdkArchive = findArchive(output, "operloom-agent-sdk-");
+  const packArchive = findArchive(output, "operloom-external-agent-fixture-");
   const sdkArchiveEntries = run("tar", ["-tzf", sdkArchive], root).split("\n").filter(Boolean);
   for (const required of [
     "package/dist/index.js",
@@ -69,12 +69,12 @@ const main = async () => {
         private: true,
         type: "module",
         dependencies: {
-          "@assistant-mk1/agent-sdk": `file:${relative(consumer, sdkArchive)}`,
-          "@assistant-mk1/external-agent-fixture": `file:${relative(consumer, packArchive)}`,
+          "@operloom/agent-sdk": `file:${relative(consumer, sdkArchive)}`,
+          "@operloom/external-agent-fixture": `file:${relative(consumer, packArchive)}`,
         },
         pnpm: {
           overrides: {
-            "@assistant-mk1/agent-sdk": `file:${relative(consumer, sdkArchive)}`,
+            "@operloom/agent-sdk": `file:${relative(consumer, sdkArchive)}`,
           },
         },
       },
@@ -86,11 +86,11 @@ const main = async () => {
 
   writeFileSync(
     resolve(consumer, "consumer.mjs"),
-    `import { defineWorkbenchConfig } from "@assistant-mk1/agent-sdk";
-import { defineAgentPack } from "@assistant-mk1/agent-sdk/manifest";
-import { defineControlPlaneModule } from "@assistant-mk1/agent-sdk/control-plane";
-import { defineRunnerModule } from "@assistant-mk1/agent-sdk/runner";
-import { defineWebModule } from "@assistant-mk1/agent-sdk/web";
+    `import { defineWorkbenchConfig } from "@operloom/agent-sdk";
+import { defineAgentPack } from "@operloom/agent-sdk/manifest";
+import { defineControlPlaneModule } from "@operloom/agent-sdk/control-plane";
+import { defineRunnerModule } from "@operloom/agent-sdk/runner";
+import { defineWebModule } from "@operloom/agent-sdk/web";
 
 for (const value of [defineWorkbenchConfig, defineAgentPack, defineControlPlaneModule, defineRunnerModule, defineWebModule]) {
   if (typeof value !== "function") throw new Error("SDK runtime export is not executable");
@@ -101,11 +101,11 @@ for (const value of [defineWorkbenchConfig, defineAgentPack, defineControlPlaneM
 
   writeFileSync(
     resolve(consumer, "consumer.ts"),
-    `import { defineWorkbenchConfig } from "@assistant-mk1/agent-sdk";
-import { defineAgentPack } from "@assistant-mk1/agent-sdk/manifest";
-import { defineControlPlaneModule } from "@assistant-mk1/agent-sdk/control-plane";
-import { defineRunnerModule } from "@assistant-mk1/agent-sdk/runner";
-import { defineWebModule } from "@assistant-mk1/agent-sdk/web";
+    `import { defineWorkbenchConfig } from "@operloom/agent-sdk";
+import { defineAgentPack } from "@operloom/agent-sdk/manifest";
+import { defineControlPlaneModule } from "@operloom/agent-sdk/control-plane";
+import { defineRunnerModule } from "@operloom/agent-sdk/runner";
+import { defineWebModule } from "@operloom/agent-sdk/web";
 void [defineWorkbenchConfig, defineAgentPack, defineControlPlaneModule, defineRunnerModule, defineWebModule];
 `,
   );
@@ -130,12 +130,12 @@ void [defineWorkbenchConfig, defineAgentPack, defineControlPlaneModule, defineRu
   );
   writeFileSync(
     resolve(consumer, "workbench.config.ts"),
-    `import { defineWorkbenchConfig } from "@assistant-mk1/agent-sdk";
+    `import { defineWorkbenchConfig } from "@operloom/agent-sdk";
 
 export default defineWorkbenchConfig({
   runtimeApiVersion: 1,
   workbenchVersion: "0.5.0",
-  modules: [{ package: "@assistant-mk1/external-agent-fixture" }],
+  modules: [{ package: "@operloom/external-agent-fixture" }],
 });
 `,
   );
@@ -150,7 +150,7 @@ export default defineWorkbenchConfig({
     "utf8",
   );
   if (
-    !generatedManifest.includes("@assistant-mk1/external-agent-fixture/manifest") ||
+    !generatedManifest.includes("@operloom/external-agent-fixture/manifest") ||
     generatedManifest.includes("tests/fixtures")
   ) {
     throw new Error("Generated registry did not preserve the external package boundary.");

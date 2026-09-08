@@ -51,7 +51,7 @@ describe("mobile notification delivery", () => {
       port.deliver({
         token: "ExponentPushToken[opaque-token]",
         title: "Workbench update",
-        body: "Open Assistant MK1 for the latest result.",
+        body: "Open Operloom for the latest result.",
         data: { route: "history", recordId: "run-1" },
       }),
     ).resolves.toEqual({ ok: true, ticketId: "ticket-1" });
@@ -60,7 +60,7 @@ describe("mobile notification delivery", () => {
     expect(request).toEqual({
       to: "ExponentPushToken[opaque-token]",
       title: "Workbench update",
-      body: "Open Assistant MK1 for the latest result.",
+      body: "Open Operloom for the latest result.",
       data: { route: "history", recordId: "run-1" },
       sound: "default",
       channelId: "workbench",
@@ -76,7 +76,7 @@ describe("mobile notification delivery", () => {
       port.deliver({
         token: "ExponentPushToken[expired]",
         title: "Action needed",
-        body: "Open Assistant MK1 to review.",
+        body: "Open Operloom to review.",
         data: { route: "approvals", recordId: "approval-1" },
       }),
     ).resolves.toEqual({

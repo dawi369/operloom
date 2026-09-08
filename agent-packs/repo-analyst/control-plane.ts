@@ -1,7 +1,4 @@
-import {
-  defineControlPlaneModule,
-  type RuntimeRecord,
-} from "@assistant-mk1/agent-sdk/control-plane";
+import { defineControlPlaneModule, type RuntimeRecord } from "@operloom/agent-sdk/control-plane";
 
 type RepoSnapshotOutput = {
   summary: string;

@@ -2,6 +2,37 @@
 
 ## 0.5.1 (unreleased candidate)
 
+- Consolidate the personal hosted deployment under Operloom, with one runner
+  that scales to zero, paused notification delivery, and archived legacy stacks.
+- Restore signing of the existing identity-header namespace after the rebrand;
+  reject modified tenant/role headers before persistence and runner execution.
+- Add optional `networkPolicy` to the unpublished `@operloom/agent-sdk` SDK 1.0.1
+  execution context. The gateway supplies signed restrictions and the URL runner
+  enforces them on initial requests and redirects. Custom network tools must
+  honor this context; trusted runner modules are not OS-isolated sandboxes.
+- Use the explicit release SHA when CLI deployment metadata contains a blank
+  Git SHA, and update the runner smoke to the versioned invocation contract.
+
+- Bound development process groups and memory, clean up grandchildren on shutdown,
+  and use Webpack for development to avoid runaway Turbopack loader workers.
+- Make account-free local startup consistent across the auth proxy, provider,
+  and identity resolver; reject the local mode in hosted environments. Restore
+  the documented optional LangGraph model default and keep local tracing opt-in.
+- Fix generated hyphenated agent identifiers and synchronous health/eval tests
+  so the documented first-agent workflow passes its own developer gate.
+- Add an accessible chat-rename dialog with inline failure recovery.
+- Handle exact slash commands before the first thread is materialized, so navigation
+  is never submitted as a chat turn; defer closed operator panels from server rendering.
+- Update tar, browserslist, and fast-uri to patched versions.
+- Rename the product and workspace packages to Operloom (`@operloom/*`); update
+  imports together when upgrading. Existing signed transport headers remain
+  stable; hosted resource migration is recorded in the minimal testing runbook.
+- Preserve native clients on `codex/mobile-wip`; remove Expo from the web
+  installation and native checks from the web release gate. Remove the former
+  Expo security exceptions.
+- Add the `pnpm operloom` CLI alias, web-only fork configuration, adoption guides,
+  and an architecture-focused README.
+
 Production-hardening release with a shared runtime-validated frontend client,
 one React Query resource model, credential-safe observability across Vercel,
 Cloudflare, and Fly, a decomposed connection broker, and executable hosted
@@ -14,10 +45,10 @@ plus connections; mutation, push, and conformance stay globally disabled.
 - Durable chat commands no longer wait for the disposable realtime observer;
   native and web clients can accept an idempotent turn while live updates
   reconnect, with bounded connection attempts and explicit delivery state.
-- Native pack output is now fully generic: declared JSON, Markdown, and table
+- On the archived mobile WIP branch, native pack output is fully generic: declared JSON, Markdown, and table
   artifacts, managed state, workflow schemas, reasoning, and tool calls render
   without pack-specific mobile source code.
-- Mobile acceptance now requires strict same-commit iOS and Android evidence,
+- The archived mobile WIP acceptance path requires same-commit iOS and Android evidence,
   while native Sentry uses the shared credential scrubber and build-only symbol
   upload authority.
 
@@ -38,7 +69,7 @@ Internal pre-1.0 foundation implementing the local Operational L3 and Authority 
 - Deterministic Complex Operator mutation evidence without financial actions or
   public provider traffic.
 - New lifecycle, connection, mutation, hosted Vault, and hosted mutation gates.
-- Stable unpublished `@assistant-mk1/agent-sdk` SDK 1.0.1 contract with correct
+- Stable unpublished `@operloom/agent-sdk` SDK 1.0.1 contract with correct
   SemVer prerelease precedence, explicit
   workbench-version compatibility and normalized declaration/schema hashes.
 - Deterministic synthetic release screenshots and strict Node 24/package
@@ -52,7 +83,7 @@ Internal pre-1.0 foundation implementing the local Operational L3 and Authority 
   desktop/mobile overflow acceptance across the primary workbench surfaces.
 - Public health identity agreement across Vercel, Cloudflare, and Fly using the
   same full release SHA and application version.
-- Unpublished framework-neutral `@assistant-mk1/workbench-client` and React
+- Unpublished framework-neutral `@operloom/workbench-client` and React
   Query adapter packages, dogfooded by the web session, Agents, History,
   workflow, approval, and Connections surfaces with a hashed client contract.
 - Default-off WorkOS mobile bearer identity with authoritative bearer handling,
@@ -73,7 +104,7 @@ The public 1.0 tag remains blocked until the same-commit hosted checklist in
 
 ## 1.0.0-preview.1
 
-Developer preview of the source-available Assistant-mk1 agent workbench.
+Developer preview of the source-available Operloom agent workbench.
 
 - Authenticated, tenant-scoped Cloudflare Agents chat and workbench controls.
 - Code-first Agent Packs with bounded read-only workflows and policy-gated tools.

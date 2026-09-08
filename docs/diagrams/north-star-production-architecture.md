@@ -4,7 +4,7 @@ Last updated: 2026-06-06
 
 ## Purpose
 
-Show the finished production shape assistant-mk1 is aiming at: a web-first,
+Show the finished production shape operloom is aiming at: a web-first,
 multi-user, tenant-scoped agent workbench where Vercel owns the WorkOS-backed
 frontend session, Cloudflare owns authorization, live coordination, and
 canonical app-state mediation, Fly owns heavy execution, and all durable outputs

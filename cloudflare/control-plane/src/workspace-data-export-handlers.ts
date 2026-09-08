@@ -114,7 +114,7 @@ export const handleDownloadWorkspaceExport = async (
   return new Response(object.body, {
     headers: {
       "content-type": "application/zip",
-      "content-disposition": `attachment; filename="assistant-mk1-${encodeURIComponent(identity.scope.workspaceId)}-export.zip"`,
+      "content-disposition": `attachment; filename="operloom-${encodeURIComponent(identity.scope.workspaceId)}-export.zip"`,
       "cache-control": "private, no-store",
       "x-content-type-options": "nosniff",
       "x-content-sha256": row.content_sha256 ?? "",

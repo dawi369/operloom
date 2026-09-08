@@ -1,14 +1,14 @@
 # Frontend Integration
 
-Assistant-mk1 supports three frontend shapes through one public client
-boundary: the bundled Next.js app, an independent browser app, and a native
-Expo app. All use the same product contracts; none receives Cloudflare, Fly,
+Operloom supports the bundled Next.js app and independent browser apps through
+one public client boundary. The native reference app is [WIP on a separate branch](mobile-frontends.md).
+Clients use the same product contracts; none receives Cloudflare, Fly,
 Vault, model-provider, callback, or facade-signing secrets.
 
 ```text
 React web or Expo UI
-  -> @assistant-mk1/workbench-react
-  -> @assistant-mk1/workbench-client
+  -> @operloom/workbench-react
+  -> @operloom/workbench-client
   -> Vercel bearer/cookie facade
   -> signed Cloudflare control plane
   -> Fly only for registered heavy execution
@@ -37,14 +37,14 @@ pnpm workbench-client:verify
 pnpm conformance:client
 ```
 
-These gates pack zero-context Vite and Expo consumers without workspace links,
+These gates pack a zero-context Vite consumer without workspace links,
 execute representative valid and invalid responses, and verify the tracked
 public contract.
 
 ## Create the headless client
 
 ```ts
-import { WorkbenchClientError, createWorkbenchClient } from "@assistant-mk1/workbench-client";
+import { WorkbenchClientError, createWorkbenchClient } from "@operloom/workbench-client";
 
 export const client = createWorkbenchClient({
   baseUrl: "https://assistant.example.com",
@@ -103,7 +103,7 @@ The deployment must explicitly allow the browser origin in its CORS
 configuration. An invalid bearer token is authoritative and cannot fall back
 to a cookie.
 
-### Expo / native
+### Expo / native (future work)
 
 Use the canonical Vercel origin and a PKCE-authenticated WorkOS mobile token
 from the application's secure token store. Native requests do not depend on
@@ -112,7 +112,7 @@ put a WorkOS API key or service secret in an `EXPO_PUBLIC_*` variable.
 
 ## React resource layer
 
-`@assistant-mk1/workbench-react` is the shared React Query layer for React DOM
+`@operloom/workbench-react` is the shared React Query layer for React DOM
 and React Native:
 
 ```tsx

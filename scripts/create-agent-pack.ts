@@ -69,5 +69,5 @@ try {
 
 console.log(`Created and configured Runtime Module v1 Agent Pack ${input.id}.`);
 console.log(
-  `Next: pnpm agent-packs:compile && pnpm agent-packs:validate && pnpm agent-packs:test --pack ${input.id}`,
+  `Next: pnpm install && pnpm agent-packs:compile && pnpm agent-packs:validate && pnpm agent-packs:test --pack ${input.id}`,
 );

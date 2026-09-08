@@ -1,4 +1,4 @@
-import { defineRunnerModule } from "@assistant-mk1/agent-sdk/runner";
+import { defineRunnerModule } from "@operloom/agent-sdk/runner";
 
 import { runRepoSnapshot } from "../../lib/workbench/repo-snapshot-runner";
 import { validateUrlInspectInput } from "../../lib/workbench/url-inspect";
@@ -50,11 +50,11 @@ export const runner = defineRunnerModule({
     },
     {
       ...urlInspect,
-      async execute(input) {
+      async execute(input, context) {
         const validated = validateUrlInspectInput(input);
         if (!validated.ok)
           return { ok: false as const, error: validated.error, summary: validated.error.message };
-        const result = await inspectPublicUrl(validated.url);
+        const result = await inspectPublicUrl(validated.url, context.networkPolicy);
         return result.ok
           ? { ...result, summary: result.output.summary }
           : { ...result, summary: result.error.message };

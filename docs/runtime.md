@@ -8,7 +8,7 @@ The workflow plane handles explicit multi-step work: tool calls, approvals, exec
 
 assistant-ui remains the UI/runtime substrate for the thread, composer,
 messages, stream ergonomics, attachments, and tool-call rendering where those
-primitives fit. Assistant-mk1 owns product-level runtime concepts around that
+primitives fit. Operloom owns product-level runtime concepts around that
 substrate: tenant scope, policy, durable run control, ledgers, managed state,
 decision records, and external triggers.
 
@@ -142,7 +142,7 @@ Admin surfaces. Registration never implies model exposure.
 
 ## Lifecycle Events
 
-Runtime behavior should emit typed lifecycle events before assistant-mk1 adds
+Runtime behavior should emit typed lifecycle events before operloom adds
 any user-installed hook system.
 
 The canonical event vocabulary is documented in

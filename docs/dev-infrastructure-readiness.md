@@ -24,7 +24,7 @@ default.
 - Cloudflare Workers: distinct acceptance and production names
 - Cloudflare D1/R2/DO: distinct acceptance and production resources
 - D1 binding: `DB`
-- Sentry: org `t23`, project `assistant-mk1`. Vercel and Cloudflare share the
+- Sentry: org `t23`, project `operloom`. Vercel and Cloudflare share the
   project and are separated by `runtime.surface` tags.
 - Runtime evidence aliases:
   - `pnpm conformance:agent-system` exercises package execution through the
@@ -276,7 +276,7 @@ WorkOS organizations represent customer or company account sources; one account
 has one default workspace now and can have multiple workspaces later. The WorkOS
 client id and API key must come from the same WorkOS app/environment, and the
 Vercel Production redirect URI must be
-`https://assistant-mk1.vercel.app/auth/callback`.
+`https://operloom.vercel.app/auth/callback`.
 
 Local development can still fall back to `WORKBENCH_DEV_USER_ID` and
 `WORKBENCH_DEV_WORKSPACE_ID` when WorkOS is not configured. That fallback is

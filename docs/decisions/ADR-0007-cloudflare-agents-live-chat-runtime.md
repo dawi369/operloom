@@ -6,7 +6,7 @@ Date: 2026-06-11
 
 ## Context
 
-Assistant-MK1 started from an assistant-ui LangGraph starter. That was useful
+Operloom started from an assistant-ui LangGraph starter. That was useful
 for proving thread streaming quickly, but the measured hosted path made normal
 chat do too much D1 and facade work before the first token. It also kept the UI
 shaped around a LangGraph-compatible API even though small chat should not hit

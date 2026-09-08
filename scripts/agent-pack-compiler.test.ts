@@ -18,7 +18,7 @@ const validateLoadedModules = (
 
 const temporaryRoots: string[] = [];
 const temporaryRoot = () => {
-  const root = mkdtempSync(resolve(tmpdir(), "assistant-mk1-pack-"));
+  const root = mkdtempSync(resolve(tmpdir(), "operloom-pack-"));
   temporaryRoots.push(root);
   writeFileSync(resolve(root, "package.json"), '{"type":"module"}\n');
   return root;

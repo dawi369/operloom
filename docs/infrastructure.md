@@ -1,6 +1,6 @@
 # Infrastructure
 
-Assistant-mk1 infrastructure should support many agent apps without making any
+Operloom infrastructure should support many agent apps without making any
 reference app the product shape.
 
 Document status: this page describes active ownership and request flow. Use

@@ -30,18 +30,14 @@ runSmoke("LangGraph runtime gateway smoke", async () => {
   console.log(`Smoking LangGraph runtime gateway at ${baseUrl}`);
 
   const live = await readJson<HealthResponse>("/health/live");
-  if (
-    !live.ok ||
-    live.service !== "assistant-mk1-langgraph-runtime" ||
-    live.gatewayReady !== true
-  ) {
+  if (!live.ok || live.service !== "operloom-langgraph-runtime" || live.gatewayReady !== true) {
     throw new Error("runtime gateway live health returned the wrong service response");
   }
 
   const health = await readJson<HealthResponse>("/health");
   if (
     !health.ok ||
-    health.service !== "assistant-mk1-langgraph-runtime" ||
+    health.service !== "operloom-langgraph-runtime" ||
     health.langGraphReady !== true
   ) {
     throw new Error("runtime gateway health returned the wrong service response");

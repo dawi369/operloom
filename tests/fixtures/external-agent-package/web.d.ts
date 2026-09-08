@@ -1,3 +1,3 @@
-import type { WebRuntimeModule } from "@assistant-mk1/agent-sdk/web";
+import type { WebRuntimeModule } from "@operloom/agent-sdk/web";
 
 export declare const web: WebRuntimeModule;

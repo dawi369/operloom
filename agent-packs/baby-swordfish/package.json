@@ -1,5 +1,5 @@
 {
-  "name": "@assistant-mk1/pack-baby-swordfish",
+  "name": "@operloom/pack-baby-swordfish",
   "version": "1.2.1",
   "private": true,
   "type": "module",
@@ -11,6 +11,6 @@
     "./web": "./web.ts"
   },
   "dependencies": {
-    "@assistant-mk1/agent-sdk": "workspace:*"
+    "@operloom/agent-sdk": "workspace:*"
   }
 }

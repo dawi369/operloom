@@ -1,7 +1,7 @@
 # Swordfish Reference App
 
 Swordfish is a reference app for production market-data operations. It is not
-the Assistant-mk1 product identity; it is a concrete pressure test for agents
+the Operloom product identity; it is a concrete pressure test for agents
 that need live runtime health, bounded market-data reads, and inspectable
 reports without exposing provider credentials.
 
@@ -10,7 +10,7 @@ reports without exposing provider credentials.
 The `baby-swordfish` pack is a read-only single-agent reference seed. Its
 workflow, adapters, artifact contract, and tests remain packaged, but the
 Swordfish backend is intentionally parked and may return `404`. It is not a
-live release smoke and should not block Assistant-mk1 verification.
+live release smoke and should not block Operloom verification.
 
 When the backend is restored, the pack uses its public product API through fixed
 server-side adapters only.
@@ -28,7 +28,7 @@ Swordfish stresses a different product shape from Polymancer:
   not just a market thesis.
 - Bounded reads: tools fetch compact snapshots and recent bars with strict symbol,
   timeframe, and range limits.
-- Provider isolation: Assistant-mk1 talks to the Swordfish product API, not to
+- Provider isolation: Operloom talks to the Swordfish product API, not to
   Massive or internal infrastructure directly.
 - Auditability: workflow runs, tool calls, and generated reports land in the
   same history/artifact path as other workbench actions.

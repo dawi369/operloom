@@ -41,12 +41,12 @@ const main = async () => {
   const cloudflare = requiredOrigin("HOSTED_CLOUDFLARE_ORIGIN");
   const fly = requiredOrigin("HOSTED_FLY_ORIGIN");
   const checks = [
-    await readHealth(vercel, "/api/health", "assistant-mk1"),
-    await readHealth(vercel, "/api/health/facade", "assistant-mk1-facade"),
-    await readHealth(cloudflare, "/health/live", "assistant-mk1-control-plane"),
-    await readHealth(cloudflare, "/health", "assistant-mk1-control-plane"),
-    await readHealth(fly, "/health/live", "assistant-mk1-langgraph-runtime"),
-    await readHealth(fly, "/health", "assistant-mk1-langgraph-runtime"),
+    await readHealth(vercel, "/api/health", "operloom"),
+    await readHealth(vercel, "/api/health/facade", "operloom-facade"),
+    await readHealth(cloudflare, "/health/live", "operloom-control-plane"),
+    await readHealth(cloudflare, "/health", "operloom-control-plane"),
+    await readHealth(fly, "/health/live", "operloom-langgraph-runtime"),
+    await readHealth(fly, "/health", "operloom-langgraph-runtime"),
   ];
   const commit = process.env.GITHUB_SHA?.trim() ?? "";
   const report = {

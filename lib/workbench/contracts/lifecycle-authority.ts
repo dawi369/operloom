@@ -1,1 +1,1 @@
-export * from "@assistant-mk1/workbench-client/contracts/lifecycle-authority";
+export * from "@operloom/workbench-client/contracts/lifecycle-authority";

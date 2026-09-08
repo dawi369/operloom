@@ -28,7 +28,7 @@
     },
     {
       "path": "dist/runtime.d.ts",
-      "sha256": "b66ceb0ed53d4cec74f3c97a9d509d60607b06cf44fa6625e48939b76050fe83"
+      "sha256": "0e706b5686978707ad4d4ffb46d64509ab47577db2e6cf59c77c543a7089ab0e"
     },
     {
       "path": "dist/schema.d.ts",
@@ -40,11 +40,11 @@
     },
     {
       "path": "schemas/agent-pack-v2.schema.json",
-      "sha256": "6f584f85148fcb6433aa095ba4a5419861bee9ddd814ea189ffdcd2d3de4e325"
+      "sha256": "25ce84cec417e87926cdcfb76e7b951b600f7b39bbaa9764e2f71a31539a2bd1"
     },
     {
       "path": "schemas/runtime-module-v1.schema.json",
-      "sha256": "a1b8f70afa52ea4edd4e64efd27131f825f2080712de1fce9d2409ab7243db0a"
+      "sha256": "04256191afa8cff75aca5a9600a54a477c8764770a27f64f9e3a0ce976ba6d9b"
     }
   ]
 }

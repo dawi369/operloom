@@ -1,4 +1,4 @@
-import { defineControlPlaneModule } from "@assistant-mk1/agent-sdk/control-plane";
+import { defineControlPlaneModule } from "@operloom/agent-sdk/control-plane";
 
 export const controlPlane = defineControlPlaneModule({
   packId: "baby-swordfish",

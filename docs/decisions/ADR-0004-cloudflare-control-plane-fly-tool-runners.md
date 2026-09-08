@@ -4,7 +4,7 @@ Status: accepted
 
 ## Context
 
-Assistant-mk1 needs a multi-user live agent runtime and a way to run heavy or unsafe tools. Cloudflare-style Agents and Durable Objects fit stateful coordination well. Fly fits normal Linux execution, CLIs, OSS tools, LangGraph workers, and long-running jobs.
+Operloom needs a multi-user live agent runtime and a way to run heavy or unsafe tools. Cloudflare-style Agents and Durable Objects fit stateful coordination well. Fly fits normal Linux execution, CLIs, OSS tools, LangGraph workers, and long-running jobs.
 
 ## Decision
 
