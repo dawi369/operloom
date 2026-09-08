@@ -4,6 +4,7 @@ export default defineWorkbenchConfig({
   runtimeApiVersion: 1,
   workbenchVersion: "0.5.1",
   modules: [
+    { package: "@operloom/pack-operloom", source: "./agent-packs/operloom" },
     {
       package: "@operloom/pack-repo-analyst",
       source: "./agent-packs/repo-analyst",

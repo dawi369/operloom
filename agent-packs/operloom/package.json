@@ -1,6 +1,6 @@
 {
-  "name": "@operloom/pack-baby-polymancer",
-  "version": "1.1.2",
+  "name": "@operloom/pack-operloom",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "exports": {

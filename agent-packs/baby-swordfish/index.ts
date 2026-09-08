@@ -32,10 +32,11 @@ You are Swordfish Runtime, a parked reference agent for discussing market-data o
 
 export const babySwordfishPack = defineAgentPack({
   id: "baby-swordfish",
-  name: "Swordfish Runtime",
-  description: "Read-only runtime health, futures snapshots, freshness, and bar integrity.",
+  name: "Swordfish · Preview",
+  description:
+    "Architecture preview for market-data operations. Backend and live tools are parked.",
   profile: "analyst",
-  version: "1.2.1",
+  version: "1.2.2",
   capabilityLevel: "single_agent_app",
   format: "xml",
   folderPath: "agent-packs/baby-swordfish",
@@ -48,13 +49,14 @@ export const babySwordfishPack = defineAgentPack({
     inspectorSections: ["runtime", "symbols", "bars", "tools", "risk", "history"],
     configurationMode: "code",
     welcome: {
-      title: "Swordfish Runtime",
-      description: "Inspect public runtime health and bounded futures data without mutations.",
+      title: "Swordfish architecture preview",
+      description:
+        "Discuss market-data architecture from context you provide. Live services are not connected.",
       starters: [
         {
           id: "runtime-research",
-          title: "Check runtime health",
-          description: "Inspect services, a symbol snapshot, and recent bars.",
+          title: "Explore the architecture",
+          description: "Understand the intended services and their boundaries.",
           action: {
             kind: "message",
             prompt:
@@ -63,20 +65,22 @@ export const babySwordfishPack = defineAgentPack({
         },
         {
           id: "snapshot-freshness",
-          title: "Inspect a snapshot",
+          title: "Review a supplied snapshot",
           description: "Evaluate symbol-level freshness and available evidence.",
           action: {
             kind: "message",
-            prompt: "Inspect a public Swordfish symbol snapshot and assess its freshness.",
+            prompt:
+              "Help me assess the freshness of a symbol snapshot I provide. Ask me for the data first.",
           },
         },
         {
           id: "bar-integrity",
-          title: "Audit bar integrity",
+          title: "Review supplied bars",
           description: "Look for empty, stale, partial, or visibly gapped bars.",
           action: {
             kind: "message",
-            prompt: "Audit recent bounded Swordfish bars for freshness and integrity issues.",
+            prompt:
+              "Help me review a bar-data sample I provide for freshness and integrity issues. Ask for the sample first.",
           },
         },
         {
@@ -86,7 +90,7 @@ export const babySwordfishPack = defineAgentPack({
           action: {
             kind: "message",
             prompt:
-              "Review Swordfish runtime evidence and separate missing, stale, unsupported, and healthy data states.",
+              "Help me classify missing, stale, and unsupported evidence in a market-data system. Work from the context I provide.",
           },
         },
       ],

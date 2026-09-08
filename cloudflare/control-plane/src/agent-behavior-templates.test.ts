@@ -31,6 +31,18 @@ const pokeSpecificFacts =
   /Poke|Interaction Company|Palo Alto|Spark Capital|General Catalyst|Bouncer|Recipes|Apple Messages|film\.poke\.com|poke\.com/i;
 
 describe("agent behavior authoring metadata", () => {
+  it("starts with a general Operloom pack without specialist or external tools", () => {
+    expect(localAgentPacks[0].id).toBe("operloom");
+    expect(createAgentBehaviorSnapshot("default")).toMatchObject({
+      templateId: "pack-operloom",
+      pack: { id: "operloom", tools: [], workflows: [], triggers: [] },
+    });
+    expect(createAgentBehaviorSnapshot("analyst").templateId).toBe("assistant-analyst");
+    expect(createAgentBehaviorSnapshot("default", "assistant-general").templateId).toBe(
+      "assistant-general",
+    );
+  });
+
   it("marks built-in templates as non-editable XML snapshots", () => {
     expect(agentBehaviorTemplates).not.toHaveLength(0);
     for (const template of agentBehaviorTemplates.filter(
@@ -85,7 +97,7 @@ describe("agent behavior authoring metadata", () => {
   });
 
   it("validates local pack id uniqueness and risk/tool consistency", () => {
-    const [firstPack] = localAgentPacks;
+    const firstPack = localAgentPacks.find((pack) => pack.id === "repo-analyst")!;
     const duplicateTemplatePack = {
       ...firstPack,
       id: `${firstPack.id}-copy`,

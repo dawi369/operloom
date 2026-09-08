@@ -32,6 +32,7 @@ describe("agent pack compiler", () => {
   it("loads the configured modules and verifies complete bindings", async () => {
     const modules = await loadAgentModules(process.cwd());
     expect(modules.map((item) => item.manifest.id)).toEqual([
+      "operloom",
       "repo-analyst",
       "baby-polymancer",
       "baby-swordfish",
@@ -159,7 +160,7 @@ describe("agent pack compiler", () => {
 
   it("rejects missing providers and incompatible runtimes", async () => {
     const modules = await loadAgentModules(process.cwd());
-    const source = modules[3]!;
+    const source = modules.find((item) => item.manifest.id === "complex-operator")!;
     const missing = {
       ...source,
       runner: { ...source.runner, tools: [] },
@@ -176,7 +177,7 @@ describe("agent pack compiler", () => {
 
   it("requires Fly control-plane and runner contracts to match exactly", async () => {
     const modules = await loadAgentModules(process.cwd());
-    const source = modules[0]!;
+    const source = modules.find((item) => item.manifest.id === "repo-analyst")!;
     const [firstRunnerTool, ...rest] = source.runner.tools;
     if (!firstRunnerTool) throw new Error("Repository Analyst must declare a runner tool.");
     const mismatch = {
@@ -214,7 +215,7 @@ describe("agent pack compiler", () => {
 
   it("rejects invalid schemas and unsupported execution modes", async () => {
     const modules = await loadAgentModules(process.cwd());
-    const source = modules[3]!;
+    const source = modules.find((item) => item.manifest.id === "complex-operator")!;
     const [firstTool, ...rest] = source.controlPlane.tools;
     if (!firstTool) throw new Error("Complex Operator must declare a tool.");
     const invalidSchema = {
@@ -240,7 +241,7 @@ describe("agent pack compiler", () => {
 
   it("rejects unsafe execute bindings and undeclared action connections", async () => {
     const modules = await loadAgentModules(process.cwd());
-    const source = modules[3]!;
+    const source = modules.find((item) => item.manifest.id === "complex-operator")!;
     const executeTool = source.controlPlane.tools.find((tool) =>
       tool.executionModes.includes("execute"),
     );

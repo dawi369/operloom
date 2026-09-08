@@ -359,7 +359,7 @@ export const normalizeAgentBehaviorTemplateId = (
 export const agentBehaviorTemplateForProfile = (profile: AgentProfile): AgentBehaviorTemplateId => {
   if (profile === "analyst") return "assistant-analyst";
   if (profile === "operator") return "assistant-operator";
-  return "assistant-general";
+  return "pack-operloom";
 };
 
 export const getAgentBehaviorTemplate = (id: AgentBehaviorTemplateId): AgentBehaviorTemplate =>

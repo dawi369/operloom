@@ -51,10 +51,13 @@ inspectable.
   bindings support a different interface without duplicating the authorization
   and execution logic.
 
-The included **Repository Analyst** demonstrates bounded repository inspection
-and a readiness report. **Polymancer Research** demonstrates read-only market
-research. **Complex Operator** is the synthetic fixture used to exercise
-connections, approvals, and mutations. Their domains stay out of the core UI.
+Start with **Operloom**, the general assistant for thinking, writing, debugging,
+and planning. It works from the context you supply and needs no external tool
+connections. **Repository Analyst** adds bounded repository inspection and a
+readiness workflow. **Polymancer · Example** demonstrates read-only market
+research; **Swordfish · Preview** is a parked architecture example with no live
+backend. **Complex Operator** is a synthetic conformance fixture, excluded from
+the normal catalog. Their domains stay out of the core UI.
 
 <details>
 <summary><strong>See execution history and tools</strong></summary>
