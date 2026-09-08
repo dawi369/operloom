@@ -9,6 +9,7 @@ independent conversation runtimes, durable workflows, controlled actions,
 and an architecture you can extend into your own product.
 
 [![Verify](https://github.com/dawi369/operloom/actions/workflows/verify.yml/badge.svg)](https://github.com/dawi369/operloom/actions/workflows/verify.yml)
+[![Version](https://img.shields.io/badge/version-0.5.1-52656b)](#status)
 [![TypeScript](https://img.shields.io/badge/TypeScript-end_to_end-3178c6)](#built-for-scale-and-extension)
 [![License](https://img.shields.io/badge/license-PolyForm_Noncommercial-52656b)](#license)
 
