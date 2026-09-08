@@ -12,7 +12,7 @@ import {
 } from "../lib/workbench/agent-pack-dev-loop";
 
 const rootDir = process.cwd();
-const [repoAnalystPack] = localAgentPacks;
+const repoAnalystPack = localAgentPacks.find((pack) => pack.id === "repo-analyst")!;
 
 const writePackFiles = (
   root: string,
@@ -42,7 +42,7 @@ describe("agent pack developer loop", () => {
     const result = validateAgentPacksForDeveloperLoop({ rootDir });
 
     expect(result.ok).toBe(true);
-    expect(result.packCount).toBe(3);
+    expect(result.packCount).toBe(localAgentPacks.length);
     expect(result.errors).toEqual([]);
     expect(localAgentPacks.every((pack) => pack.apiVersion === 2)).toBe(true);
     expect(() => JSON.stringify(localAgentPacks)).not.toThrow();

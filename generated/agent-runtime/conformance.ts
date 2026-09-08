@@ -55,6 +55,12 @@ export const agentConformanceRegistry = [
     required: true,
   },
   {
+    id: "operloom.eval.general.static",
+    packId: "operloom",
+    kind: "eval",
+    required: true,
+  },
+  {
     id: "repo-analyst.eval.repo.plan.runtime",
     packId: "repo-analyst",
     kind: "eval",

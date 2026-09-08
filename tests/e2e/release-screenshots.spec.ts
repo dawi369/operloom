@@ -40,7 +40,7 @@ test("captures deterministic public release product evidence", async ({ page }) 
   await composer.press("Enter");
   await expect(page.getByRole("dialog", { name: "Admin" })).toBeVisible();
   await page.getByRole("tab", { name: "Agents" }).click();
-  await expect(page.getByText("Swordfish Runtime", { exact: true })).toBeVisible();
+  await expect(page.getByText("Swordfish · Preview", { exact: true })).toBeVisible();
   await capture(page, "agent-packs.png");
   await page
     .locator("article")

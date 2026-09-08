@@ -245,10 +245,19 @@ test("trusted local session is immediately usable and exposes release controls",
   await expect(page.getByText("Run system checks", { exact: true })).toBeVisible();
 
   await page.getByRole("tab", { name: "Agents" }).click();
+  const firstPack = page.locator("article").first();
+  await expect(firstPack.getByRole("heading", { name: "Operloom", exact: true })).toBeVisible();
+  await firstPack.getByRole("button", { name: "Use agent" }).click();
+  await expect(page.getByRole("heading", { name: "What are we working on?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Make a plan/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Draft something useful/i })).toBeVisible();
+  await composer.fill("/admin");
+  await composer.press("Enter");
+  await page.getByRole("tab", { name: "Agents" }).click();
   const repositoryPack = page.locator("article").filter({ hasText: "Repository Analyst" });
   await expect(repositoryPack).toContainText("v1.2.1");
-  await expect(page.getByText("Polymancer Research", { exact: true })).toBeVisible();
-  await expect(page.getByText("Swordfish Runtime", { exact: true })).toBeVisible();
+  await expect(page.getByText("Polymancer · Example", { exact: true })).toBeVisible();
+  await expect(page.getByText("Swordfish · Preview", { exact: true })).toBeVisible();
   const agentSwitchResponse = page.waitForResponse(
     (response) =>
       response.request().method() === "POST" &&
