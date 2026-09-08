@@ -49,18 +49,25 @@ Private migration backups and provider snapshots live under the ignored
 `output/operloom-deployment/` directory. They contain sensitive data and are not
 release artifacts or material to upload to an issue.
 
-## Remaining provider identity cutover
+## Provider identity
 
-The WorkOS dashboard must accept `https://operloom.vercel.app/auth/callback`
-before changing `NEXT_PUBLIC_WORKOS_REDIRECT_URI`. Until that is verified, the
-old `assistant-mk1.vercel.app` alias and callback remain in place to preserve
-login. Signing in can return to that compatibility origin. WorkOS display
-branding and the Sentry project slug require dashboard access; the existing
-Sentry DSN stays attached to its original project.
+The active WorkOS application and customer-facing display name are `Operloom`.
+Its callback is `https://operloom.vercel.app/auth/callback`; its homepage and
+default sign-out destination are on the same origin. The original WorkOS client
+and credentials are preserved. The separately created production and acceptance
+applications are labeled as archives, and the native application is labeled WIP.
+Check the client ID emitted by `/sign-in` when changing provider configuration;
+an application's display name does not establish which client Vercel uses.
 
-After the callback is accepted, set the frontend redirect, deploy, and verify
-sign-in, thread creation, and a streaming response before retiring the old
-alias. Do not infer signed-in acceptance from public health checks.
+The old `assistant-mk1.vercel.app` domain redirects permanently to
+`operloom.vercel.app`, so bookmarked links enter authentication on the correct
+cookie origin. Historical callback allowlist entries remain for rollback.
+Sentry is `t23/operloom`; its project ID, DSN, and retained events are unchanged.
+`SENTRY_PROJECT=operloom` also applies to build-time source-map uploads.
+
+The September 8 cutover was checked with an authenticated browser: login,
+workspace connection, new chat creation, and a completed assistant response.
+This is a small hosted smoke check, not hosted acceptance of every feature gate.
 
 ## Verification
 

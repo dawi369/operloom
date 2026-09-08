@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
 
 const instrumentedConfig = withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG ?? "t23",
-  project: process.env.SENTRY_PROJECT ?? "assistant-mk1",
+  project: process.env.SENTRY_PROJECT ?? "operloom",
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: !process.env.CI,
   telemetry: false,
