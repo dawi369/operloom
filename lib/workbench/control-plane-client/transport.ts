@@ -20,15 +20,19 @@ const getControlPlaneConfig = () => {
   return baseUrl && (token || signingSecret) ? { baseUrl, token, signingSecret } : null;
 };
 
-export const fetchWithTimeout = async (url: string, init: RequestInit) => {
+export const fetchWithTimeout = async (
+  url: string,
+  init: RequestInit,
+  timeoutMs = requestTimeoutMs,
+) => {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, { ...init, signal: controller.signal });
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new ControlPlaneRequestError(
-        `Cloudflare control-plane request timed out after ${requestTimeoutMs}ms`,
+        `Cloudflare control-plane request timed out after ${timeoutMs}ms`,
         504,
       );
     }
@@ -83,9 +87,13 @@ export const parseErrorBody = async (response: Response) => {
   }
 };
 
-export const requestControlPlane = async <T>(path: string, init?: RequestInit): Promise<T> => {
+export const requestControlPlane = async <T>(
+  path: string,
+  init?: RequestInit,
+  timeoutMs?: number,
+): Promise<T> => {
   const request = await controlPlaneRequest(path, init);
-  const response = await fetchWithTimeout(request.url, request.init);
+  const response = await fetchWithTimeout(request.url, request.init, timeoutMs);
   if (!response.ok) {
     throw new ControlPlaneRequestError(await parseErrorBody(response), response.status);
   }

@@ -1,3 +1,4 @@
+import { agentManifestRegistry } from "@/generated/agent-runtime/manifests";
 import type { Id } from "@/lib/workbench/core-contracts";
 import {
   adminSummaryProjectionPath,
@@ -137,6 +138,12 @@ export const runPackWorkflow = (
       method: "POST",
       body: JSON.stringify(input),
     },
+    // Synchronous workflows must outlive their execution budget and result persistence.
+    ((Object.values(agentManifestRegistry).find(({ module }) =>
+      module.workflows.some((workflow) => workflow.type === workflowType),
+    )?.module.resourceLimits.maxRunSeconds ?? 30) +
+      15) *
+      1000,
   );
 
 export const updateCloudflareToolPolicy = (input: {

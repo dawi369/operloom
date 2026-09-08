@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { sortWorkbenchAgents } from "@/lib/workbench/agent-order";
 import { requestWorkbenchSummaryRefresh } from "@/lib/workbench/admin-summary-events";
 import { useWorkbenchAgentConnection } from "@/lib/workbench/use-agent-connection";
 import type { AgentSwitchTarget, AgentSummary } from "@/lib/workbench/workbench-types";
@@ -60,18 +61,7 @@ export function WorkbenchAgentsPanel({
   const sessionActiveAgent = session?.activeAgent ?? null;
   const effectiveActiveAgentId = sessionActiveAgent?.id ?? activeAgentId;
   const pendingAgentId = pendingAgent?.id ?? null;
-  const sortedAgents = useMemo(
-    () =>
-      [...agents].sort((left, right) => {
-        if (left.isDefault !== right.isDefault) return left.isDefault ? -1 : 1;
-        const leftCurrent = left.id === effectiveActiveAgentId ? 0 : 1;
-        const rightCurrent = right.id === effectiveActiveAgentId ? 0 : 1;
-        if (leftCurrent !== rightCurrent) return leftCurrent - rightCurrent;
-        if (left.status !== right.status) return left.status === "active" ? -1 : 1;
-        return left.name.localeCompare(right.name);
-      }),
-    [agents, effectiveActiveAgentId],
-  );
+  const sortedAgents = useMemo(() => sortWorkbenchAgents(agents), [agents]);
 
   useEffect(() => {
     if (!open) {

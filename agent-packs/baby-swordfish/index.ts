@@ -36,7 +36,7 @@ export const babySwordfishPack = defineAgentPack({
   description:
     "Architecture preview for market-data operations. Backend and live tools are parked.",
   profile: "analyst",
-  version: "1.2.2",
+  version: "1.2.3",
   capabilityLevel: "single_agent_app",
   format: "xml",
   folderPath: "agent-packs/baby-swordfish",
@@ -55,12 +55,12 @@ export const babySwordfishPack = defineAgentPack({
       starters: [
         {
           id: "runtime-research",
-          title: "Explore the architecture",
-          description: "Understand the intended services and their boundaries.",
+          title: "Try a data-quality review",
+          description: "Find stale snapshots and gaps in a supplied synthetic sample.",
           action: {
             kind: "message",
             prompt:
-              "Explain the intended Swordfish runtime health architecture and what remains parked.",
+              "Review this synthetic market-data sample, not live data. All times are UTC on 2026-09-08; observation time is 10:05:00. Feed A last heartbeat: 10:04:58. Feed B last heartbeat: 09:57:00. Snapshot ES: 10:04:59; snapshot NQ: 09:56:30. Expected one-minute bar starts in the half-open interval [10:00, 10:05): 10:00, 10:01, 10:02, 10:03, 10:04. Received ES bars: 10:00, 10:01, 10:03, 10:04; NQ bars: none. Compute the ages, identify missing bars, separate observations from possible causes, and suggest a read-only investigation. Do not claim live access or recommend trades.",
           },
         },
         {
