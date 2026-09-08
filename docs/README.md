@@ -113,3 +113,5 @@ Decision records capture durable choices and direction:
 
 ADR-0008 is the accepted source for Eve-inspired pattern adoption. There is no
 separate Eve reference doc.
+
+- [Minimal hosted testing](minimal-hosted-testing.md): the small personal deployment, idle behavior, and migration boundaries.

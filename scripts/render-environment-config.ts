@@ -58,6 +58,7 @@ export const renderEnvironmentConfig = (
   const wrangler = {
     $schema: "../../../node_modules/wrangler/config-schema.json",
     name: manifest.cloudflare.workerName,
+    preview_urls: false,
     main: "../../../cloudflare/control-plane/src/index.ts",
     compatibility_date: "2026-06-01",
     compatibility_flags: ["nodejs_compat", "nodejs_als"],

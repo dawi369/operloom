@@ -276,7 +276,7 @@ WorkOS organizations represent customer or company account sources; one account
 has one default workspace now and can have multiple workspaces later. The WorkOS
 client id and API key must come from the same WorkOS app/environment, and the
 Vercel Production redirect URI must be
-`https://assistant-mk1.vercel.app/auth/callback`.
+`https://operloom.vercel.app/auth/callback`.
 
 Local development can still fall back to `WORKBENCH_DEV_USER_ID` and
 `WORKBENCH_DEV_WORKSPACE_ID` when WorkOS is not configured. That fallback is

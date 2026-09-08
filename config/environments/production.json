@@ -5,14 +5,14 @@
   "vaultBackend": "workos",
   "mutationDefaultEnabled": false,
   "cloudflare": {
-    "workerName": "assistant-mk1-production-control-plane",
-    "d1DatabaseName": "assistant_mk1_production",
+    "workerName": "operloom-control-plane",
+    "d1DatabaseName": "operloom",
     "d1DatabaseId": "${WORKBENCH_PRODUCTION_D1_DATABASE_ID}",
-    "r2BucketName": "assistant-mk1-production-artifacts",
+    "r2BucketName": "operloom-artifacts",
     "origin": "${WORKBENCH_PRODUCTION_CLOUDFLARE_ORIGIN}"
   },
   "fly": {
-    "appName": "assistant-mk1-production-runner",
+    "appName": "operloom-runner",
     "origin": "${WORKBENCH_PRODUCTION_FLY_ORIGIN}"
   },
   "vercel": {
@@ -24,7 +24,7 @@
     "nodeVersion": "24.x"
   },
   "workos": {
-    "applicationName": "assistant-mk1-production",
+    "applicationName": "Operloom",
     "applicationId": "${WORKBENCH_PRODUCTION_WORKOS_APPLICATION_ID}",
     "acceptanceWorkspaceId": "${WORKBENCH_PRODUCTION_ACCEPTANCE_WORKSPACE_ID}"
   },

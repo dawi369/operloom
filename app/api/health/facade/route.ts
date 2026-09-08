@@ -13,7 +13,9 @@ export async function GET() {
   const baseUrl = process.env.CLOUDFLARE_CONTROL_PLANE_URL?.trim().replace(/\/$/, "");
   const secret = process.env.CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET?.trim();
   const release =
-    process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.WORKBENCH_RELEASE_SHA ?? "development";
+    process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
+    process.env.WORKBENCH_RELEASE_SHA?.trim() ||
+    "development";
   if (!baseUrl || !secret) return unavailable();
 
   const path = "/health/facade";

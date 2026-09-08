@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 const releaseMode = process.env.E2E_RELEASE_MODE;
 const outputDirectory = resolve(process.cwd(), "docs/assets/release");
@@ -64,8 +64,14 @@ test("captures deterministic public release product evidence", async ({ page }) 
   await expect(page.getByText("Repository snapshot report", { exact: true })).toBeVisible({
     timeout: 30_000,
   });
-  await page.locator("summary").filter({ hasText: /^Result$/ }).click();
-  await page.locator("summary").filter({ hasText: /^View result$/ }).click();
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Result$/ })
+    .click();
+  await page
+    .locator("summary")
+    .filter({ hasText: /^View result$/ })
+    .click();
   await capture(page, "history-and-action-ledger.png");
   await page.getByRole("button", { name: "Close" }).click();
 

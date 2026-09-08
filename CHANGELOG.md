@@ -2,6 +2,17 @@
 
 ## 0.5.1 (unreleased candidate)
 
+- Consolidate the personal hosted deployment under Operloom, with one runner
+  that scales to zero, paused notification delivery, and archived legacy stacks.
+- Restore signing of the existing identity-header namespace after the rebrand;
+  reject modified tenant/role headers before persistence and runner execution.
+- Add optional `networkPolicy` to the unpublished `@operloom/agent-sdk` SDK 1.0.1
+  execution context. The gateway supplies signed restrictions and the URL runner
+  enforces them on initial requests and redirects. Custom network tools must
+  honor this context; trusted runner modules are not OS-isolated sandboxes.
+- Use the explicit release SHA when CLI deployment metadata contains a blank
+  Git SHA, and update the runner smoke to the versioned invocation contract.
+
 - Bound development process groups and memory, clean up grandchildren on shutdown,
   and use Webpack for development to avoid runaway Turbopack loader workers.
 - Make account-free local startup consistent across the auth proxy, provider,
@@ -14,8 +25,8 @@
   is never submitted as a chat turn; defer closed operator panels from server rendering.
 - Update tar, browserslist, and fast-uri to patched versions.
 - Rename the product and workspace packages to Operloom (`@operloom/*`); update
-  imports together when upgrading. Existing signed transport headers and deployed
-  resource identities remain stable.
+  imports together when upgrading. Existing signed transport headers remain
+  stable; hosted resource migration is recorded in the minimal testing runbook.
 - Preserve native clients on `codex/mobile-wip`; remove Expo from the web
   installation and native checks from the web release gate. Remove the former
   Expo security exceptions.

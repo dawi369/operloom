@@ -1,6 +1,6 @@
 import { serviceMemoryBudgetMb, startManagedProcess } from "./managed-process";
 import { createWriteStream } from "node:fs";
-import { mkdir } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 
 const main = async () => {
@@ -11,6 +11,14 @@ const main = async () => {
   }
 
   await mkdir(path.dirname(logPath), { recursive: true });
+  if (
+    path.basename(logPath).startsWith("frontend-") &&
+    ["signed-out", "local-session"].includes(process.env.E2E_RELEASE_MODE ?? "")
+  ) {
+    // Each sequential browser server starts from fresh manifests. Warm Next.js
+    // development output produced empty-manifest errors in Linux acceptance.
+    await rm(path.join(process.cwd(), ".next/e2e"), { recursive: true, force: true });
+  }
   const log = createWriteStream(logPath, { flags: "w" });
   const managed = startManagedProcess(command, args, {
     label: path.basename(logPath),

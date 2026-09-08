@@ -1,4 +1,4 @@
-import { expect, test, type ConsoleMessage } from "@playwright/test";
+import { expect, test, type ConsoleMessage } from "./fixtures";
 
 const releaseMode = process.env.E2E_RELEASE_MODE;
 const hydrationErrors: string[] = [];
@@ -120,7 +120,7 @@ test("trusted local session is immediately usable and exposes release controls",
 }) => {
   test.skip(releaseMode !== "local-session");
 
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
   let adminSummaryRequests = 0;
   page.on("request", (request) => {
     if (request.url().includes("/api/workbench/admin-summary")) adminSummaryRequests += 1;
@@ -249,7 +249,14 @@ test("trusted local session is immediately usable and exposes release controls",
   await expect(repositoryPack).toContainText("v1.2.1");
   await expect(page.getByText("Polymancer Research", { exact: true })).toBeVisible();
   await expect(page.getByText("Swordfish Runtime", { exact: true })).toBeVisible();
+  const agentSwitchResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname === "/api/workbench/chat-session/agent-switch",
+  );
   await repositoryPack.getByRole("button", { name: "Use agent" }).click();
+  const agentSwitch = await agentSwitchResponse;
+  expect(agentSwitch.ok(), await agentSwitch.text()).toBe(true);
 
   await expect(page.getByRole("dialog", { name: "Admin" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Repository Analyst" })).toBeVisible();
@@ -278,7 +285,14 @@ test("trusted local session is immediately usable and exposes release controls",
   await page.getByRole("button", { name: /Assess release readiness/i }).click();
   await expect(page.getByRole("dialog", { name: "Readiness report" })).toBeVisible();
   await expect(page.getByText("Documentation", { exact: true })).toBeVisible();
+  const workflowResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname.startsWith("/api/workbench/workflows/"),
+  );
   await page.getByRole("button", { name: "Run dry-run" }).click();
+  const workflow = await workflowResponse;
+  expect(workflow.ok(), await workflow.text()).toBe(true);
   await expect(page.getByRole("dialog", { name: "Workbench History" })).toBeVisible();
   await expect(page.getByText("Repository snapshot report", { exact: true })).toBeVisible({
     timeout: 30_000,

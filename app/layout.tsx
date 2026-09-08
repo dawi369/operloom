@@ -39,13 +39,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { localIdentityEnabled } = getAuthConfiguration();
+  const { workOsConfigured } = getAuthConfiguration();
   return (
     <html lang="en">
       <body className={`${plexSans.variable} ${plexMono.variable} antialiased`}>
         <AuthKitProvider
-          initialAuth={localIdentityEnabled ? { user: null } : undefined}
-          onSessionExpired={localIdentityEnabled ? false : undefined}
+          // Without an auth provider there is no session to restore. Local
+          // identity remains a separate, server-authorized workspace decision.
+          initialAuth={workOsConfigured ? undefined : { user: null }}
+          onSessionExpired={workOsConfigured ? undefined : false}
         >
           <TooltipProvider>{children}</TooltipProvider>
         </AuthKitProvider>

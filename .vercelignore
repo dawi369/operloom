@@ -14,3 +14,10 @@ output/
 .omm/
 coverage/
 *.tsbuildinfo
+
+# Local state and nested dependencies never belong in deployment uploads.
+**/node_modules/
+apps/mobile/
+.langgraph_api/
+.env*
+**/.dev.vars*

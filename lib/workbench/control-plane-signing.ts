@@ -47,7 +47,7 @@ const normalizeHeaders = (headers: Headers | Record<string, string>) => {
 
 export const canonicalAssistantHeaders = (headers: Headers | Record<string, string>) =>
   normalizeHeaders(headers)
-    .filter(([key]) => key.startsWith("x-operloom-") && !excludedSignedHeaders.has(key))
+    .filter(([key]) => key.startsWith("x-assistant-mk1-") && !excludedSignedHeaders.has(key))
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([key, value]) => `${key}:${value}`)
     .join("\n");

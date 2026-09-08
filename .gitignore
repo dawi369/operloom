@@ -79,3 +79,6 @@ cloudflare/control-plane/.wrangler/
 
 # Supervised local development logs
 /output/dev/
+
+# Private provider migration backups and deployment scratch files
+/output/operloom-deployment/
