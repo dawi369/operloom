@@ -10,10 +10,12 @@ export const resolveAdminAgentPackState = (
   const packId = template.pack?.id;
   if (!packId) return null;
   const packAgents = agents.filter((agent) => agent.behavior.pack?.id === packId);
-  const currentVersionAgent = packAgents.find(
+  const currentVersionAgents = packAgents.filter(
     (agent) =>
       agent.status === "active" && agent.behavior.authoring?.packVersion === template.version,
   );
+  const currentVersionAgent =
+    currentVersionAgents.find((agent) => agent.id === activeAgentId) ?? currentVersionAgents[0];
   const state: AdminAgentPackState =
     currentVersionAgent?.id === activeAgentId
       ? "current"

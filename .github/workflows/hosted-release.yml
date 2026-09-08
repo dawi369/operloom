@@ -68,7 +68,7 @@ jobs:
       SOAK_STATE_RUN_ID: ${{ inputs.soak_state_run_id }}
     steps:
       - name: Check out immutable source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -76,7 +76,7 @@ jobs:
           version: 10.33.0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -178,7 +178,7 @@ jobs:
 
       - name: Upload secret-free release evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hosted-${{ inputs.target }}-${{ inputs.gate }}-${{ github.sha }}
           if-no-files-found: ignore
