@@ -203,3 +203,29 @@ describe("createWorkbenchClient", () => {
     });
   });
 });
+
+it("keeps cold workflow execution alive beyond the ordinary browser timeout", async () => {
+  vi.useFakeTimers();
+  const client = createWorkbenchClient({
+    baseUrl: "https://workbench.example",
+    client: { platform: "web", version: "0.1.0" },
+    fetch: vi.fn<typeof fetch>(
+      (_url, init) =>
+        new Promise((resolve, reject) => {
+          const timer = setTimeout(() => resolve(jsonResponse({ ok: true })), 25_000);
+          init?.signal?.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(new DOMException("Aborted", "AbortError"));
+          });
+        }),
+    ),
+  });
+  try {
+    const result = client.workflows.run("repo.readiness_report");
+    await vi.advanceTimersByTimeAsync(25_000);
+    expect((await result).ok).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+  } finally {
+    vi.useRealTimers();
+  }
+});

@@ -287,7 +287,12 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
         request<CloudflareToolRunResponse>(
           "toolRun",
           `/api/workbench/workflows/${encodeURIComponent(workflowType)}`,
-          { method: "POST", body: input },
+          {
+            method: "POST",
+            body: input,
+            // Workflow execution includes cold compute and durable result publication.
+            timeoutMs: options.timeoutMs ?? 180_000,
+          },
         ),
     },
     history: {
