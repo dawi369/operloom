@@ -345,25 +345,41 @@ export const runPolymarketMarketSearch = async (
   input: PolymarketMarketSearchInput,
 ): Promise<PolymarketMarketSearchResult> => {
   const startedAt = Date.now();
-  const url = new URL("/markets", gammaBaseUrl);
-  const providerLimit = input.query ? Math.min(Math.max(input.limit * 10, 50), 100) : input.limit;
-  url.searchParams.set("active", "true");
-  url.searchParams.set("closed", "false");
-  url.searchParams.set("limit", String(providerLimit));
-  if (input.slug) url.searchParams.set("slug", input.slug);
-  if (input.tagId) url.searchParams.set("tag_id", input.tagId);
+  const useSearch = Boolean(input.query && !input.slug && !input.tagId);
+  const url = new URL(useSearch ? "/public-search" : "/markets", gammaBaseUrl);
+  if (useSearch) {
+    // https://docs.polymarket.com/api-reference/search/search-markets-events-and-profiles
+    url.searchParams.set("q", input.query!);
+    url.searchParams.set("events_status", "active");
+    url.searchParams.set("keep_closed_markets", "0");
+    url.searchParams.set("limit_per_type", String(input.limit));
+    url.searchParams.set("search_profiles", "false");
+    url.searchParams.set("search_tags", "false");
+  } else {
+    url.searchParams.set("active", "true");
+    url.searchParams.set("closed", "false");
+    url.searchParams.set("limit", String(input.limit));
+    if (input.slug) url.searchParams.set("slug", input.slug);
+    if (input.tagId) url.searchParams.set("tag_id", input.tagId);
+  }
 
   const payload = await fetchProviderJson(url);
   if (isPolymarketError(payload)) return { ok: false, error: payload };
-  const rows = Array.isArray(payload)
-    ? payload
-    : isRecord(payload) && Array.isArray(payload.markets)
-      ? payload.markets
-      : [];
+  const rows =
+    useSearch && isRecord(payload) && Array.isArray(payload.events)
+      ? payload.events.flatMap((event) =>
+          isRecord(event) && Array.isArray(event.markets) ? event.markets : [],
+        )
+      : Array.isArray(payload)
+        ? payload
+        : isRecord(payload) && Array.isArray(payload.markets)
+          ? payload.markets
+          : [];
   const markets = rows
     .map(toMarketSummary)
     .filter((market): market is MarketSummary => market !== null)
-    .filter((market) => marketMatchesQuery(market, input.query))
+    .filter((market) => market.active !== false && market.closed !== true)
+    .filter((market) => useSearch || marketMatchesQuery(market, input.query))
     .slice(0, input.limit);
   return {
     ok: true,

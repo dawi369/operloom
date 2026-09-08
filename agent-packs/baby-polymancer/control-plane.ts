@@ -109,7 +109,7 @@ const buildResearchReport = (input: {
 
 export const controlPlane = defineControlPlaneModule({
   packId: "baby-polymancer",
-  runtimeVersion: "1.1.0",
+  runtimeVersion: "1.1.1",
   compatiblePackVersions: "^1.1.0",
   tools: [
     {
@@ -184,7 +184,7 @@ export const controlPlane = defineControlPlaneModule({
       inputSchema: {
         type: "object",
         additionalProperties: false,
-        properties: { query: { type: "string", minLength: 1, maxLength: 80, default: "GTA" } },
+        properties: { query: { type: "string", minLength: 1, maxLength: 80, default: "Bitcoin" } },
       },
       outputSchema: { type: "object" },
       form: [
@@ -193,7 +193,7 @@ export const controlPlane = defineControlPlaneModule({
           label: "Market query",
           description: "Public Polymarket search query.",
           kind: "text",
-          placeholder: "GTA",
+          placeholder: "Bitcoin",
         },
       ],
       toolIds: [
@@ -205,11 +205,11 @@ export const controlPlane = defineControlPlaneModule({
       smokeCommand: "pnpm smoke:polymarket-readonly",
       normalizeInput: (input) => {
         const query = typeof input.query === "string" ? input.query.trim() : "";
-        return { query: (query || "GTA").slice(0, 80) };
+        return { query: (query || "Bitcoin").slice(0, 80) };
       },
       async execute(input, context) {
         const search = await context.tools.invoke("polymarket.market.search", {
-          query: String(input.query ?? "GTA"),
+          query: String(input.query ?? "Bitcoin"),
           limit: 5,
         });
         if (!search.ok) return search;

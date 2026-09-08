@@ -171,3 +171,41 @@ describe("polymarket readonly tools", () => {
     expect(polymarketMarketSearchToolName).toBe("polymarket.market.search");
   });
 });
+
+it("searches the provider catalog and projects active event markets within the result bound", async () => {
+  const fetchMock = vi.fn(
+    async (_url: URL) =>
+      new Response(
+        JSON.stringify({
+          events: [
+            {
+              title: "Bitcoin",
+              markets: [
+                { id: "closed", slug: "old", closed: true },
+                {
+                  id: "one",
+                  slug: "price-target",
+                  question: "Above the target?",
+                  active: true,
+                  closed: false,
+                  clobTokenIds: '["123"]',
+                },
+                { id: "two", slug: "second-target", active: true, closed: false },
+              ],
+            },
+          ],
+          profiles: [{ private: "excluded" }],
+        }),
+      ),
+  );
+  vi.stubGlobal("fetch", fetchMock);
+  try {
+    const result = await runPolymarketMarketSearch({ query: "Bitcoin", limit: 1 });
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]));
+    expect(url.pathname).toBe("/public-search");
+    expect(url.searchParams.get("q")).toBe("Bitcoin");
+    expect(result.ok && result.output.markets.map((market) => market.id)).toEqual(["one"]);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
