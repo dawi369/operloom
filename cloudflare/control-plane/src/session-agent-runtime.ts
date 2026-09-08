@@ -1,3 +1,4 @@
+import { handleRuntimeDeadlineRequest, recoverRuntimeDeadlines } from "./runtime-watchdog";
 import { toAgentSummary } from "./agent-records";
 import { upsertActiveAgentPreference } from "./authz";
 import { selectAgent } from "./authz-store";
@@ -779,7 +780,18 @@ export class WorkbenchSessionAgent {
     return { ok: true, eventId: event.id };
   }
 
+  async alarm() {
+    await this.initialized;
+    await this.state.blockConcurrencyWhile(() =>
+      recoverRuntimeDeadlines(this.state.storage, this.env),
+    );
+  }
+
   async fetch(request: Request) {
+    if (new URL(request.url).pathname === "/run-deadline") {
+      await this.initialized;
+      return handleRuntimeDeadlineRequest(request, this.state);
+    }
     return handleSessionAgentRequest(this, request);
   }
 }

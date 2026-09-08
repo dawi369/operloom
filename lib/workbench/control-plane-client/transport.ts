@@ -80,7 +80,8 @@ export const parseErrorBody = async (response: Response) => {
   const body = await response.text();
   if (!body) return response.statusText;
   try {
-    const parsed = JSON.parse(body) as { error?: unknown };
+    const parsed = JSON.parse(body) as { error?: unknown; run?: unknown };
+    if (parsed.run) return body;
     return typeof parsed.error === "string" ? parsed.error : body;
   } catch {
     return body;

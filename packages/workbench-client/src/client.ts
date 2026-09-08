@@ -44,6 +44,7 @@ export class WorkbenchClientError extends Error {
   readonly status: number;
   readonly code?: string;
   readonly requestId?: string;
+  readonly runId?: string;
   readonly retryable: boolean;
 
   constructor(input: {
@@ -51,6 +52,7 @@ export class WorkbenchClientError extends Error {
     status: number;
     code?: string;
     requestId?: string;
+    runId?: string;
     retryable?: boolean;
   }) {
     super(input.message);
@@ -58,6 +60,7 @@ export class WorkbenchClientError extends Error {
     this.status = input.status;
     this.code = input.code;
     this.requestId = input.requestId;
+    this.runId = input.runId;
     this.retryable = input.retryable ?? (input.status === 0 || input.status >= 500);
   }
 }
@@ -80,6 +83,7 @@ const requestUrl = (baseUrl: string, path: string) =>
 const errorFromBody = (body: unknown) => {
   if (!isJsonObject(body)) return {};
   return {
+    runId: typeof body.runId === "string" ? body.runId : undefined,
     code: typeof body.code === "string" ? body.code : undefined,
     message: typeof body.error === "string" ? body.error : undefined,
     retryable: typeof body.retryable === "boolean" ? body.retryable : undefined,
@@ -145,6 +149,7 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
           status: response.status,
           requestId,
           code: parsed.code,
+          runId: parsed.runId,
           retryable: parsed.retryable,
           message: parsed.message ?? `Workbench request failed (${response.status})`,
         });

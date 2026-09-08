@@ -9,7 +9,7 @@ independent conversation runtimes, durable workflows, controlled actions,
 and an architecture you can extend into your own product.
 
 [![Verify](https://github.com/dawi369/operloom/actions/workflows/verify.yml/badge.svg)](https://github.com/dawi369/operloom/actions/workflows/verify.yml)
-[![Version](https://img.shields.io/badge/version-0.5.1-52656b)](#status)
+[![Version](https://img.shields.io/badge/version-1.0.0-52656b)](#status)
 [![TypeScript](https://img.shields.io/badge/TypeScript-end_to_end-3178c6)](#built-for-scale-and-extension)
 [![License](https://img.shields.io/badge/license-PolyForm_Noncommercial-52656b)](#license)
 
@@ -28,10 +28,12 @@ boundaries, while workspace permissions and policy stay under server control.
   Cloudflare Workers handle authorization and coordination.
 - **Keep work moving beyond a chat turn.** Durable workflows, scheduled/webhook
   triggers, cancellation, retries, and recovery keep execution inspectable.
+  Unattended automation remains experimental.
 - **Build whole systems in code.** Typed agent packs contribute tools, workflows,
   managed state, and artifact views. A compiler connects them to the runtime.
 - **Give agents authority deliberately.** Approvals, credential brokerage,
-  kill switches, and an action ledger govern external side effects.
+  kill switches, and an action ledger govern external side effects. These
+  experimental capabilities stay off until explicitly enabled.
 - **Make the product your own.** Replace agent behavior, integrations, or the
   frontend through shared TypeScript contracts and a framework-neutral client.
 
@@ -72,7 +74,7 @@ Node 26 is also supported. The repository example uses `ripgrep`; allow about
 10 GiB of available RAM for the full local stack and browser.
 
 ```bash
-git clone https://github.com/dawi369/operloom.git
+git clone --branch v1.0.0 https://github.com/dawi369/operloom.git
 cd operloom
 pnpm install --frozen-lockfile
 pnpm operloom init
@@ -133,9 +135,12 @@ and enough visibility to understand what happened when something fails.
 
 ## Status
 
-Operloom `0.5.1` is a **pre-1.0 developer workbench**, focused on the web app and
-extension contracts. [Release readiness](docs/release-readiness.md) tracks the
-verification and hosted acceptance evidence.
+Operloom `1.0.0` stabilizes the **web developer workbench**: chat, agent packs,
+read-only workflows, artifacts, and history. Hosted credential brokerage,
+mutations, and unattended automation are **experimental and disabled by default**.
+The scaling boundaries above are architectural; no measured throughput, SLA,
+independent adoption evidence, or future maintenance is promised.
+[1.x compatibility and release scope →](docs/release-1.0.md)
 
 **Mobile is WIP / future work**, preserved on
 [`codex/mobile-wip`](https://github.com/dawi369/operloom/tree/codex/mobile-wip).

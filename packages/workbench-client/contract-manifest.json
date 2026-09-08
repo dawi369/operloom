@@ -21,7 +21,7 @@
         },
         {
           "path": "workbench-client/dist/client.d.ts",
-          "sha256": "6ff80cb6e45e907e7d454b4e65640064b88496778df9b3128b6bb060e42944f7"
+          "sha256": "b7067d75d148e21bbf176052a88e2e6aaeaf97d712007c2019b82e4c4ceccbc3"
         },
         {
           "path": "workbench-client/dist/contracts/agents-chat.d.ts",

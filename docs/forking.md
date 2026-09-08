@@ -2,20 +2,16 @@
 
 Document status: current downstream compatibility and update policy.
 
-New Operloom users should fork the current `main` branch and record the commit
-they adopt. `fork-base-v1.0.1` is the historical immutable full-repository
-foundation from before the Operloom rename. `fork-base-v1` remains immutable and supported
-as historical compatibility evidence. Neither tag promises that future
-Operloom source changes merge without conflicts; each is a compatibility
-checkpoint enforced by the SDK contract, compiler, runtime resolution,
-installed-package conformance, and CI.
+New users adopt immutable `v1.0.0`, then record its full commit SHA. Historical
+`fork-base-v1` and `fork-base-v1.0.1` tags remain compatibility evidence and are
+never moved. `fork-base-v1.1.0` is an uncut historical proposal, not an onboarding
+requirement. Mobile remains WIP on `codex/mobile-wip`.
 
-`fork-base-v1.1.0` remains an uncut future candidate. Native delivery is deferred
-to `codex/mobile-wip`; it is not required for the web release. Any future native
-foundation must carry device acceptance evidence for the
-same commit on real iOS and Android devices and the hosted services report that
-commit. `fork-base-v1.0.1` remains historical compatibility evidence, not the current
-Operloom onboarding path.
+Application 1.x promises additive minor releases and corrective patches for the
+documented SDK/client interfaces, Pack API v2, and Runtime Module v1. Breaking
+changes require explicit migrations and an appropriate major version. Source
+merges can still conflict; internal implementation imports are not public APIs.
+See the [release contract](release-1.0.md).
 
 ## Boundaries
 
@@ -40,15 +36,15 @@ actions; runtime resolution fails closed with `workbench_incompatible` or
 
 ## Create the downstream repository
 
-Fork or clone the complete repository at `fork-base-v1.0.1`, then retain the
+Fork or clone the complete repository at `v1.0.0`, then retain the
 original repository as a read-only upstream:
 
 ```bash
 git remote rename origin upstream
 git remote add origin <downstream-repository-url>
 git fetch --tags upstream
-git switch -c main fork-base-v1.0.1
-git push -u origin main
+git switch -c operloom-base v1.0.0
+git push -u origin operloom-base
 ```
 
 Record the base tag and commit in downstream release notes. Do not move or
@@ -64,24 +60,15 @@ pnpm workbench fork init \
 pnpm workbench fork --check
 ```
 
-The command updates the root application identity and Expo name, slug, scheme,
-bundle identifier, deep-link host, and associated domain from
-`config/product.json`. It intentionally retains the stable internal
-`@operloom/*` package namespace and does not invent provider-owned Expo,
-EAS, WorkOS, Sentry, Vercel, Cloudflare, or Fly identifiers. Configure those
-through their existing environment manifests and provider setup commands.
+The command updates the application identity in `config/product.json`. It
+retains the stable internal `@operloom/*` namespace and does not invent
+provider-owned WorkOS, Sentry, Vercel, Cloudflare, or Fly identifiers. Configure
+those through the environment manifests and provider setup commands. Mobile
+identity configuration belongs to the separate WIP branch.
 
-## First real fork checklist
-
-The first domain product is also the first external-repository acceptance proof:
-
-1. Fork from `fork-base-v1.0.1` and run `pnpm fork:check` before domain changes.
-2. Record the base SHA, SDK contract hash, Node and pnpm versions, and CI result.
-3. Add the downstream package only through the four Runtime Module exports and
-   the package entry in `workbench.config.ts`; do not register it in core code.
-4. Rerun `pnpm fork:check` and preserve its ignored conformance evidence.
-5. Rehearse one upstream merge on a disposable update branch before accepting
-   any upstream compatibility update.
+A downstream project is not a 1.0 release requirement. Before adapting core code,
+try the [first-agent walkthrough](first-agent.md): register a pack through
+`workbench.config.ts`, customize its prompt, and run its read-only example.
 
 ## Review an upstream update
 

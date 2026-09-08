@@ -2,7 +2,7 @@ import { defineWorkbenchConfig } from "@operloom/agent-sdk";
 
 export default defineWorkbenchConfig({
   runtimeApiVersion: 1,
-  workbenchVersion: "0.5.1",
+  workbenchVersion: "1.0.0",
   modules: [
     { package: "@operloom/pack-operloom", source: "./agent-packs/operloom" },
     {

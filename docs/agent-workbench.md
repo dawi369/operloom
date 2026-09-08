@@ -33,9 +33,9 @@ external signals, and policy without baking a single domain into the base
 workbench.
 
 The capability contract in `capability-model.md` separates operational depth
-from external authority. The 1.0 target is background/event-driven operation
-(L3) plus policy-controlled external execution (A2); delegation remains
-deferred rather than blocking safe direct mutation.
+from external authority. The stable 1.0 target is the web developer workbench and read-only execution.
+Background/event-driven operation (L3) and policy-controlled external execution
+(A2) remain experimental and disabled by default; see [release scope](release-1.0.md).
 
 ## Core Surfaces
 

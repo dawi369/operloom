@@ -253,6 +253,7 @@ export const invokeFlyToolRunner = async (
   env: Env,
   identity: AgentIdentity,
   invocation: ToolRunnerInvocation,
+  signal?: AbortSignal,
 ): Promise<ToolRunnerInvocationResponse> => {
   const endpoint = env.WORKBENCH_RUNNER_URL?.trim();
   const secret = env.WORKBENCH_RUNNER_SIGNING_SECRET?.trim();
@@ -297,6 +298,7 @@ export const invokeFlyToolRunner = async (
   let response: Response;
   try {
     response = await fetch(url.toString(), {
+      signal,
       method: "POST",
       headers,
       body,

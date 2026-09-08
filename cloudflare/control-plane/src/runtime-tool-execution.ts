@@ -115,30 +115,35 @@ export const executeRuntimeToolBinding = async (input: {
           }),
       );
       result = normalizeResult(
-        await invokeFlyToolRunner(input.env, input.identity, {
-          scope: input.identity.scope,
-          agentId: input.identity.agentId,
-          runId: execution.runId,
-          workflowIntentId: execution.workflowIntentId,
-          toolCallId: execution.toolCallId,
-          packVersion: execution.packVersion,
-          runtimeVersion: execution.runtimeVersion,
-          bindingVersion: execution.bindingVersion,
-          toolName: binding.id,
-          execution: { mode: "dry_run", policy: binding.policy.reference },
-          input: input.toolInput,
-          runner,
-          callback: execution.callbackUrl
-            ? {
-                url: execution.callbackUrl,
-                protocolVersion: "workflow-callback-v0",
-                traceId: execution.traceId,
-              }
-            : undefined,
-          policyDecisionId: execution.policyDecisionId,
-          source: execution.source,
-          traceId: execution.traceId,
-        }),
+        await invokeFlyToolRunner(
+          input.env,
+          input.identity,
+          {
+            scope: input.identity.scope,
+            agentId: input.identity.agentId,
+            runId: execution.runId,
+            workflowIntentId: execution.workflowIntentId,
+            toolCallId: execution.toolCallId,
+            packVersion: execution.packVersion,
+            runtimeVersion: execution.runtimeVersion,
+            bindingVersion: execution.bindingVersion,
+            toolName: binding.id,
+            execution: { mode: "dry_run", policy: binding.policy.reference },
+            input: input.toolInput,
+            runner,
+            callback: execution.callbackUrl
+              ? {
+                  url: execution.callbackUrl,
+                  protocolVersion: "workflow-callback-v0",
+                  traceId: execution.traceId,
+                }
+              : undefined,
+            policyDecisionId: execution.policyDecisionId,
+            source: execution.source,
+            traceId: execution.traceId,
+          },
+          input.context.signal,
+        ),
       );
     }
     if (result.ok) assertSchemaValue(binding.outputSchema, result.output, `${binding.id} output`);

@@ -288,6 +288,32 @@ test("trusted local session is immediately usable and exposes release controls",
   await page.getByRole("button", { name: /Assess release readiness/i }).click();
   await expect(page.getByRole("dialog", { name: "Readiness report" })).toBeVisible();
   await expect(page.getByText("Documentation", { exact: true })).toBeVisible();
+  // A failed request must retain the dialog and inputs beyond the former toast TTL.
+  await page.route(
+    "**/api/workbench/workflows/repo.readiness_report",
+    (route) =>
+      route.fulfill({
+        status: 502,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: "Repository temporarily unavailable",
+          runId: "e2e-retry-run",
+        }),
+      }),
+    { times: 1 },
+  );
+  const workflowDialog = page.getByRole("dialog", { name: "Readiness report" });
+  const documentation = workflowDialog.getByRole("checkbox", { name: /Documentation/i });
+  await documentation.uncheck();
+  await workflowDialog.getByRole("button", { name: "Run dry-run" }).click();
+  await expect(workflowDialog.getByRole("alert")).toContainText(
+    "Repository temporarily unavailable",
+  );
+  await page.waitForTimeout(3_600);
+  await expect(workflowDialog.getByRole("alert")).toBeVisible();
+  await expect(documentation).not.toBeChecked();
+  await expect(workflowDialog.getByRole("button", { name: "View failed run" })).toBeVisible();
+  await documentation.check();
   const workflowResponse = page.waitForResponse(
     (response) =>
       response.request().method() === "POST" &&

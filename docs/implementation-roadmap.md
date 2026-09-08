@@ -101,10 +101,11 @@ kill-switch, ledger, and conformance boundaries rather than bypassing them.
    materialization, and background reconciliation with Cloudflare-owned truth.
 2. Keep model-visible tools narrow and policy-gated; harden model-side tool
    rendering and approval explanations before broader model tool use.
-3. Complete same-commit hosted lifecycle, Vault, mutation, soak, redelivery,
-   alerting, and signed-in operator evidence for 1.0.
-4. Validate the Runtime Kit with a downstream repository before publishing the
-   SDK or adding remote installation.
+3. Maintain the [stable 1.0 workbench acceptance](release-readiness.md). Hosted
+   lifecycle, Vault, mutation, soak, and redelivery remain separate experimental
+   acceptance requirements.
+4. Keep workspace packages unpublished. Downstream validation and remote
+   installation are future work, not requirements for application 1.0.
 5. Keep promoting execution history, artifacts, connections, exports, deletion,
    proposals, and action ledgers into richer generic product surfaces.
 6. Add pack-contributed domain context, managed-state descriptors, and shared

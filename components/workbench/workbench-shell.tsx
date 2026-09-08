@@ -134,6 +134,9 @@ function WorkbenchShellContent({
   const [historyFocus, setHistoryFocus] = useState<HistoryFocusRequest | null>(null);
   const [adminAccess, setAdminAccess] = useState<{ isAdmin: boolean } | null>(null);
   const [adminNotice, setAdminNotice] = useState<string | null>(null);
+  const [workflowError, setWorkflowError] = useState<{ message: string; runId?: string } | null>(
+    null,
+  );
   const [workflowAction, setWorkflowAction] = useState<AgentSlashWorkflowAction | null>(null);
   const [workflowInput, setWorkflowInput] = useState<Record<string, string | boolean>>({});
   const [isWorkflowRunning, setIsWorkflowRunning] = useState(false);
@@ -256,6 +259,7 @@ function WorkbenchShellContent({
         typeof value === "boolean" ? value : String(value),
       ]),
     ) as Record<string, string | boolean>;
+    setWorkflowError(null);
     setWorkflowInput(defaults);
     setWorkflowAction(action);
   }, []);
@@ -275,10 +279,18 @@ function WorkbenchShellContent({
       const request = buildPackWorkflowRequest(action.binding.workflowType, input);
       if (!request) return;
 
+      setWorkflowError(null);
       setIsWorkflowRunning(true);
       setAdminNotice(`Running ${action.label}...`);
       try {
         const body = await runWorkflow({ workflowType: action.binding.workflowType, ...request });
+        if (!body.ok) {
+          setWorkflowError({
+            message: "Workflow failed. Review the run, adjust your inputs, and try again.",
+            runId: body.run?.id,
+          });
+          return;
+        }
         const status = body.run?.status ?? (body.ok ? "accepted" : "submitted");
         setHistoryFocus({
           runId: body.run?.id,
@@ -291,7 +303,14 @@ function WorkbenchShellContent({
         setWorkflowAction(null);
         requestWorkbenchSummaryRefresh({ source: "event" });
       } catch (error) {
-        setAdminNotice(error instanceof Error ? error.message : `Failed to run ${action.label}`);
+        setWorkflowError({
+          message: error instanceof Error ? error.message : `Failed to run ${action.label}`,
+          runId:
+            error instanceof Error && "runId" in error && typeof error.runId === "string"
+              ? error.runId
+              : undefined,
+        });
+        setAdminNotice(null);
         requestWorkbenchSummaryRefresh({ source: "event" });
       } finally {
         setIsWorkflowRunning(false);
@@ -547,6 +566,12 @@ function WorkbenchShellContent({
           <WorkflowRunDialog
             action={workflowAction}
             input={workflowInput}
+            error={workflowError}
+            onViewRun={() => {
+              setHistoryFocus({ runId: workflowError?.runId, createdAt: Date.now() });
+              setWorkflowAction(null);
+              setHistoryOpen(true);
+            }}
             isRunning={isWorkflowRunning}
             onInputChange={handleWorkflowInputChange}
             onOpenChange={handleWorkflowDialogOpenChange}
@@ -559,6 +584,8 @@ function WorkbenchShellContent({
 }
 
 function WorkflowRunDialog({
+  error,
+  onViewRun,
   action,
   input,
   isRunning,
@@ -566,6 +593,8 @@ function WorkflowRunDialog({
   onOpenChange,
   onSubmit,
 }: {
+  error: { message: string; runId?: string } | null;
+  onViewRun: () => void;
   action: AgentSlashWorkflowAction | null;
   input: Record<string, string | boolean>;
   isRunning: boolean;
@@ -610,6 +639,21 @@ function WorkflowRunDialog({
             Runs as a bounded dry-run and opens History when the report is ready.
           </div>
 
+          {error ? (
+            <div
+              role="alert"
+              className="border-destructive/40 space-y-2 rounded-md border p-3 text-sm"
+            >
+              <p>{error.message}</p>
+              <p className="text-muted-foreground text-xs">
+                Your inputs are still here. Review the run before retrying; a disconnected request
+                may still be finishing.
+              </p>
+              <Button type="button" variant="outline" onClick={onViewRun}>
+                {error.runId ? "View failed run" : "Check History"}
+              </Button>
+            </div>
+          ) : null}
           {fields.map((field) => (
             <WorkflowField
               key={field.name}

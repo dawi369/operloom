@@ -44,6 +44,7 @@ export type DurableObjectNamespace = {
 };
 
 export type DurableObjectStorage = {
+  setAlarm?(scheduledTime: number): Promise<void>;
   get<T = unknown>(key: string): Promise<T | undefined>;
   put<T>(key: string, value: T): Promise<void>;
 };

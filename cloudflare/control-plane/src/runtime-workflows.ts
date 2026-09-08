@@ -1,3 +1,4 @@
+import { withRuntimeDeadline } from "./runtime-deadline";
 import {
   assertSchemaValue,
   type AgentExecutionContext,
@@ -206,13 +207,10 @@ export const executeRuntimeWorkflowRequest = async (
     },
   });
   const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(new Error("runtime_timeout")),
-    pack.resourceLimits.maxRunSeconds * 1_000,
-  );
   let calls = 0;
 
   const invokeTool = async (toolId: string, toolInput: Record<string, unknown>) => {
+    controller.signal.throwIfAborted();
     calls += 1;
     const toolCallId = `${started.runId}-tool-${toolId.replaceAll(".", "-")}-${calls}`;
     if (calls > pack.resourceLimits.maxToolCallsPerRun) {
@@ -289,6 +287,7 @@ export const executeRuntimeWorkflowRequest = async (
     tools: { invoke: invokeTool },
     managedState: {
       async upsert(state) {
+        controller.signal.throwIfAborted();
         const expectedVersion =
           state.expectedVersion ??
           (await readManagedStateVersion(env, identity, {
@@ -296,6 +295,7 @@ export const executeRuntimeWorkflowRequest = async (
             stateType: state.stateType,
             stateKey: state.stateKey,
           }));
+        controller.signal.throwIfAborted();
         const result = await upsertManagedState(env, identity, {
           ...state,
           expectedVersion,
@@ -310,6 +310,7 @@ export const executeRuntimeWorkflowRequest = async (
     },
     events: {
       async append(type, summary, data) {
+        controller.signal.throwIfAborted();
         await appendControlPlaneEvent(env, identity, {
           type,
           summary,
@@ -323,13 +324,15 @@ export const executeRuntimeWorkflowRequest = async (
 
   let result: RuntimeResult;
   try {
-    result = toolResult(await workflow.execute(input, context));
+    result = toolResult(
+      await withRuntimeDeadline(controller, pack.resourceLimits.maxRunSeconds * 1_000, () =>
+        workflow.execute!(input, context),
+      ),
+    );
     if (result.ok)
       assertSchemaValue(workflow.outputSchema, result.output, `${workflowType} output`);
   } catch (error) {
     result = failure(error);
-  } finally {
-    clearTimeout(timeout);
   }
   const runtimeArtifacts = result.artifacts ?? [];
   const artifactBytes = runtimeArtifacts.reduce(
@@ -385,7 +388,7 @@ export const executeRuntimeWorkflowRequest = async (
         workflowType,
         runtimeVersion: runtime.runtimeVersion,
       },
-      ...(artifacts[0]
+      ...(result.ok && artifacts[0]
         ? {
             artifact: {
               id: artifacts[0].id,

@@ -1,6 +1,6 @@
 {
   "name": "operloom",
-  "version": "0.5.1",
+  "version": "1.0.0",
   "private": true,
   "description": "Build and run agent systems you own. TypeScript workflows, durable execution, approvals, and an inspectable workspace.",
   "homepage": "https://github.com/dawi369/operloom#readme",

@@ -39,3 +39,16 @@ describe("release identity", () => {
     );
   });
 });
+
+it("accepts an actual release and rejects candidate wording for it", () => {
+  const released = {
+    ...valid,
+    release: { ...valid.release, status: "released" as const, publishedTag: "v0.5.1" },
+    changelog: "## 0.5.1",
+    releaseDocument: "Release state: released. `fork-base-v1.0.1`",
+  };
+  expect(releaseIdentityFailures(released)).toEqual([]);
+  expect(releaseIdentityFailures({ ...released, changelog: valid.changelog })).toContain(
+    "CHANGELOG must contain ## 0.5.1",
+  );
+});

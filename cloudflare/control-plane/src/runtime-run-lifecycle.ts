@@ -1,3 +1,4 @@
+import { registerRuntimeDeadline } from "./runtime-watchdog";
 import { buildControlRunRelation, toControlRunRelationEventData } from "./run-relations";
 import type { ControlRunRelation } from "./run-relations";
 import type { WorkflowInvocationContext } from "./pack-workflow-runtime";
@@ -264,6 +265,12 @@ export const startPackWorkflowRun = async (
     return { runId, workflowIntentId, relation };
   }
 
+  await registerRuntimeDeadline(env, {
+    identity,
+    run: { runId, workflowIntentId, relation },
+    workflowType: input.workflowType,
+    deadline: Date.now() + ((manifest?.resourceLimits.maxRunSeconds ?? 30) + 15) * 1_000,
+  });
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO control_workflow_intents (

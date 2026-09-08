@@ -97,5 +97,12 @@ export const toWorkbenchApiError = (
     console.warn(fallback, payload);
   }
 
-  return NextResponse.json({ error: message, ...(errorId ? { errorId } : {}) }, { status });
+  const runId =
+    error instanceof Error && error.name === "ControlPlaneRequestError"
+      ? compactControlPlaneError(error.message).runId
+      : undefined;
+  return NextResponse.json(
+    { error: message, ...(errorId ? { errorId } : {}), ...(runId ? { runId } : {}) },
+    { status },
+  );
 };

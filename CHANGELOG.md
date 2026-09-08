@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.0
+
+- Stabilize the web developer-workbench contract: chat, trusted agent packs,
+  read-only workflows, artifacts, and history.
+- Keep failed workflow inputs and recovery actions visible; preserve failed-run links.
+- Treat empty, reasoning-only, and truncated model output as recoverable failures;
+  disable automatic provider retries.
+- Enforce workflow deadlines and recover abandoned manual runs through Durable
+  Object alarms, independently of cron schedules.
+- Document 1.x compatibility, clean setup, upgrade acceptance, and release gates.
+- Keep hosted credential brokerage, mutations, and unattended automation
+  experimental and disabled by default. Mobile remains WIP.
+
 ## 0.5.1 (unreleased candidate)
 
 - Consolidate the personal hosted deployment under Operloom, with one runner

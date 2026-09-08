@@ -61,6 +61,7 @@ describe("workbench API errors", () => {
     expect(response.status).toBe(502);
     expect(body.error).toBe("Cloudflare tool run failed");
     expect(body.errorId).toBeTruthy();
+    expect(body).toHaveProperty("runId", "run-1");
     expect(logSpy).toHaveBeenCalledTimes(1);
     expect(logSpy.mock.calls[0]?.[0]).toBe("Cloudflare tool run failed");
 

@@ -8,6 +8,7 @@ type ReleaseIdentity = {
   publishedTag: string | null;
   acceptedForkBase: string;
   nextForkBase: string;
+  releaseDocument?: string;
 };
 
 const root = resolve(import.meta.dirname, "..");
@@ -37,12 +38,12 @@ export const releaseIdentityFailures = (input: {
   if (!input.readme.includes(`\`${release.applicationVersion}\``)) {
     failures.push("README release status omits the application version");
   }
-  if (
-    !input.changelog.match(
-      new RegExp(`^## ${release.applicationVersion} \\(unreleased candidate\\)$`, "mu"),
-    )
-  ) {
-    failures.push("CHANGELOG must label the current version as an unreleased candidate");
+  const heading =
+    release.status === "candidate"
+      ? `## ${release.applicationVersion} (unreleased candidate)`
+      : `## ${release.applicationVersion}`;
+  if (!input.changelog.split("\n").includes(heading)) {
+    failures.push(`CHANGELOG must contain ${heading}`);
   }
   if (!input.releaseDocument.includes(`Release state: ${release.status}.`)) {
     failures.push("release document status differs from config/release.json");
@@ -76,7 +77,10 @@ const failures = releaseIdentityFailures({
   workbenchVersion,
   readme: read("README.md"),
   changelog: read("CHANGELOG.md"),
-  releaseDocument: read("docs/release-0.5.md"),
+  releaseDocument: read(
+    release.releaseDocument ??
+      `docs/release-${release.applicationVersion.split(".").slice(0, 2).join(".")}.md`,
+  ),
 });
 
 if (failures.length) {

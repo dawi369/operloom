@@ -1,3 +1,9 @@
+import { registerRuntimeDeadline } from "./runtime-watchdog";
+import {
+  assertUsableChatCompletion,
+  chatCompletionGuard,
+  ChatCompletionError,
+} from "./chat-completion";
 import { AIChatAgent } from "@cloudflare/ai-chat";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import {
@@ -548,6 +554,12 @@ export class WorkbenchThreadChatAgent extends AIChatAgent<Env> {
         behavior: toAgentBehaviorMetadata(behaviorConfig),
       });
       runId = runStart.runId;
+      await registerRuntimeDeadline(this.getEnv(), {
+        identity,
+        run: { runId },
+        deadline: Date.now() + 105_000,
+        chat: { threadId: claims.threadId, clientTurnId, traceId: trace.traceId },
+      });
       this.waitUntil(
         dispatchWorkbenchSessionEvent(this.getEnv(), identity, {
           type: "chat.run.started",
@@ -639,7 +651,20 @@ export class WorkbenchThreadChatAgent extends AIChatAgent<Env> {
         stopWhen: stepCountIs(3),
         temperature: runtimeConfig.temperature,
         maxOutputTokens: runtimeConfig.maxTokens,
-        abortSignal: options?.abortSignal,
+        maxRetries: 0,
+        abortSignal: AbortSignal.any([
+          AbortSignal.timeout(90_000),
+          ...(options?.abortSignal ? [options.abortSignal] : []),
+        ]),
+        onAbort: async () => {
+          if (markTerminal("failed"))
+            await failAgentRun(this.getEnv(), identity, trace, {
+              runId,
+              error: new Error("Chat was interrupted. Your message is saved; retry when ready."),
+              startedAtMs: requestStartedAtMs,
+              clientTurnId,
+            });
+        },
         onChunk: async () => {
           if (firstTokenAtMs !== null) return;
           firstTokenAtMs = Date.now();
@@ -658,6 +683,7 @@ export class WorkbenchThreadChatAgent extends AIChatAgent<Env> {
           const endedAtMs = Date.now();
           try {
             await onFinish(event);
+            assertUsableChatCompletion(event);
           } catch (error) {
             if (markTerminal("failed")) {
               await failAgentRun(this.getEnv(), identity, trace, {
@@ -783,7 +809,16 @@ export class WorkbenchThreadChatAgent extends AIChatAgent<Env> {
         },
       });
 
-      return result.toUIMessageStreamResponse();
+      return createUIMessageStreamResponse({
+        stream: result
+          .toUIMessageStream({
+            onError: (error) =>
+              error instanceof ChatCompletionError
+                ? error.message
+                : "Chat failed. Your message is saved; retry when ready.",
+          })
+          .pipeThrough(chatCompletionGuard()),
+      });
     } catch (error) {
       if (markTerminal("failed")) {
         await failAgentRun(this.getEnv(), identity, trace, {

@@ -1,6 +1,7 @@
 # Migrations, Retention, Export, And Deletion
 
-Document status: current 0.5 implementation and future 1.0 operator contract.
+Document status: current migration contract. Advanced hosted data lifecycle
+acceptance remains separate from the [stable 1.0 workbench](release-1.0.md).
 
 ## Migration contract
 

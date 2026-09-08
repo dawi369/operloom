@@ -1,8 +1,7 @@
 # Operloom: web-focused release
 
 Operloom is the new name for Assistant-mk1. The repository and package namespace
-are now `dawi369/operloom` and `@operloom/*`. The application remains on the
-existing 0.5.1 candidate line; the rename is not a claim of public 1.0 readiness.
+are now `dawi369/operloom` and `@operloom/*`. The application is `1.0.0`; see the [stable workbench release contract](release-1.0.md).
 
 ## Scope
 
@@ -40,7 +39,7 @@ licensing or grant new commercial rights.
 Run the repository checks, browser journeys, and extended conformance before
 publishing claims about those boundaries. Hosted mutation, credential custody,
 data lifecycle, and reliability claims still require the recorded hosted
-acceptance evidence in [Release Readiness](release-readiness.md).
+acceptance evidence in [Advanced production acceptance](advanced-production-acceptance.md).
 
 The goal is a bounded, understandable project that can be adapted without its
 author present. Provider APIs and dependencies still require maintenance; the
