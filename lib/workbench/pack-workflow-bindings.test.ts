@@ -102,7 +102,7 @@ describe("pack workflow bindings", () => {
 
     expect(buildPackWorkflowRequest("polymancer.market_research", {})).toEqual({
       executionMode: "dry_run",
-      input: { query: "GTA" },
+      input: { query: "Bitcoin" },
     });
   });
 
