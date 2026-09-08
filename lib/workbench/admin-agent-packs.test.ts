@@ -46,6 +46,17 @@ const agent = (id: string, version: string): AgentSummary => ({
 });
 
 describe("Admin agent pack state", () => {
+  it("prefers the selected instance when multiple agents use the installed pack version", () => {
+    const first = agent("workspace-default", "1.0.0");
+    const selected = agent("local-development", "1.0.0");
+    const state = resolveAdminAgentPackState(template, [first, selected], selected.id);
+    expect(state?.state).toBe("current");
+    expect(state?.currentVersionAgent?.id).toBe(selected.id);
+    expect(resolveAdminAgentPackState(template, [first, agent("old", "0.9.0")], "old")?.state).toBe(
+      "ready",
+    );
+  });
+
   it("distinguishes current, ready, outdated, and uninstantiated packs", () => {
     expect(
       resolveAdminAgentPackState(template, [agent("current", "1.0.0")], "current")?.state,
