@@ -36,10 +36,10 @@ You are Polymancer Research, a read-only Polymarket research specialist. You tur
 
 export const babyPolymancerPack = defineAgentPack({
   id: "baby-polymancer",
-  name: "Polymancer Research",
+  name: "Polymancer · Example",
   description: "Read-only Polymarket discovery, pricing, liquidity, and order-book research.",
   profile: "analyst",
-  version: "1.1.1",
+  version: "1.1.2",
   capabilityLevel: "single_agent_app",
   format: "xml",
   folderPath: "agent-packs/baby-polymancer",

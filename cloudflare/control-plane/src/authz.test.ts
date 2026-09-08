@@ -181,3 +181,61 @@ describe("default agent bootstrap", () => {
     );
   });
 });
+
+describe("Operloom bootstrap compatibility", () => {
+  const legacyData = { bootstrap: "workos", profile: "default", runtime: { model: "custom" } };
+  const runBootstrap = async (name: string, data: Record<string, unknown> | null) => {
+    const writes: { query: string; values: unknown[] }[] = [];
+    const existing = data === null ? null : { id: agentId, name, data_json: JSON.stringify(data) };
+    const env = {
+      DB: {
+        prepare(query: string) {
+          let values: unknown[] = [];
+          const statement = {
+            bind(...args: unknown[]) {
+              values = args;
+              return statement;
+            },
+            async first() {
+              return existing;
+            },
+            async run() {
+              writes.push({ query, values });
+              return { success: true };
+            },
+          };
+          return statement;
+        },
+      },
+    } as unknown as Env;
+    await createDefaultAgentIfMissing(env, { workspaceId, userId });
+    return writes;
+  };
+
+  it("creates Operloom with a versioned behavior snapshot", async () => {
+    const [write] = await runBootstrap("", null);
+    expect(write.values[2]).toBe("Operloom");
+    expect(JSON.parse(write.values[5] as string).behavior.templateId).toBe("pack-operloom");
+  });
+
+  it("upgrades an untouched legacy default with a compare-and-swap and preserves runtime", async () => {
+    const [write] = await runBootstrap("Default Agent", legacyData);
+    expect(write.query).toContain("AND name = ? AND data_json = ?");
+    expect(write.values[0]).toBe("Operloom");
+    expect(JSON.parse(write.values[2] as string)).toMatchObject({
+      runtime: { model: "custom" },
+      behavior: { templateId: "pack-operloom" },
+    });
+  });
+
+  it("preserves renamed, manually created, and snapshotted agents", async () => {
+    expect(await runBootstrap("My assistant", legacyData)).toEqual([]);
+    expect(await runBootstrap("Default Agent", { profile: "default" })).toEqual([]);
+    expect(
+      await runBootstrap("Default Agent", {
+        ...legacyData,
+        behavior: { prompt: "Custom instructions" },
+      }),
+    ).toEqual([]);
+  });
+});

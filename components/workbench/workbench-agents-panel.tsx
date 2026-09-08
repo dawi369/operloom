@@ -63,6 +63,7 @@ export function WorkbenchAgentsPanel({
   const sortedAgents = useMemo(
     () =>
       [...agents].sort((left, right) => {
+        if (left.isDefault !== right.isDefault) return left.isDefault ? -1 : 1;
         const leftCurrent = left.id === effectiveActiveAgentId ? 0 : 1;
         const rightCurrent = right.id === effectiveActiveAgentId ? 0 : 1;
         if (leftCurrent !== rightCurrent) return leftCurrent - rightCurrent;
@@ -195,7 +196,7 @@ export function WorkbenchAgentsPanel({
                           ) : null}
                         </span>
                         <span className="text-muted-foreground mt-1 block truncate text-xs">
-                          {agent.profile} / {agent.runtime.model}
+                          {agent.description ?? `${agent.profile} / ${agent.runtime.model}`}
                         </span>
                       </button>
 

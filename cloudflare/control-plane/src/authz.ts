@@ -1,9 +1,11 @@
+import { createAgentBehaviorSnapshot } from "./agent-behavior-templates";
 import {
   accountIdHeader,
   accountSourceHeader,
   agentIdHeader,
   json,
   parseJson,
+  parseDataJson,
   readRequiredHeader,
   type ControlPlaneAuthContext,
   userIdHeader,
@@ -266,7 +268,33 @@ export const createDefaultAgentIfMissing = async (
   input: { workspaceId: string; userId: string },
 ) => {
   const existing = await selectDefaultAgent(env, input.workspaceId);
-  if (existing) return;
+  if (existing) {
+    const data = parseDataJson(existing.data_json);
+    // Upgrade only the untouched bootstrap record; custom agents and saved choices survive.
+    if (
+      existing.name === "Default Agent" &&
+      data.bootstrap === "workos" &&
+      data.profile === "default" &&
+      !data.behavior
+    ) {
+      await env.DB.prepare(
+        `UPDATE agents SET name = ?, description = ?, data_json = ?, updated_at = ?
+         WHERE id = ? AND workspace_id = ? AND name = ? AND data_json = ?`,
+      )
+        .bind(
+          "Operloom",
+          "Your everyday assistant for thinking, writing, debugging, and planning.",
+          toJson({ ...data, behavior: createAgentBehaviorSnapshot("default") }),
+          new Date().toISOString(),
+          existing.id,
+          input.workspaceId,
+          existing.name,
+          existing.data_json,
+        )
+        .run();
+    }
+    return;
+  }
 
   const timestamp = new Date().toISOString();
   await env.DB.prepare(
@@ -279,10 +307,14 @@ export const createDefaultAgentIfMissing = async (
     .bind(
       defaultAgentId(input.workspaceId),
       input.workspaceId,
-      "Default Agent",
-      "Auto-bootstrapped default workspace agent.",
+      "Operloom",
+      "Your everyday assistant for thinking, writing, debugging, and planning.",
       input.userId,
-      toJson({ bootstrap: "workos", profile: "default" }),
+      toJson({
+        bootstrap: "workos",
+        profile: "default",
+        behavior: createAgentBehaviorSnapshot("default"),
+      }),
       timestamp,
       timestamp,
     )
@@ -401,7 +433,11 @@ const createLocalExplicitAgentIfMissing = async (
       "Local Development Agent",
       "Explicit local-development workbench agent.",
       input.userId,
-      toJson({ bootstrap: "local-dev", profile: "default" }),
+      toJson({
+        bootstrap: "local-dev",
+        profile: "default",
+        behavior: createAgentBehaviorSnapshot("default"),
+      }),
       timestamp,
       timestamp,
     )

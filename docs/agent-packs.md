@@ -14,6 +14,24 @@ trusted build-time packages. Remote installation, a marketplace, arbitrary
 executable uploads, secret binding, and automatic snapshot upgrades are not
 implemented.
 
+## Default and example agents
+
+`agent-packs/operloom` is the default conversational pack. It has no external
+tools, workflows, connections, or background triggers. New workspaces snapshot
+it into their default agent; the catalog lists it before the specialist packs.
+The agent picker keeps the workspace default first without changing an existing
+chat or the user's selected agent.
+
+Untouched legacy WorkOS bootstrap agents named `Default Agent` receive the
+Operloom name and snapshot on their next authenticated request. Renamed agents,
+custom behavior snapshots, runtime settings, and saved agent choices are
+preserved. Other installed pack updates remain explicit version upgrades.
+
+Repository Analyst is the working repository example. Polymancer is a read-only
+market research example. Swordfish is a parked architecture preview: its starters
+work from supplied context and do not imply live backend access. Stable pack IDs
+are retained so existing conversations and artifacts remain associated correctly.
+
 ## Contract
 
 Define a pack with `defineAgentPack()`:
