@@ -166,10 +166,10 @@ test("trusted local session is immediately usable and exposes release controls",
   });
   const welcome = page.locator(".aui-thread-welcome-root");
   await expect(welcome).toHaveClass(/workbench-enter/);
-  await expect(page.getByRole("button", { name: /Explore what’s possible/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Plan a project handoff/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Review a decision/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Explain a failure/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Make a plan/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Work through a problem/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Think through a decision/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Draft something useful/i })).toBeVisible();
   const materializeResponsePromise = page.waitForResponse(
     (response) =>
       response.url().includes("/api/workbench/chat-session/materialize-turn") && response.ok(),
@@ -247,13 +247,7 @@ test("trusted local session is immediately usable and exposes release controls",
   await page.getByRole("tab", { name: "Agents" }).click();
   const firstPack = page.locator("article").first();
   await expect(firstPack.getByRole("heading", { name: "Operloom", exact: true })).toBeVisible();
-  await firstPack.getByRole("button", { name: "Use agent" }).click();
-  await expect(page.getByRole("heading", { name: "What are we working on?" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Make a plan/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Draft something useful/i })).toBeVisible();
-  await composer.fill("/admin");
-  await composer.press("Enter");
-  await page.getByRole("tab", { name: "Agents" }).click();
+  await expect(firstPack.getByRole("button", { name: "Current", exact: true })).toBeDisabled();
   const repositoryPack = page.locator("article").filter({ hasText: "Repository Analyst" });
   await expect(repositoryPack).toContainText("v1.2.1");
   await expect(page.getByText("Polymancer · Example", { exact: true })).toBeVisible();
