@@ -249,7 +249,7 @@ test("trusted local session is immediately usable and exposes release controls",
   await expect(firstPack.getByRole("heading", { name: "Operloom", exact: true })).toBeVisible();
   await expect(firstPack.getByRole("button", { name: "Current", exact: true })).toBeDisabled();
   const repositoryPack = page.locator("article").filter({ hasText: "Repository Analyst" });
-  await expect(repositoryPack).toContainText("v1.2.1");
+  await expect(repositoryPack).toContainText("v1.2.2");
   await expect(page.getByText("Polymancer · Example", { exact: true })).toBeVisible();
   await expect(page.getByText("Swordfish · Preview", { exact: true })).toBeVisible();
   const agentSwitchResponse = page.waitForResponse(
