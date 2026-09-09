@@ -41,7 +41,7 @@ export const repoAnalystPack = defineAgentPack({
   name: "Repository Analyst",
   description: "Repository readiness, architecture analysis, and implementation planning.",
   profile: "analyst",
-  version: "1.2.1",
+  version: "1.2.2",
   capabilityLevel: "single_agent_app",
   format: "xml",
   folderPath: "agent-packs/repo-analyst",
@@ -230,7 +230,7 @@ export const repoAnalystPack = defineAgentPack({
   ],
   compatibility: { packApi: 2, minimumWorkbenchVersion: "0.5.0" },
   resourceLimits: {
-    maxRunSeconds: 30,
+    maxRunSeconds: 90,
     maxToolCallsPerRun: 4,
     maxConcurrentRuns: 1,
     maxArtifactBytes: 131072,

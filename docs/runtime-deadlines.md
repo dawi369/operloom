@@ -15,7 +15,10 @@ The browser, facade, and runtime have different jobs and deadlines:
 
 Workflow execution owns its deadline; a browser disconnect is not cancellation.
 Check History before retrying an interrupted request. A stopped Fly runner can
-consume part of the execution budget while starting. No transport automatically
+consume part of the execution budget while starting. The repository and Polymancer
+demo packs allow 90 seconds for this reason. Existing agent snapshots retain their
+saved limits; choose the current pack in `/admin` to create an updated agent instance with the new
+budget. Existing conversations and their snapshots remain unchanged. No transport automatically
 replays the workflow. Chat provider retries are disabled; users explicitly choose
 whether to retry an empty, failed, or truncated response.
 
