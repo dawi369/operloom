@@ -90,6 +90,8 @@ pnpm operloom dev
 
 Open **[localhost:3000](http://localhost:3000)**. Initialization preserves existing
 credentials and data; hosted accounts are not required for the local workspace.
+Use `/agents` to choose Operloom. To try a repository report, open `/admin` →
+**Agents** → **Repository Analyst** → **Use agent**, then **Assess release readiness**.
 [Setup and resource limits →](docs/getting-started.md)
 
 ## Build your own agent

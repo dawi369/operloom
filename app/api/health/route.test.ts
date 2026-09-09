@@ -18,7 +18,7 @@ describe("public application health", () => {
     expect(await response.json()).toEqual({
       ok: true,
       service: "operloom",
-      version: "0.5.1",
+      version: "1.0.0",
       release: "a".repeat(40),
     });
   });

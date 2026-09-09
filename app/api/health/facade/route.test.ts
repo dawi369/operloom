@@ -49,7 +49,7 @@ describe("signed facade health", () => {
           return Response.json({
             ok: true,
             service: "operloom-control-plane-facade",
-            version: "0.5.1",
+            version: "1.0.0",
             release,
           });
         }),
@@ -61,7 +61,7 @@ describe("signed facade health", () => {
       expect(await response.json()).toEqual({
         ok: true,
         service: "operloom-facade",
-        version: "0.5.1",
+        version: "1.0.0",
         release,
       });
     },
