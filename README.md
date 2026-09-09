@@ -147,7 +147,7 @@ independent adoption evidence, or future maintenance is promised.
 **Mobile is WIP / future work**, preserved on
 [`codex/mobile-wip`](https://github.com/dawi369/operloom/tree/codex/mobile-wip).
 
-[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release notes](docs/operloom-release.md)
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release notes](https://github.com/dawi369/operloom/releases/tag/v1.0.0)
 
 ## License
 

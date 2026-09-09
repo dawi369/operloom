@@ -7,7 +7,6 @@ type ReleaseIdentity = {
   status: "candidate" | "released";
   publishedTag: string | null;
   acceptedForkBase: string;
-  nextForkBase: string;
   releaseDocument?: string;
 };
 

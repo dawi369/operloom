@@ -4,7 +4,15 @@ The release promise is a stable developer workbench, not unattended production
 automation. Stable scope: web UI, chat, packs, read-only workflows, artifacts, and
 history. [The 1.x contract](release-1.0.md) defines compatibility and non-claims.
 
-## Required gates
+## 1.0 result
+
+Published as immutable [v1.0.0](https://github.com/dawi369/operloom/releases/tag/v1.0.0)
+on September 9, 2026, from `38a928a5646d9089aace0e415aa27aa82bce6dae`.
+[All CI jobs passed](https://github.com/dawi369/operloom/actions/runs/34330781367).
+Local setup, pack customization, retained-data upgrade, hosted demos, cold-start
+execution, and failure recovery were exercised. Minimal hosting was restored.
+
+## Checklist for a release
 
 1. Focused regressions cover persistent workflow failures, retained inputs and
    run links, empty/truncated chat output, timeout cleanup, and session continuity.
@@ -24,8 +32,8 @@ history. [The 1.x contract](release-1.0.md) defines compatibility and non-claims
 7. Restore minimal hosting: runner stopped, schedules disabled, notification
    delivery paused. Record commit, CI run, deployment IDs, and focused outcomes
    in ignored release evidence without credentials.
-8. Only after those gates pass, publish immutable `v1.0.0` and GitHub release notes.
-   Do not move historical tags or publish workspace packages.
+8. Only after those gates pass, publish an immutable version tag and GitHub release notes.
+   Do not move published release tags or publish workspace packages.
 
 ## Separate experimental acceptance
 

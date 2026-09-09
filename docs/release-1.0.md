@@ -2,10 +2,11 @@
 
 Release state: released.
 
-The immutable `v1.0.0` tag is the adoption baseline. Historical `fork-base-v1`
-and `fork-base-v1.0.1` tags remain untouched. Release publication follows the
-[acceptance checklist](release-readiness.md); release metadata alone is not
-acceptance evidence.
+The immutable `v1.0.0` tag is the adoption baseline. Published on September 9,
+2026: [release](https://github.com/dawi369/operloom/releases/tag/v1.0.0) and
+[passing CI](https://github.com/dawi369/operloom/actions/runs/34330781367).
+Older pre-1.0 tags have been retired. The [release checklist](release-readiness.md)
+defines the tested scope; advanced capabilities require separate acceptance.
 
 I built Operloom to give agent experiments a durable home without giving up
 ownership of the code. This release draws a deliberate boundary around what

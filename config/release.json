@@ -4,6 +4,5 @@
   "status": "released",
   "publishedTag": "v1.0.0",
   "acceptedForkBase": "v1.0.0",
-  "nextForkBase": "fork-base-v1.1.0",
   "releaseDocument": "docs/release-1.0.md"
 }

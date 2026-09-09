@@ -16,7 +16,7 @@
 - Keep hosted credential brokerage, mutations, and unattended automation
   experimental and disabled by default. Mobile remains WIP.
 
-## 0.5.1 (unreleased candidate)
+## Pre-1.0 development (formerly 0.5.1 candidate)
 
 - Consolidate the personal hosted deployment under Operloom, with one runner
   that scales to zero, paused notification delivery, and archived legacy stacks.
