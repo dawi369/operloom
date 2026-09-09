@@ -34,10 +34,11 @@ try {
 
 const localPatchPath = resolve(process.cwd(), "patches/extract-zip@2.0.1.patch");
 const localPatchSha256 = createHash("sha256").update(readFileSync(localPatchPath)).digest("hex");
-const expectedLocalPatchSha256 = "702d3c3679ddfd25701c6d22685f7e34fe0aec77e0e03ff2d5f28ecf9eb5384e";
+const expectedLocalPatchSha256 = "eaa4a82363cf0ed0cb1f097123ff4f378c93c47032560ae80168ef12d8145759";
 const locallyRemediatedAdvisories = new Set<string>();
 if (localPatchSha256 === expectedLocalPatchSha256) {
   locallyRemediatedAdvisories.add("GHSA-jmr9-qjv8-65gv");
+  locallyRemediatedAdvisories.add("GHSA-7pqw-9j4j-h8q3");
 }
 const decision = evaluateSecurityAudit(report as { advisories?: unknown }, {
   locallyRemediatedAdvisories,

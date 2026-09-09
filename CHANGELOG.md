@@ -2,6 +2,9 @@
 
 ## 1.0.0
 
+- Update vulnerable image dependencies and harden archive extraction; see
+  [dependency remediation](docs/dependency-security.md).
+
 - Stabilize the web developer-workbench contract: chat, trusted agent packs,
   read-only workflows, artifacts, and history.
 - Keep failed workflow inputs and recovery actions visible; preserve failed-run links.

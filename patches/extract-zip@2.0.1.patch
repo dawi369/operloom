@@ -1,6 +1,9 @@
 diff --git a/index.js b/index.js
 --- a/index.js
 +++ b/index.js
+@@ -3 +3 @@
+-const { createWriteStream, promises: fs } = require('fs')
++const { createWriteStream, constants, promises: fs } = require('fs')
 @@ -127,5 +127,11 @@ class Extractor {
      if (symlink) {
        const link = await getStream(readStream)
@@ -13,3 +16,14 @@ diff --git a/index.js b/index.js
        debug('creating symlink', link, dest)
        await fs.symlink(link, dest)
      } else {
+@@ -132 +138,9 @@
+-      await pipeline(readStream, createWriteStream(dest, { mode: procMode }))
++      const existing = await fs.lstat(dest).catch(err => {
++        if (err.code === 'ENOENT') return null
++        throw err
++      })
++      if (existing && existing.isSymbolicLink()) {
++        throw new Error(`Refusing to overwrite symlink ${entry.fileName}`)
++      }
++      const flags = constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | (constants.O_NOFOLLOW || 0)
++      await pipeline(readStream, createWriteStream(dest, { mode: procMode, flags }))
