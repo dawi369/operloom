@@ -6,8 +6,8 @@ export const test = base.extend({
   context: async ({ context }, use) => {
     // Journeys use the development server for local-only identity, but do not
     // edit source. Next's compiler refresh messages can arrive before router
-    // initialization and interrupt hydration. Silence only that development
-    // refresh event while retaining the compiler handshake; application
+    // initialization and interrupt hydration. Silence only these development
+    // refresh events while retaining the compiler handshake; application
     // sockets, requests, and authentication remain real.
     await context.routeWebSocket(
       (url) => url.pathname === "/_next/webpack-hmr",
@@ -16,7 +16,15 @@ export const test = base.extend({
         server.onMessage((message) => {
           if (typeof message === "string") {
             const payload = JSON.parse(message) as { type?: string };
-            if (payload.type === "serverComponentChanges") return;
+            if (
+              [
+                "serverComponentChanges",
+                "staticParamsChanged",
+                "addedPage",
+                "removedPage",
+              ].includes(payload.type ?? "")
+            )
+              return;
           }
           socket.send(message);
         });
