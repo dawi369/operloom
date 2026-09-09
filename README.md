@@ -44,9 +44,9 @@ flowchart LR
 Cloudflare Agents/Workers/Durable Objects/D1/R2, LangGraph, WorkOS, OpenRouter,
 and Sentry. [Architecture, boundaries, and tradeoffs →](docs/architecture.md)
 
-![Operloom workspace: conversation, agent selection, and execution controls](docs/assets/release/workbench.png)
+![Operloom History: completed repository workflow with snapshot and readiness report artifacts](docs/assets/release/repository-report.png)
 
-_An isolated local workspace with synthetic data._
+_A real hosted repository run: 80 files, 40 docs, and two saved artifacts. History is filtered to completed runs._
 
 ## Run it locally
 
