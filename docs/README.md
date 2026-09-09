@@ -18,6 +18,7 @@ you need to change a particular boundary.
 - [Frontend integration](frontend-integration.md) · [Workbench UI](workbench-ui.md)
 - [Tenancy and authorization](tenancy.md) · [Cloudflare control plane](cloudflare-control-plane.md)
 - [Architecture diagrams](diagrams/README.md) · [Decisions](decisions/)
+- [Cold-start deadline case study](case-studies/cold-start-deadline.md): a release bug and its tradeoffs.
 
 ## Operate
 

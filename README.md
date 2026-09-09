@@ -19,27 +19,6 @@ and an architecture you can extend into your own product.
 
 ## Built for scale and extension
 
-Operloom separates live conversations, durable control state, and heavy execution.
-Each conversation gets its own Cloudflare Durable Object; process-heavy tools run
-in a separate Node.js service. That gives chat and tool execution distinct scaling
-boundaries, while workspace permissions and policy stay under server control.
-
-- **Scale conversations independently.** Per-thread runtimes own live messages;
-  Cloudflare Workers handle authorization and coordination.
-- **Keep work moving beyond a chat turn.** Durable workflows, scheduled/webhook
-  triggers, cancellation, retries, and recovery keep execution inspectable.
-  Unattended automation remains experimental.
-- **Build whole systems in code.** Typed agent packs contribute tools, workflows,
-  managed state, and artifact views. A compiler connects them to the runtime.
-- **Give agents authority deliberately.** Approvals, credential brokerage,
-  kill switches, and an action ledger govern external side effects. These
-  experimental capabilities stay off until explicitly enabled.
-- **Make the product your own.** Replace agent behavior, integrations, or the
-  frontend through shared TypeScript contracts and a framework-neutral client.
-
-The architecture gives you room to build personal assistants, internal operations
-tools, research systems, and domain-specific automation on the same foundations.
-
 ```mermaid
 flowchart LR
     UI["Next.js + React\nassistant-ui · WorkOS"] --> Control["Cloudflare Workers\nAuthorization · policy · runs"]
@@ -51,13 +30,15 @@ flowchart LR
     Runner -. "Signed results" .-> Control
 ```
 
-| Architecture decision                       | What it enables                                                                                                   |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Keep ordinary chat on Cloudflare.**       | Conversations avoid the heavy-tool runtime; hot messages live in per-thread Durable Object SQLite.                |
-| **Separate control records and artifacts.** | D1 owns authorization, run state, and audit; R2 holds larger outputs and exports.                                 |
-| **Delegate heavy work explicitly.**         | Signed Node.js execution supports process-based tools; LangGraph handles workflows that need graph orchestration. |
-| **Enforce policy outside the model.**       | The server resolves tenant scope, credentials, approvals, and mutation permissions.                               |
-| **Compile trusted agent packs.**            | Extensions have inspectable, typed contracts without domain-specific logic spreading through the core UI.         |
+- **Separate chat from heavy execution.** Each conversation has its own Durable
+  Object; process-based tools run in Node.js. Chat and tool execution can scale
+  independently, and the runner can stop when idle.
+- **Keep authority outside the model.** The control plane owns authorization,
+  policy, and run state in D1; R2 holds artifacts. Tools receive scoped execution
+  context rather than deciding their own permissions.
+- **Compile extensions into the system.** Trusted TypeScript packs register
+  tools, workflows, state, and views through versioned contracts. Domain behavior
+  stays in the pack instead of spreading through the core UI.
 
 **Stack:** Next.js 16, React 19, TypeScript, assistant-ui, Tailwind CSS 4,
 Cloudflare Agents/Workers/Durable Objects/D1/R2, LangGraph, WorkOS, OpenRouter,
@@ -108,6 +89,34 @@ capabilities in `index.ts` and `prompt.xml`, execution in `control-plane.ts` and
 `runner.ts`, and presentation in `web.ts`. Packs are trusted build-time code;
 permissions and credentials remain server-controlled.
 
+Here is part of [Repository Analyst's workflow](agent-packs/repo-analyst/control-plane.ts):
+call its read-only snapshot tool, derive a report, and persist it through scoped
+managed state. This is an excerpt from the workflow body, not a complete pack.
+
+```ts
+const snapshot = await context.tools.invoke("repo.snapshot", input);
+if (!snapshot.ok) return snapshot;
+
+const report = buildReadinessReport(snapshot.output as RepoSnapshotOutput);
+const artifactId = `${context.run.id}-repo_readiness_report`;
+await context.managedState.upsert({
+  namespace: "repo-monitor",
+  stateType: "repository-readiness",
+  stateKey: "current",
+  status: report.status,
+  summary: report.summary,
+  data: {
+    report,
+    runId: context.run.id,
+    workflowIntentId: context.run.workflowIntentId,
+    artifactRefs: [artifactId],
+  },
+});
+```
+
+The rest of the workflow returns the report as an artifact. The pack owns the
+report logic; the runtime supplies tool dispatch, tenant scope, and run history.
+
 Start with **Operloom**, the general assistant. **Repository Analyst** adds a
 readiness workflow; **Polymancer · Example** demonstrates read-only research.
 **Swordfish · Preview** is parked, and **Complex Operator** is a conformance fixture.
@@ -127,13 +136,12 @@ connections, and mutations have explicit deployment gates.
 
 [Deployment guide →](docs/environment-separation.md) · [Forking and upgrades →](docs/forking.md)
 
-## Why I built this
+## Engineering notes
 
-I wanted a home for agent experiments that could become systems I actually trust.
-Operloom reflects how I like to build: clear ownership, authority outside the model,
-and enough visibility to understand what happened when something fails.
-
-— [David](https://github.com/dawi369)
+A repository scan took milliseconds, but its workflow failed after 30 seconds:
+starting the stopped runner consumed most of the budget. The fix kept the runner
+able to stop when idle and preserved existing agent snapshots.
+[Cold starts, deadlines, and the 1.0 fix →](docs/case-studies/cold-start-deadline.md)
 
 ## Status
 
