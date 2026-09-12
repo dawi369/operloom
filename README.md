@@ -44,10 +44,6 @@ flowchart LR
 Cloudflare Agents/Workers/Durable Objects/D1/R2, LangGraph, WorkOS, OpenRouter,
 and Sentry. [Architecture, boundaries, and tradeoffs →](docs/architecture.md)
 
-![Operloom History: completed repository workflow with snapshot and readiness report artifacts](docs/assets/release/repository-report.png)
-
-_A real hosted repository run: 80 files, 40 docs, and two saved artifacts. History is filtered to completed runs._
-
 ## Run it locally
 
 Use **Node.js 24 LTS**, **pnpm 10.33.0**, and an **OpenRouter API key**.
