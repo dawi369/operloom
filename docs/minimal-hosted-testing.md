@@ -1,82 +1,55 @@
-# Minimal hosted testing
+# Scale-to-zero public demo
 
-This is my small, authenticated Operloom installation for occasional manual
-checks. Local development and CI do the broad verification. It is not an
-always-on production service or a public anonymous demo.
+`demo` is the maintained public deployment profile for `operloom.t23.dev`.
+It deploys the same accepted commit as `main`; it is an environment policy, not
+a branch or a fork of product behavior. Cold starts are expected.
 
-## Active stack
+## Isolated stack
 
-| Layer              | Resource                                            | Idle behavior                                                |
-| ------------------ | --------------------------------------------------- | ------------------------------------------------------------ |
-| Web                | `operloom` on Vercel; `https://operloom.vercel.app` | Request-driven                                               |
-| Control plane      | `operloom-control-plane` on Cloudflare Workers      | No cron schedules                                            |
-| Data               | D1 `operloom`, R2 `operloom-artifacts`              | Retained storage; request-driven operations                  |
-| Chat/session state | Existing Durable Object namespaces                  | Preserved across Worker rename                               |
-| Heavy tools        | Fly `operloom-runner`, Frankfurt                    | One shared CPU, 1 GB RAM; automatic stop/start, minimum zero |
-| Notifications      | `operloom-control-plane-notifications`              | Delivery paused; push disabled                               |
+| Layer         | Demo resource                                                             | Idle behavior                                                       |
+| ------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Web           | Railway project/service in the T23 workspace                              | Serverless sleep; no volume, worker, replica pool, or heartbeat     |
+| Control plane | `operloom-demo-control-plane` Worker                                      | Request-driven; one daily bounded retention sweep                   |
+| Data          | D1 `operloom_demo`, R2 `operloom-demo-artifacts`, dedicated DO namespaces | Retained storage only                                               |
+| Heavy tools   | Fly `operloom-demo-runner`                                                | One Machine, autostop `stop`, autostart on, minimum zero, no volume |
+| Identity      | Separate WorkOS AuthKit application                                       | Standard AuthKit only; no SSO connection or custom auth domain      |
+| Models        | Separate OpenRouter key                                                   | Monthly provider limit exactly $20; application fails closed        |
+| Errors        | Sentry environment `demo`                                                 | Errors only; tracing and replay disabled                            |
 
-The signed runner contract protects tenant headers and carries an explicit network
-policy to network-aware tools, including redirect hops for URL inspection. Agent
-packs are trusted code; this is not isolation for arbitrary untrusted plugins.
+Sleeping compute is not a zero-bill guarantee. Existing provider subscriptions,
+retained D1/R2/DO data, Fly root filesystem storage, egress, and requests may be
+chargeable. The demo must not create a Railway workspace hard stop that could
+affect `t23.dev`.
 
-Mutations and conformance mode remain disabled. Authenticated chat and explicit
-runner tools remain available. Scheduled agents and queued notifications are
-not part of this testing profile. Cold starts are expected. Stopped Machines
-and retained storage are not a promise of a zero bill; provider subscriptions,
-root filesystems, storage, egress, and model usage can still be chargeable.
+## Enforced public policy
 
-The `production` target manifest describes the active resource names; the target
-name selects isolation and authorization rules, not a claim of production
-readiness. A separate `acceptance` manifest is available for forks that need it,
-but no second personal stack needs to run continuously. Fly deploys explicitly
-use `--ha=false`; increasing availability is a deliberate cost decision.
+Cloudflare is the policy boundary. The checked-in profile fails closed unless
+all of these values remain exact:
 
-## Migration and rollback
+- packs: Operloom, Repository Analyst, and read-only Polymancer Research;
+- per user: 20 chat turns/day, 3 workflow runs/day, one active run;
+- artifacts: 5 MiB/item and 20 MiB/workspace;
+- retention: seven days for demo chat, runs, artifacts, traces, events, and audit data;
+- model spend: a demo-only OpenRouter key with a monthly $20 limit.
 
-The September 2026 rename preserved the Worker and both Durable Object IDs.
-The D1 contents and migration ledger were copied to the new database and checked
-against the source. The source R2 bucket was empty. Signed transport headers
-remain compatible; changing visible names does not require rotating credentials.
+Credential connections, mutations, approvals, schedules, monitors, webhooks,
+push, user-created packs, direct artifact uploads, and administrative mutations
+are rejected server-side. Quota rejection is `429`; global model-budget failure
+is `503`. Landing, authentication, health, and retained history remain readable.
+Crossed 50%, 75%, and 90% model thresholds are recorded once per month and
+emitted to provider logs.
 
-Historical Vercel projects are renamed with an `-archive` suffix and paused.
-The old dev/acceptance Workers have no public or preview endpoints. The three
-old Fly apps are scaled to zero Machines; app secrets and saved image/config
-references remain available for rollback. Historical
-D1 databases and R2 buckets retain their names as rollback copies. Do not point
-new deployments at those copies or delete retained data casually.
+## Deployment order
 
-Private migration backups and provider snapshots live under the ignored
-`output/operloom-deployment/` directory. They contain sensitive data and are not
-release artifacts or material to upload to an issue.
+1. Run `pnpm verify`, `pnpm build`, and `pnpm verify:docker` sequentially.
+2. Provision isolated Cloudflare, Fly, Railway, WorkOS, and OpenRouter resources.
+3. Configure demo secrets and render `config/environments/demo.json`.
+4. Back up D1, apply forward migrations, then deploy Cloudflare, Fly, and web from one immutable commit.
+5. Smoke every private health boundary before attaching `operloom.t23.dev`.
+6. Verify sign-in/callback/logout, chat streaming, all three packs, every denied capability, quotas, budget exhaustion, and seven-day cleanup.
+7. Observe for seven days. Accept only when Railway web compute and Fly running compute both reach zero while idle.
+8. After acceptance, remove all Operloom Vercel projects, aliases, secrets, and local linkage. Retire old backend resources only after retained-state review.
 
-## Provider identity
-
-The active WorkOS application and customer-facing display name are `Operloom`.
-Its callback is `https://operloom.vercel.app/auth/callback`; its homepage and
-default sign-out destination are on the same origin. The original WorkOS client
-and credentials are preserved. The separately created production and acceptance
-applications are labeled as archives, and the native application is labeled WIP.
-Check the client ID emitted by `/sign-in` when changing provider configuration;
-an application's display name does not establish which client Vercel uses.
-
-The old `assistant-mk1.vercel.app` domain redirects permanently to
-`operloom.vercel.app`, so bookmarked links enter authentication on the correct
-cookie origin. Historical callback allowlist entries remain for rollback.
-Sentry is `t23/operloom`; its project ID, DSN, and retained events are unchanged.
-`SENTRY_PROJECT=operloom` also applies to build-time source-map uploads.
-
-The September 8 cutover was checked with an authenticated browser: login,
-workspace connection, new chat creation, and a completed assistant response.
-This is a small hosted smoke check, not hosted acceptance of every feature gate.
-
-## Verification
-
-Check web `/api/health`, web `/api/health/facade`, Worker `/health/live` and
-`/health`, and runner `/health/live` and `/health`. The signed facade health
-endpoint checks the shared secret and release identity across services. An
-unauthenticated `/api/workbench/context` must return `401`.
-
-For CLI deployments, provide `WORKBENCH_RELEASE_SHA` explicitly. A blank
-`VERCEL_GIT_COMMIT_SHA` must not mask it. Deploy a clean source export to avoid
-uploading local caches or secrets; builds run on the providers. After testing,
-verify that the runner has stopped and that schedules remain empty.
+Use `pnpm deploy:web -- --target demo` for the maintained web target. Vercel
+remains an optional adopter path documented in `deployment-vercel.md`; it is not
+part of the public demo.

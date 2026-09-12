@@ -1,6 +1,8 @@
 # Vercel Frontend Deployment
 
-Vercel is the hosted frontend target for the Next.js workbench shell.
+Vercel is the simplest optional frontend target for adopters. The maintained
+public demo uses Railway; this runbook remains supported by the provider-neutral
+`web` environment manifest.
 
 ## Current Shape
 

@@ -22,7 +22,7 @@ execution, and failure recovery were exercised. Minimal hosting was restored.
    deterministic read-only tool/workflow without editing core code. No permanent
    additional demo, downstream project, or external-user exercise is required.
 4. Fresh migrations and an upgrade from the existing 0.5.1 fixture preserve
-   chats, settings, and agent snapshots through migration `0014`. Existing
+   chats, settings, and agent snapshots through migration `0015`. Existing
    migration/backup checks pass.
 5. Every existing GitHub Actions job passes on the final release commit.
    Run focused checks locally; CI owns the full suite.

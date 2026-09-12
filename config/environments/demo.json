@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "target": "demo",
+  "conformanceMode": false,
+  "vaultBackend": "workos",
+  "mutationDefaultEnabled": false,
+  "cloudflare": {
+    "workerName": "operloom-demo-control-plane",
+    "d1DatabaseName": "operloom_demo",
+    "d1DatabaseId": "${WORKBENCH_DEMO_D1_DATABASE_ID}",
+    "r2BucketName": "operloom-demo-artifacts",
+    "origin": "${WORKBENCH_DEMO_CLOUDFLARE_ORIGIN}"
+  },
+  "fly": {
+    "appName": "operloom-demo-runner",
+    "origin": "${WORKBENCH_DEMO_FLY_ORIGIN}"
+  },
+  "web": {
+    "provider": "railway",
+    "workspaceId": "89672d8a-412d-479c-8d51-8cba519403d0",
+    "projectName": "operloom-demo",
+    "projectId": "${WORKBENCH_DEMO_RAILWAY_PROJECT_ID}",
+    "environmentId": "${WORKBENCH_DEMO_RAILWAY_ENVIRONMENT_ID}",
+    "serviceId": "${WORKBENCH_DEMO_RAILWAY_SERVICE_ID}",
+    "origin": "https://operloom.t23.dev",
+    "framework": "nextjs",
+    "nodeVersion": "24.x",
+    "serverless": true
+  },
+  "workos": {
+    "applicationName": "Operloom Demo",
+    "applicationId": "${WORKBENCH_DEMO_WORKOS_APPLICATION_ID}",
+    "acceptanceWorkspaceId": "${WORKBENCH_DEMO_ACCEPTANCE_WORKSPACE_ID}"
+  },
+  "secretEnvironmentVariables": {
+    "facadeSigning": "WORKBENCH_DEMO_FACADE_SIGNING_SECRET",
+    "runnerSigning": "WORKBENCH_DEMO_RUNNER_SIGNING_SECRET",
+    "callbackSigning": "WORKBENCH_DEMO_CALLBACK_SIGNING_SECRET",
+    "agentConnection": "WORKBENCH_DEMO_AGENT_CONNECTION_SECRET",
+    "operatorAlertSigning": "WORKBENCH_DEMO_OPERATOR_ALERT_SIGNING_SECRET",
+    "workosCookie": "WORKBENCH_DEMO_WORKOS_COOKIE_PASSWORD",
+    "langgraphProxy": "WORKBENCH_DEMO_LANGGRAPH_PROXY_TOKEN",
+    "vault": "WORKBENCH_DEMO_VAULT_SECRET",
+    "openrouter": "WORKBENCH_DEMO_OPENROUTER_API_KEY"
+  },
+  "observabilityEnvironmentVariables": {
+    "sentryDsn": "WORKBENCH_DEMO_SENTRY_DSN",
+    "sentryAuthToken": "WORKBENCH_DEMO_SENTRY_AUTH_TOKEN"
+  }
+}

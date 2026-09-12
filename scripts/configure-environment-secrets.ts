@@ -53,7 +53,7 @@ const verifyWorkerExists = (wranglerPath: string) => {
 
 const target = valueAfter("--target") ?? "";
 if (!isEnvironmentTarget(target) || target === "local") {
-  throw new Error("--target must be acceptance|production");
+  throw new Error("--target must be acceptance|production|demo");
 }
 const manifest = loadWorkbenchEnvironment(target);
 const execute = process.argv.includes("--execute");
@@ -93,8 +93,11 @@ if (secretFailures.length) throw new Error(secretFailures.join("; "));
 
 const rendered = renderEnvironmentConfig(target);
 verifyWorkerExists(rendered.wranglerPath);
-const { workerSecrets, flySecrets, vercelSecrets, vercelVariables } =
-  buildProviderSecretConfiguration(rendered.manifest, roleValues, observability);
+const { workerSecrets, flySecrets, webSecrets, webVariables } = buildProviderSecretConfiguration(
+  rendered.manifest,
+  roleValues,
+  observability,
+);
 for (const [name, value] of Object.entries(workerSecrets)) {
   runWithInput(
     "pnpm",
@@ -111,26 +114,52 @@ runWithInput(
     .join("\n") + "\n",
 );
 
-const vercelProcessEnv = {
-  ...process.env,
-  VERCEL_ORG_ID: rendered.manifest.vercel.organizationId,
-  VERCEL_PROJECT_ID: rendered.manifest.vercel.projectId,
-};
-for (const [name, value] of Object.entries(vercelSecrets)) {
-  runWithInput(
-    "vercel",
-    ["env", "add", name, "production", "--force", "--yes", "--sensitive"],
-    `${value}\n`,
-    vercelProcessEnv,
-  );
-}
-for (const [name, value] of Object.entries(vercelVariables)) {
-  runWithInput(
-    "vercel",
-    ["env", "add", name, "production", "--force", "--yes", "--no-sensitive"],
-    `${value}\n`,
-    vercelProcessEnv,
-  );
+if (rendered.manifest.web.provider === "vercel") {
+  const vercelProcessEnv = {
+    ...process.env,
+    VERCEL_ORG_ID: rendered.manifest.web.organizationId,
+    VERCEL_PROJECT_ID: rendered.manifest.web.projectId,
+  };
+  for (const [name, value] of Object.entries(webSecrets)) {
+    runWithInput(
+      "vercel",
+      ["env", "add", name, "production", "--force", "--yes", "--sensitive"],
+      `${value}\n`,
+      vercelProcessEnv,
+    );
+  }
+  for (const [name, value] of Object.entries({ ...webVariables, WORKBENCH_RELEASE_SHA: sha })) {
+    runWithInput(
+      "vercel",
+      ["env", "add", name, "production", "--force", "--yes", "--no-sensitive"],
+      `${value}\n`,
+      vercelProcessEnv,
+    );
+  }
+} else {
+  const railwayArgs = [
+    "variable",
+    "set",
+    "--project",
+    rendered.manifest.web.projectId,
+    "--environment",
+    rendered.manifest.web.environmentId,
+    "--service",
+    rendered.manifest.web.serviceId,
+    "--skip-deploys",
+  ];
+  const railwayEnv = {
+    ...process.env,
+    RAILWAY_CALLER: "skill:use-railway@1.2.1",
+    RAILWAY_AGENT_SESSION: `operloom-${target}-${sha.slice(0, 12)}`,
+  };
+  for (const [name, value] of Object.entries({
+    ...webSecrets,
+    ...webVariables,
+    WORKBENCH_RELEASE_SHA: sha,
+  })) {
+    runWithInput("railway", [...railwayArgs, name, "--stdin"], `${value}\n`, railwayEnv);
+  }
 }
 const evidenceDirectory = resolve(process.cwd(), "output/release", sha);
 mkdirSync(evidenceDirectory, { recursive: true });
@@ -151,7 +180,7 @@ writeFileSync(
       providers: {
         cloudflare: Object.keys(workerSecrets),
         fly: Object.keys(flySecrets),
-        vercel: Object.keys(vercelSecrets),
+        web: Object.keys(webSecrets),
       },
       completedAt: new Date().toISOString(),
       operator: process.env.WORKBENCH_RELEASE_OPERATOR?.trim() || process.env.USER || "unknown",
@@ -161,4 +190,6 @@ writeFileSync(
   )}\n`,
   { mode: 0o600 },
 );
-console.log(`Configured ${target} secret roles in Cloudflare, Fly, and Vercel without disclosure.`);
+console.log(
+  `Configured ${target} secret roles in Cloudflare, Fly, and ${rendered.manifest.web.provider} without disclosure.`,
+);

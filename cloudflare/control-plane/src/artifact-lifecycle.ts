@@ -11,6 +11,7 @@ import {
   type ChatThreadRow,
   type Env,
 } from "./types";
+import { resolveDemoPolicy } from "./demo-policy";
 
 const maximumArtifactBytes = 5 * 1024 * 1024;
 const maximumArtifactBase64Length = Math.ceil(maximumArtifactBytes / 3) * 4;
@@ -150,7 +151,7 @@ export const createArtifactBlob = async (
         identity.scope.userId,
         identity.scope.workspaceId,
         bytes.byteLength,
-        maximumWorkspaceArtifactBytes,
+        resolveDemoPolicy(env)?.artifactWorkspaceBytes || maximumWorkspaceArtifactBytes,
       )
       .run();
     if (((result as { meta?: { changes?: number } }).meta?.changes ?? 0) < 1) {
@@ -303,7 +304,7 @@ export const sweepExpiredOperationalData = async (
 ) => {
   const timestamp = (input.now ?? new Date()).toISOString();
   const limit = Math.min(Math.max(Math.trunc(input.limit ?? maximumSweepBatch), 1), 100);
-  const results = await env.DB.batch([
+  const statements = [
     env.DB.prepare(
       `DELETE FROM control_plane_events
        WHERE rowid IN (
@@ -500,7 +501,34 @@ export const sweepExpiredOperationalData = async (
          LIMIT ?
        )`,
     ).bind(timestamp, limit),
-  ]);
+  ];
+  const demoRetentionDays = resolveDemoPolicy(env)?.retentionDays;
+  if (demoRetentionDays) {
+    for (const [table, timestampColumn] of [
+      ["control_audit_events", "created_at"],
+      ["control_policy_decisions", "created_at"],
+      ["control_approval_requests", "updated_at"],
+      ["control_action_ledger", "created_at"],
+    ]) {
+      statements.push(
+        env.DB.prepare(
+          `DELETE FROM ${table}
+           WHERE rowid IN (
+             SELECT rowid FROM ${table}
+             WHERE ${timestampColumn} <= strftime('%Y-%m-%dT%H:%M:%fZ', ?, '-' || ? || ' days')
+             ORDER BY ${timestampColumn} ASC LIMIT ?
+           )`,
+        ).bind(timestamp, demoRetentionDays, limit),
+      );
+    }
+    statements.push(
+      env.DB.prepare(
+        `DELETE FROM control_demo_daily_usage
+         WHERE usage_date < strftime('%Y-%m-%d', ?, '-8 days')`,
+      ).bind(timestamp),
+    );
+  }
+  const results = await env.DB.batch(statements);
   return {
     eventsDeleted: results[0]?.meta?.changes ?? 0,
     spansDeleted: results[1]?.meta?.changes ?? 0,

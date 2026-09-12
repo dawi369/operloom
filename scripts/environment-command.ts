@@ -20,6 +20,7 @@ const phases = [
   "bootstrap-cloudflare",
   "deploy-cloudflare",
   "deploy-fly",
+  "deploy-web",
   "deploy-vercel",
 ] as const;
 type Phase = (typeof phases)[number];
@@ -69,6 +70,53 @@ const rendered = renderEnvironmentConfig(target, {
   featureStage,
   releaseSha: sha,
 });
+const deployWeb =
+  rendered.manifest.web.provider === "railway"
+    ? {
+        command: "railway",
+        args: [
+          "up",
+          "--project",
+          rendered.manifest.web.projectId,
+          "--environment",
+          rendered.manifest.web.environmentId,
+          "--service",
+          rendered.manifest.web.serviceId,
+          "--detach",
+          "-m",
+          `Deploy Operloom ${target} ${sha}`,
+        ],
+        env: {
+          ...process.env,
+          RAILWAY_CALLER: "skill:use-railway@1.2.1",
+          RAILWAY_AGENT_SESSION: `operloom-${target}-${sha.slice(0, 12)}`,
+        },
+      }
+    : {
+        command: "vercel",
+        args: [
+          "--prod",
+          "--yes",
+          "--build-env",
+          `WORKBENCH_RELEASE_SHA=${sha}`,
+          "--env",
+          `WORKBENCH_RELEASE_SHA=${sha}`,
+          "--build-env",
+          `WORKBENCH_ENVIRONMENT=${target}`,
+          "--env",
+          `WORKBENCH_ENVIRONMENT=${target}`,
+          "--build-env",
+          `WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE=${target === "acceptance" ? "true" : "false"}`,
+          "--env",
+          `WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE=${target === "acceptance" ? "true" : "false"}`,
+        ],
+        env: {
+          ...process.env,
+          VERCEL_ORG_ID: rendered.manifest.web.organizationId,
+          VERCEL_PROJECT_ID: rendered.manifest.web.projectId,
+        },
+      };
+
 const commands: Record<Phase, { command: string; args: string[]; env?: NodeJS.ProcessEnv }> = {
   "migrate-cloudflare": {
     command: "pnpm",
@@ -103,6 +151,7 @@ const commands: Record<Phase, { command: string; args: string[]; env?: NodeJS.Pr
       "--ha=false",
     ],
   },
+  "deploy-web": deployWeb,
   "deploy-vercel": {
     command: "vercel",
     args: [
@@ -123,8 +172,10 @@ const commands: Record<Phase, { command: string; args: string[]; env?: NodeJS.Pr
     ],
     env: {
       ...process.env,
-      VERCEL_ORG_ID: rendered.manifest.vercel.organizationId,
-      VERCEL_PROJECT_ID: rendered.manifest.vercel.projectId,
+      VERCEL_ORG_ID:
+        rendered.manifest.web.provider === "vercel" ? rendered.manifest.web.organizationId : "",
+      VERCEL_PROJECT_ID:
+        rendered.manifest.web.provider === "vercel" ? rendered.manifest.web.projectId : "",
     },
   },
 };
@@ -153,7 +204,7 @@ if (phase === "migrate-cloudflare") {
     throw new Error("backup evidence must match target and commit and include a checksum");
   }
 }
-if (["deploy-cloudflare", "deploy-fly", "deploy-vercel"].includes(phase)) {
+if (["deploy-cloudflare", "deploy-fly", "deploy-web", "deploy-vercel"].includes(phase)) {
   const secretEvidencePath = resolve(
     process.cwd(),
     "output/release",
@@ -175,6 +226,9 @@ if (["deploy-cloudflare", "deploy-fly", "deploy-vercel"].includes(phase)) {
   ) {
     throw new Error(`provider secret configuration evidence for ${target} is invalid`);
   }
+}
+if (phase === "deploy-vercel" && rendered.manifest.web.provider !== "vercel") {
+  throw new Error(`${target} uses ${rendered.manifest.web.provider}; run deploy:web instead`);
 }
 if (phase === "deploy-cloudflare" && featureStage !== "disabled") {
   const stageOrder: FeatureStage[] = ["disabled", "retained-data", "connections", "mutations"];

@@ -1,4 +1,5 @@
 import type { Env } from "./types";
+import { demoConfigurationValid } from "./demo-policy";
 
 const enabled = (value: string | undefined) => value?.trim().toLowerCase() === "true";
 
@@ -15,6 +16,7 @@ export const releaseFeaturePosture = (env: Env) => ({
 });
 
 export const releaseFeatureConfigurationValid = (env: Env) => {
+  if (!demoConfigurationValid(env)) return false;
   const posture = releaseFeaturePosture(env);
   if (posture.connections && !posture.retainedData) return false;
   if (posture.mutations && (!posture.connections || !posture.retainedData)) return false;

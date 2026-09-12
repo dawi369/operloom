@@ -24,6 +24,12 @@ import type { AgentIdentity, Env } from "./types";
 import { authorizeWorkflowTools } from "./workflow-tool-policy";
 import { createBrokeredConnectionPort } from "./connection-broker";
 import { createDurableActionPort } from "./action-authority";
+import {
+  claimDemoDailyUsage,
+  demoPackAllowed,
+  requireDemoConcurrencyAvailable,
+  requireDemoModelBudget,
+} from "./demo-policy";
 
 const runtimeError = (code: string, message: string, status = 400) =>
   json(
@@ -63,6 +69,9 @@ const toolResult = (value: unknown): RuntimeResult => {
 export const listRuntimeWorkflows = async (env: Env, identity: AgentIdentity) => {
   const agent = await selectAgent(env, identity.agentId, identity.scope.workspaceId);
   const pack = resolveAgentBehaviorConfig(agent).pack;
+  if (pack && !demoPackAllowed(env, pack.id)) {
+    return runtimeError("demo_pack_disabled", "This pack is unavailable in the public demo.", 403);
+  }
   if (!pack) {
     return json({ ok: true, runnable: true, workflows: [] });
   }
@@ -119,6 +128,9 @@ export const executeRuntimeWorkflowRequest = async (
       403,
     );
   }
+  if (!demoPackAllowed(env, pack.id)) {
+    return runtimeError("demo_pack_disabled", "This pack is unavailable in the public demo.", 403);
+  }
   const runtime = resolvePackRuntime(pack.id, pack.version);
   if (!runtime.runnable) {
     return runtimeError(
@@ -152,6 +164,8 @@ export const executeRuntimeWorkflowRequest = async (
       error instanceof Error ? error.message : "Workflow input is invalid.",
     );
   }
+  const budgetResponse = await requireDemoModelBudget(env);
+  if (budgetResponse) return budgetResponse;
   for (const toolId of workflow.toolIds) {
     const tool = runtime.controlPlane.tools.find((candidate) => candidate.id === toolId);
     if (!tool) {
@@ -182,6 +196,12 @@ export const executeRuntimeWorkflowRequest = async (
   if ((active?.count ?? 0) >= pack.resourceLimits.maxConcurrentRuns) {
     return runtimeError("concurrency_limit_exceeded", "The pack concurrency limit is active.", 429);
   }
+
+  const concurrencyResponse = await requireDemoConcurrencyAvailable(env, identity);
+  if (concurrencyResponse) return concurrencyResponse;
+
+  const quotaResponse = await claimDemoDailyUsage(env, identity, "workflow");
+  if (quotaResponse) return quotaResponse;
 
   const started = await startPackWorkflowRun(env, identity, {
     workflowType,

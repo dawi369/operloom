@@ -1,6 +1,6 @@
 import type { EnvironmentTarget, WorkbenchEnvironment } from "./workbench-environment";
 
-export type HostedService = "vercel" | "cloudflare" | "fly";
+export type HostedService = "web" | "cloudflare" | "fly";
 export type HostedVariableInventory = Record<HostedService, ReadonlyMap<string, string | null>>;
 
 const commonForbidden = [
@@ -16,8 +16,9 @@ const commonForbidden = [
 
 export const hostedEnvironmentPolicy = (target: EnvironmentTarget) => {
   const conformance = target === "acceptance";
+  const demo = target === "demo";
   return {
-    vercel: {
+    web: {
       required: [
         "CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET",
         "WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET",
@@ -66,6 +67,17 @@ export const hostedEnvironmentPolicy = (target: EnvironmentTarget) => {
         "WORKBENCH_MUTATIONS_ENABLED",
         "WORKBENCH_PUSH_ENABLED",
         "WORKBENCH_RELEASE_SHA",
+        ...(demo
+          ? [
+              "WORKBENCH_DEMO_MODE",
+              "WORKBENCH_DEMO_PACK_ALLOWLIST",
+              "WORKBENCH_DEMO_CHAT_DAILY_LIMIT",
+              "WORKBENCH_DEMO_WORKFLOW_DAILY_LIMIT",
+              "WORKBENCH_DEMO_MODEL_BUDGET_USD",
+              "WORKBENCH_DEMO_ARTIFACT_WORKSPACE_BYTES",
+              "WORKBENCH_DEMO_RETENTION_DAYS",
+            ]
+          : []),
       ],
       optional: ["SENTRY_ENVIRONMENT", "SENTRY_TRACES_SAMPLE_RATE"],
       forbidden: [...commonForbidden],
@@ -86,8 +98,8 @@ export const hostedEnvironmentPolicy = (target: EnvironmentTarget) => {
     expected: {
       conformance: String(conformance),
       retainedData: "true",
-      connections: "true",
-      mutations: String(conformance),
+      connections: String(!demo),
+      mutations: String(conformance && !demo),
       push: "false",
       vaultBackend: target === "local" ? "memory" : "workos",
     },
@@ -101,6 +113,15 @@ export const parseVercelEnvironmentInventory = (output: string) => {
     if (match?.[1]) names.set(match[1], null);
   }
   return names;
+};
+
+export const parseRailwayEnvironmentInventory = (output: string) => {
+  const parsed = JSON.parse(output) as Record<string, unknown>;
+  return new Map(
+    Object.entries(parsed)
+      .filter(([name]) => /^[A-Z][A-Z0-9_]*$/.test(name))
+      .map(([name, value]) => [name, typeof value === "string" ? value : null] as const),
+  );
 };
 
 export const parseCloudflareEnvironmentInventory = (output: string) => {
@@ -145,7 +166,7 @@ export const validateHostedConfiguration = (
 ) => {
   const policy = hostedEnvironmentPolicy(manifest.target);
   const failures: string[] = [];
-  for (const service of ["vercel", "cloudflare", "fly"] as const) {
+  for (const service of ["web", "cloudflare", "fly"] as const) {
     for (const name of policy[service].required) {
       if (!inventory[service].has(name)) failures.push(`${service} is missing ${name}`);
     }
@@ -155,7 +176,7 @@ export const validateHostedConfiguration = (
   }
   const requireValue = (service: HostedService, name: string, value: string) => {
     const actual = inventory[service].get(name);
-    if (actual === null && service === "vercel") return;
+    if (actual === null && service === "web") return;
     if (actual !== value) failures.push(`${service} ${name} does not match the manifest policy`);
   };
   requireValue("cloudflare", "WORKBENCH_VAULT_BACKEND", policy.expected.vaultBackend);
@@ -167,14 +188,10 @@ export const validateHostedConfiguration = (
   requireValue("cloudflare", "WORKBENCH_RELEASE_SHA", expectedCommit);
   requireValue("fly", "WORKBENCH_CONFORMANCE_MODE", policy.expected.conformance);
   requireValue("fly", "WORKBENCH_RELEASE_SHA", expectedCommit);
-  requireValue("vercel", "WORKBENCH_ENVIRONMENT", manifest.target);
-  requireValue("vercel", "WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE", policy.expected.conformance);
-  requireValue("vercel", "CLOUDFLARE_CONTROL_PLANE_URL", manifest.cloudflare.origin);
-  requireValue("vercel", "LANGGRAPH_API_URL", manifest.fly.origin);
-  requireValue(
-    "vercel",
-    "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
-    `${manifest.vercel.origin}/auth/callback`,
-  );
+  requireValue("web", "WORKBENCH_ENVIRONMENT", manifest.target);
+  requireValue("web", "WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE", policy.expected.conformance);
+  requireValue("web", "CLOUDFLARE_CONTROL_PLANE_URL", manifest.cloudflare.origin);
+  requireValue("web", "LANGGRAPH_API_URL", manifest.fly.origin);
+  requireValue("web", "NEXT_PUBLIC_WORKOS_REDIRECT_URI", `${manifest.web.origin}/auth/callback`);
   return failures;
 };

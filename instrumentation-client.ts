@@ -45,7 +45,7 @@ if (enabled) {
     initialScope: {
       tags: {
         service: "operloom",
-        "runtime.surface": "vercel-next",
+        "runtime.surface": "next-web",
       },
     },
   });

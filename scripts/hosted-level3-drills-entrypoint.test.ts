@@ -12,7 +12,7 @@ describe("hosted Level 3 drill entrypoint", () => {
         ...process.env,
         WORKBENCH_HOSTED_DRILL_MODE: "",
         GITHUB_SHA: "",
-        HOSTED_VERCEL_ORIGIN: "",
+        HOSTED_WEB_ORIGIN: "",
         CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET: "",
       },
     });

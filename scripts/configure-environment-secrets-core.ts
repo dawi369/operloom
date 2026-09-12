@@ -32,7 +32,7 @@ export const buildProviderSecretConfiguration = (
     OPENROUTER_API_KEY: roleValues.openrouter,
     SENTRY_DSN: observability.sentryDsn,
   },
-  vercelSecrets: {
+  webSecrets: {
     CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET: roleValues.facadeSigning,
     WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET: roleValues.operatorAlertSigning,
     WORKOS_API_KEY: roleValues.vault,
@@ -41,10 +41,10 @@ export const buildProviderSecretConfiguration = (
     NEXT_PUBLIC_SENTRY_DSN: observability.sentryDsn,
     SENTRY_AUTH_TOKEN: observability.sentryAuthToken,
   },
-  vercelVariables: {
+  webVariables: {
     WORKOS_CLIENT_ID: manifest.workos.applicationId,
     NEXT_PUBLIC_WORKOS_CLIENT_ID: manifest.workos.applicationId,
-    NEXT_PUBLIC_WORKOS_REDIRECT_URI: `${manifest.vercel.origin}/auth/callback`,
+    NEXT_PUBLIC_WORKOS_REDIRECT_URI: `${manifest.web.origin}/auth/callback`,
     CLOUDFLARE_CONTROL_PLANE_URL: manifest.cloudflare.origin,
     LANGGRAPH_API_URL: manifest.fly.origin,
     NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID: "agent",
@@ -54,8 +54,8 @@ export const buildProviderSecretConfiguration = (
     SENTRY_PROJECT: "operloom",
     SENTRY_ENVIRONMENT: manifest.target,
     NEXT_PUBLIC_SENTRY_ENVIRONMENT: manifest.target,
-    SENTRY_TRACES_SAMPLE_RATE: "0.02",
-    NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE: "0.02",
+    SENTRY_TRACES_SAMPLE_RATE: manifest.target === "demo" ? "0" : "0.02",
+    NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE: manifest.target === "demo" ? "0" : "0.02",
     NEXT_PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE: "0",
     NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE: "0",
   },

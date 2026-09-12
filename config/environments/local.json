@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "target": "local",
   "conformanceMode": true,
   "vaultBackend": "memory",
@@ -15,7 +15,8 @@
     "appName": "assistant-mk1-local-runner",
     "origin": "http://127.0.0.1:3101"
   },
-  "vercel": {
+  "web": {
+    "provider": "vercel",
     "projectName": "assistant-mk1-local",
     "organizationId": "local",
     "projectId": "local",

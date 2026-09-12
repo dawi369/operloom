@@ -4,12 +4,12 @@ Operloom infrastructure should support many agent apps without making any
 reference app the product shape.
 
 Document status: this page describes active ownership and request flow. Use
-`docs/deployment-vercel.md`, `docs/deployment-fly.md`, and
+`docs/deployment-railway.md`, `docs/deployment-vercel.md`, `docs/deployment-fly.md`, and
 `docs/dev-infrastructure-readiness.md` as operational runbooks.
 
 ## Ownership
 
-- Vercel: Next.js frontend, WorkOS AuthKit session, same-origin API facades,
+- Web provider: Next.js frontend, WorkOS AuthKit session, same-origin API facades,
   and browser ergonomics.
 - Cloudflare: authorization, user/workspace/agent resolution, normal chat
   coordination, D1 control-plane state, Durable Object session state, tool
@@ -23,9 +23,9 @@ Document status: this page describes active ownership and request flow. Use
 
 ```txt
 browser
-  -> Vercel Next.js app
+  -> Next.js web app
   -> WorkOS AuthKit session via Next SDK
-  -> Vercel facade derives trusted user/account identity
+  -> web facade derives trusted user/account identity
   -> Cloudflare resolves user, workspace, membership, active agent, and thread
   -> WorkbenchSessionAgent returns session snapshot and Agent connection token
   -> WorkbenchThreadChatAgent streams normal chat through OpenRouter
@@ -63,7 +63,7 @@ data-client, authz, redaction, and audit rules.
 
 ## Request Responsibilities
 
-1. Vercel derives WorkOS user/account identity from the server session, or a
+1. The web facade derives WorkOS user/account identity from the server session, or a
    trusted trigger supplies equivalent metadata.
 2. Cloudflare resolves internal user, account, workspace, membership, and
    active agent.
@@ -94,7 +94,7 @@ Canonical durable entity contracts are in `docs/db-contracts.md`.
 
 Use one Sentry project for the product and filter by `runtime.surface`:
 
-- `vercel-next`
+- `next-web`
 - `cloudflare-worker`
 - `fly-langgraph`
 

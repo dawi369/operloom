@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import {
   parseCloudflareEnvironmentInventory,
   parseFlyEnvironmentInventory,
+  parseRailwayEnvironmentInventory,
   parseVercelEnvironmentInventory,
   validateHostedConfiguration,
   type HostedVariableInventory,
@@ -27,7 +28,7 @@ const run = (command: string, args: string[], env: NodeJS.ProcessEnv = process.e
 const git = (...args: string[]) => run("git", args).trim();
 const target = valueAfter("--target") ?? "";
 if (!isEnvironmentTarget(target) || target === "local") {
-  throw new Error("--target must be acceptance|production");
+  throw new Error("--target must be acceptance|production|demo");
 }
 const resolved = resolveEnvironmentReferences(loadWorkbenchEnvironment(target));
 if (resolved.unresolved.length) {
@@ -37,14 +38,36 @@ const manifest = resolved.manifest;
 const commit = process.env.GITHUB_SHA?.trim() || git("rev-parse", "HEAD");
 if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error("hosted configuration requires a full commit");
 
-const vercelEnv = {
-  ...process.env,
-  VERCEL_ORG_ID: manifest.vercel.organizationId,
-  VERCEL_PROJECT_ID: manifest.vercel.projectId,
-};
-const vercel = parseVercelEnvironmentInventory(
-  run("vercel", ["env", "ls", "production"], vercelEnv),
-);
+const web =
+  manifest.web.provider === "vercel"
+    ? parseVercelEnvironmentInventory(
+        run("vercel", ["env", "ls", "production"], {
+          ...process.env,
+          VERCEL_ORG_ID: manifest.web.organizationId,
+          VERCEL_PROJECT_ID: manifest.web.projectId,
+        }),
+      )
+    : parseRailwayEnvironmentInventory(
+        run(
+          "railway",
+          [
+            "variable",
+            "list",
+            "--project",
+            manifest.web.projectId,
+            "--environment",
+            manifest.web.environmentId,
+            "--service",
+            manifest.web.serviceId,
+            "--json",
+          ],
+          {
+            ...process.env,
+            RAILWAY_CALLER: "skill:use-railway@1.2.1",
+            RAILWAY_AGENT_SESSION: `operloom-${target}-configuration`,
+          },
+        ),
+      );
 const versions = JSON.parse(
   run("pnpm", [
     "exec",
@@ -79,7 +102,7 @@ const fly = parseFlyEnvironmentInventory(
   run("fly", ["config", "show", "--app", manifest.fly.appName, "--toml"]),
   run("fly", ["secrets", "list", "--app", manifest.fly.appName, "--json"]),
 );
-const inventory: HostedVariableInventory = { vercel, cloudflare, fly };
+const inventory: HostedVariableInventory = { web, cloudflare, fly };
 const failures = validateHostedConfiguration(manifest, inventory, commit);
 
 const readHealth = async (origin: string, path: string, expectedService: string) => {
@@ -100,7 +123,7 @@ const readHealth = async (origin: string, path: string, expectedService: string)
 };
 const main = async () => {
   const health = await Promise.all([
-    readHealth(manifest.vercel.origin, "/api/health", "operloom"),
+    readHealth(manifest.web.origin, "/api/health", "operloom"),
     readHealth(manifest.cloudflare.origin, "/health", "operloom-control-plane"),
     readHealth(manifest.fly.origin, "/health", "operloom-langgraph-runtime"),
   ]);

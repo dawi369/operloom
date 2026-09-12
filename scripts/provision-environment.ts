@@ -30,13 +30,16 @@ const target = valueAfter("--target") ?? "";
 const providerValue = valueAfter("--provider") ?? "";
 const execute = process.argv.includes("--execute");
 if (!isEnvironmentTarget(target) || target === "local") {
-  throw new Error("--target must be acceptance|production");
+  throw new Error("--target must be acceptance|production|demo");
 }
 if (!providers.includes(providerValue as Provider)) {
   throw new Error(`--provider must be ${providers.join("|")}`);
 }
 const provider = providerValue as Provider;
 const manifest = loadWorkbenchEnvironment(target);
+if (provider === "vercel" && manifest.web.provider !== "vercel") {
+  throw new Error(`${target} uses ${manifest.web.provider}; Vercel provisioning is unavailable`);
+}
 const commit = git("rev-parse", "HEAD");
 const confirmation = `${target}:provision-${provider}:${commit}`;
 const descriptions: Record<Provider, string[]> = {
@@ -48,8 +51,8 @@ const descriptions: Record<Provider, string[]> = {
   ],
   fly: [`Fly application ${manifest.fly.appName}`],
   vercel: [
-    `Vercel project ${manifest.vercel.projectName}`,
-    `Vercel runtime ${manifest.vercel.framework} on Node ${manifest.vercel.nodeVersion}`,
+    `Vercel project ${manifest.web.projectName}`,
+    `Vercel runtime ${manifest.web.framework} on Node ${manifest.web.nodeVersion}`,
   ],
   workos: [
     `AuthKit application ${manifest.workos.applicationName}`,
@@ -101,15 +104,25 @@ const commands: Record<Exclude<Provider, "workos">, ProvisionCommand[]> = {
         ["exec", "wrangler", "r2", "bucket", "create", manifest.cloudflare.r2BucketName],
       ],
     },
-    {
-      kind: "cloudflare-queue",
-      resourceName: `${manifest.cloudflare.workerName}-notifications`,
-      inspect: ["pnpm", ["exec", "wrangler", "queues", "list"]],
-      create: [
-        "pnpm",
-        ["exec", "wrangler", "queues", "create", `${manifest.cloudflare.workerName}-notifications`],
-      ],
-    },
+    ...(target === "demo"
+      ? []
+      : [
+          {
+            kind: "cloudflare-queue",
+            resourceName: `${manifest.cloudflare.workerName}-notifications`,
+            inspect: ["pnpm", ["exec", "wrangler", "queues", "list"]],
+            create: [
+              "pnpm",
+              [
+                "exec",
+                "wrangler",
+                "queues",
+                "create",
+                `${manifest.cloudflare.workerName}-notifications`,
+              ],
+            ],
+          } satisfies ProvisionCommand,
+        ]),
   ],
   fly: [
     {
@@ -122,9 +135,9 @@ const commands: Record<Exclude<Provider, "workos">, ProvisionCommand[]> = {
   vercel: [
     {
       kind: "vercel-project",
-      resourceName: manifest.vercel.projectName,
+      resourceName: manifest.web.projectName,
       inspect: ["vercel", ["project", "list", "--non-interactive"]],
-      create: ["vercel", ["project", "add", manifest.vercel.projectName, "--non-interactive"]],
+      create: ["vercel", ["project", "add", manifest.web.projectName, "--non-interactive"]],
     },
   ],
 };
@@ -183,27 +196,30 @@ for (const resource of commands[provider]) {
   });
 }
 if (provider === "vercel") {
+  const web = manifest.web;
+  if (web.provider !== "vercel") throw new Error("Vercel manifest required");
   const resolved = resolveEnvironmentReferences(manifest);
-  const organizationVariable = referencedEnvironmentVariable(manifest.vercel.organizationId);
+  if (resolved.manifest.web.provider !== "vercel") throw new Error("resolved web provider changed");
+  const organizationVariable = referencedEnvironmentVariable(web.organizationId);
   if (organizationVariable && resolved.unresolved.includes(organizationVariable)) {
     throw new Error("Vercel provisioning requires the target organization ID variable");
   }
   const args = [
     "api",
-    `/v9/projects/${manifest.vercel.projectName}`,
+    `/v9/projects/${manifest.web.projectName}`,
     "--method",
     "PATCH",
     "--raw-field",
-    `framework=${manifest.vercel.framework}`,
+    `framework=${manifest.web.framework}`,
     "--raw-field",
-    `nodeVersion=${manifest.vercel.nodeVersion}`,
+    `nodeVersion=${manifest.web.nodeVersion}`,
     "--silent",
   ];
   const configured = spawnSync("vercel", args, {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      VERCEL_ORG_ID: resolved.manifest.vercel.organizationId,
+      VERCEL_ORG_ID: resolved.manifest.web.organizationId,
     },
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],

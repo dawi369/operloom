@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "target": "acceptance",
   "conformanceMode": true,
   "vaultBackend": "workos",
@@ -15,11 +15,12 @@
     "appName": "operloom-acceptance-runner",
     "origin": "${WORKBENCH_ACCEPTANCE_FLY_ORIGIN}"
   },
-  "vercel": {
+  "web": {
+    "provider": "vercel",
     "projectName": "operloom-acceptance",
     "organizationId": "${WORKBENCH_ACCEPTANCE_VERCEL_ORG_ID}",
     "projectId": "${WORKBENCH_ACCEPTANCE_VERCEL_PROJECT_ID}",
-    "origin": "${WORKBENCH_ACCEPTANCE_VERCEL_ORIGIN}",
+    "origin": "${WORKBENCH_ACCEPTANCE_WEB_ORIGIN}",
     "framework": "nextjs",
     "nodeVersion": "24.x"
   },

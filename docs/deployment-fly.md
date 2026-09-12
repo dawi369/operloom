@@ -79,7 +79,7 @@ rejected.
 Public hosted boundary agreement:
 
 ```bash
-HOSTED_VERCEL_ORIGIN=<vercel-url> \
+HOSTED_WEB_ORIGIN=<web-url> \
 HOSTED_CLOUDFLARE_ORIGIN=<worker-url> \
 HOSTED_FLY_ORIGIN=<fly-url> \
 pnpm acceptance:hosted:public

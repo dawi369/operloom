@@ -20,14 +20,19 @@ import { selectAgent, selectMembership, selectWorkspaceAgents } from "./authz-st
 import { isRecord, json, parseJson } from "./http";
 import { requireActiveMembership, requireAdminMembership } from "./membership-policy";
 import type { AgentIdentity, Env } from "./types";
+import { demoPackAllowed, resolveDemoPolicy } from "./demo-policy";
 
 const agentNameMaxLength = 80;
 const agentDescriptionMaxLength = 240;
 
-export const handleListAgentBehaviorTemplates = () =>
+export const handleListAgentBehaviorTemplates = (env?: Env) =>
   json({
     ok: true,
-    templates: agentBehaviorTemplates,
+    templates: resolveDemoPolicy(env ?? ({} as Env))
+      ? agentBehaviorTemplates.filter((template) =>
+          demoPackAllowed(env!, "pack" in template ? template.pack?.id : undefined),
+        )
+      : agentBehaviorTemplates,
   });
 
 export const handleListAgents = async (env: Env, identity: AgentIdentity) => {
@@ -167,6 +172,12 @@ export const handleInstantiateAgentPack = async (
   if (!template?.pack) {
     return json({ ok: false, error: "Agent pack not found" }, { status: 404 });
   }
+  if (!demoPackAllowed(env, packId)) {
+    return json(
+      { ok: false, error: "Agent pack is unavailable in the public demo." },
+      { status: 403 },
+    );
+  }
 
   const agents = await selectWorkspaceAgents(env, identity.scope.workspaceId);
   const currentVersionAgent = agents.results.find((agent) => {
@@ -235,6 +246,9 @@ export const handleActivateAgent = async (env: Env, identity: AgentIdentity, age
   }
   if (agent.status !== "active") {
     return json({ ok: false, error: "Agent is not active" }, { status: 403 });
+  }
+  if (!demoPackAllowed(env, resolveAgentBehaviorConfig(agent).pack?.id)) {
+    return json({ ok: false, error: "Agent is unavailable in the public demo." }, { status: 403 });
   }
 
   await upsertActiveAgentPreference(env, {

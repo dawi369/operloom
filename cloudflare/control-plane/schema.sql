@@ -29,6 +29,8 @@ DROP TABLE IF EXISTS control_data_jobs;
 DROP TABLE IF EXISTS control_retention_policies;
 DROP TABLE IF EXISTS control_artifacts;
 DROP TABLE IF EXISTS control_tool_calls;
+DROP TABLE IF EXISTS control_demo_budget_alerts;
+DROP TABLE IF EXISTS control_demo_daily_usage;
 DROP TABLE IF EXISTS control_approval_requests;
 DROP TABLE IF EXISTS control_runs;
 DROP TABLE IF EXISTS control_workflow_intents;
@@ -2160,3 +2162,20 @@ WHEN EXISTS (
     AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 )
 BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TABLE control_demo_daily_usage (
+  user_id TEXT NOT NULL,
+  usage_date TEXT NOT NULL,
+  chat_count INTEGER NOT NULL DEFAULT 0,
+  workflow_count INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, usage_date)
+);
+
+CREATE TABLE control_demo_budget_alerts (
+  usage_month TEXT NOT NULL,
+  threshold_percent INTEGER NOT NULL,
+  usage_usd REAL NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (usage_month, threshold_percent)
+);

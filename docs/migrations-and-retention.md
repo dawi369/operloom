@@ -6,12 +6,13 @@ acceptance remains separate from the [stable 1.0 workbench](release-1.0.md).
 ## Migration contract
 
 `cloudflare/control-plane/migrations/` is the forward-only D1 ledger. The chain
-contains 14 migrations: the `0001` baseline, existing control-plane
+contains 15 migrations: the `0001` baseline, existing control-plane
 changes through `0005`, lifecycle (`0006`), connection brokerage (`0007`),
 action authority (`0008`), broker capabilities (`0009`), non-identifying
 deletion receipts (`0010`), atomic chat-run claims (`0011`), consistent export
 fences (`0012`), manual purge recovery (`0013`), and mobile device delivery
-metadata (`0014`). Do not rewrite a migration after it is applied.
+metadata (`0014`), and public-demo usage/budget accounting (`0015`). Do not
+rewrite a migration after it is applied.
 
 Current ledger:
 
@@ -29,6 +30,7 @@ Current ledger:
 12. `0012_consistent_workspace_exports.sql`
 13. `0013_data_job_manual_recovery.sql`
 14. `0014_mobile_delivery.sql`
+15. `0015_demo_limits.sql`
 
 `cloudflare/control-plane/schema.sql` is the matching reset snapshot. Its
 `DROP TABLE` preamble makes it destructive and appropriate only for deliberate

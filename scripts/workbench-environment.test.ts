@@ -11,7 +11,7 @@ import {
 } from "./workbench-environment";
 
 describe("workbench environment manifests", () => {
-  it("keeps local, acceptance, and production resources and secret references distinct", () => {
+  it("keeps local, acceptance, production, and demo resources and secret references distinct", () => {
     expect(validateEnvironmentSet(environmentTargets.map(loadWorkbenchEnvironment))).toEqual([]);
   });
 
@@ -20,7 +20,11 @@ describe("workbench environment manifests", () => {
     expect(production.conformanceMode).toBe(false);
     expect(production.vaultBackend).toBe("workos");
     expect(production.mutationDefaultEnabled).toBe(false);
-    expect(production.vercel).toMatchObject({ framework: "nextjs", nodeVersion: "24.x" });
+    expect(production.web).toMatchObject({
+      provider: "vercel",
+      framework: "nextjs",
+      nodeVersion: "24.x",
+    });
   });
 
   it("reports unresolved target metadata without exposing values", () => {
@@ -59,7 +63,7 @@ describe("workbench environment manifests", () => {
       WORKBENCH_ACCEPTANCE_FLY_ORIGIN: "https://runner.acceptance.example.test",
       WORKBENCH_ACCEPTANCE_VERCEL_ORG_ID: "team_acceptance",
       WORKBENCH_ACCEPTANCE_VERCEL_PROJECT_ID: "project_acceptance",
-      WORKBENCH_ACCEPTANCE_VERCEL_ORIGIN: "https://workbench.acceptance.example.test",
+      WORKBENCH_ACCEPTANCE_WEB_ORIGIN: "https://workbench.acceptance.example.test",
       WORKBENCH_ACCEPTANCE_WORKOS_APPLICATION_ID: "client_acceptance",
       WORKBENCH_ACCEPTANCE_WORKSPACE_ID: "workspace_acceptance",
     };
@@ -112,7 +116,7 @@ describe("workbench environment manifests", () => {
       WORKBENCH_ACCEPTANCE_FLY_ORIGIN: "https://runner.acceptance.example.test",
       WORKBENCH_ACCEPTANCE_VERCEL_ORG_ID: "team_acceptance",
       WORKBENCH_ACCEPTANCE_VERCEL_PROJECT_ID: "project_acceptance",
-      WORKBENCH_ACCEPTANCE_VERCEL_ORIGIN: "https://workbench.acceptance.example.test",
+      WORKBENCH_ACCEPTANCE_WEB_ORIGIN: "https://workbench.acceptance.example.test",
       WORKBENCH_ACCEPTANCE_WORKOS_APPLICATION_ID: "client_acceptance",
       WORKBENCH_ACCEPTANCE_WORKSPACE_ID: "workspace_acceptance",
       WORKBENCH_PRODUCTION_D1_DATABASE_ID: "22222222-2222-4222-8222-222222222222",
@@ -120,7 +124,7 @@ describe("workbench environment manifests", () => {
       WORKBENCH_PRODUCTION_FLY_ORIGIN: "https://runner.production.example.test",
       WORKBENCH_PRODUCTION_VERCEL_ORG_ID: "team_production",
       WORKBENCH_PRODUCTION_VERCEL_PROJECT_ID: "project_production",
-      WORKBENCH_PRODUCTION_VERCEL_ORIGIN: "https://workbench.production.example.test",
+      WORKBENCH_PRODUCTION_WEB_ORIGIN: "https://workbench.production.example.test",
       WORKBENCH_PRODUCTION_WORKOS_APPLICATION_ID: "client_production",
       WORKBENCH_PRODUCTION_ACCEPTANCE_WORKSPACE_ID: "workspace_production",
     };
@@ -152,6 +156,43 @@ describe("workbench environment manifests", () => {
       expect(production).toContain('"WORKBENCH_CONNECTIONS_ENABLED": "true"');
       expect(production).toContain('"WORKBENCH_MUTATIONS_ENABLED": "true"');
       expect(production).not.toContain("WORKBENCH_OAUTH_PROVIDERS_JSON");
+    } finally {
+      for (const [key, value] of Object.entries(previous)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
+  });
+
+  it("renders the demo as a scale-to-zero, policy-limited environment", () => {
+    const variables = {
+      WORKBENCH_DEMO_D1_DATABASE_ID: "b9fcf9ba-826d-461b-bb8e-05cbd0e17c5a",
+      WORKBENCH_DEMO_CLOUDFLARE_ORIGIN: "https://operloom-demo-control-plane.example.workers.dev",
+      WORKBENCH_DEMO_FLY_ORIGIN: "https://operloom-demo-runner.fly.dev",
+      WORKBENCH_DEMO_RAILWAY_PROJECT_ID: "1fef2ab6-323e-47cf-8777-a5ecbea19b34",
+      WORKBENCH_DEMO_RAILWAY_ENVIRONMENT_ID: "25a7467b-8ae6-45fe-b2cd-92f9950403d7",
+      WORKBENCH_DEMO_RAILWAY_SERVICE_ID: "0b2e204a-bf8f-48db-9e08-2fade538899b",
+      WORKBENCH_DEMO_WORKOS_APPLICATION_ID: "client_demo",
+      WORKBENCH_DEMO_ACCEPTANCE_WORKSPACE_ID: "workspace_demo",
+    };
+    const previous = Object.fromEntries(
+      Object.keys(variables).map((key) => [key, process.env[key]]),
+    );
+    Object.assign(process.env, variables);
+    try {
+      const rendered = renderEnvironmentConfig("demo", { releaseSha: "a".repeat(40) });
+      const worker = readFileSync(rendered.wranglerPath, "utf8");
+      const fly = readFileSync(rendered.flyPath, "utf8");
+      expect(rendered.manifest.web).toMatchObject({ provider: "railway", serverless: true });
+      expect(worker).toContain('"WORKBENCH_DEMO_CHAT_DAILY_LIMIT": "20"');
+      expect(worker).toContain('"WORKBENCH_DEMO_WORKFLOW_DAILY_LIMIT": "3"');
+      expect(worker).toContain('"WORKBENCH_DEMO_MODEL_BUDGET_USD": "20"');
+      expect(worker).toContain('"crons": [');
+      expect(worker).not.toContain('"queues"');
+      expect(worker).toContain('"SENTRY_TRACES_SAMPLE_RATE": "0"');
+      expect(fly).toContain('auto_stop_machines = "stop"');
+      expect(fly).toContain("auto_start_machines = true");
+      expect(fly).toContain("min_machines_running = 0");
     } finally {
       for (const [key, value] of Object.entries(previous)) {
         if (value === undefined) delete process.env[key];

@@ -37,12 +37,12 @@ const readHealth = async (origin: string, path: string, expectedService: string)
 };
 
 const main = async () => {
-  const vercel = requiredOrigin("HOSTED_VERCEL_ORIGIN");
+  const web = requiredOrigin("HOSTED_WEB_ORIGIN");
   const cloudflare = requiredOrigin("HOSTED_CLOUDFLARE_ORIGIN");
   const fly = requiredOrigin("HOSTED_FLY_ORIGIN");
   const checks = [
-    await readHealth(vercel, "/api/health", "operloom"),
-    await readHealth(vercel, "/api/health/facade", "operloom-facade"),
+    await readHealth(web, "/api/health", "operloom"),
+    await readHealth(web, "/api/health/facade", "operloom-facade"),
     await readHealth(cloudflare, "/health/live", "operloom-control-plane"),
     await readHealth(cloudflare, "/health", "operloom-control-plane"),
     await readHealth(fly, "/health/live", "operloom-langgraph-runtime"),

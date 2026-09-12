@@ -14,7 +14,7 @@ describe("provider secret configuration", () => {
       WORKBENCH_ACCEPTANCE_FLY_ORIGIN: "https://runner.acceptance.example.test",
       WORKBENCH_ACCEPTANCE_VERCEL_ORG_ID: "team_acceptance",
       WORKBENCH_ACCEPTANCE_VERCEL_PROJECT_ID: "project_acceptance",
-      WORKBENCH_ACCEPTANCE_VERCEL_ORIGIN: "https://workbench.acceptance.example.test",
+      WORKBENCH_ACCEPTANCE_WEB_ORIGIN: "https://workbench.acceptance.example.test",
       WORKBENCH_ACCEPTANCE_WORKOS_APPLICATION_ID: "client_acceptance",
       WORKBENCH_ACCEPTANCE_WORKSPACE_ID: "workspace_acceptance",
     } as unknown as NodeJS.ProcessEnv;
@@ -32,18 +32,18 @@ describe("provider secret configuration", () => {
       sentryAuthToken: `sentry-${"x".repeat(40)}`,
     });
 
-    expect(configuration.vercelVariables).toMatchObject({
+    expect(configuration.webVariables).toMatchObject({
       WORKOS_CLIENT_ID: "client_acceptance",
       NEXT_PUBLIC_WORKOS_REDIRECT_URI: "https://workbench.acceptance.example.test/auth/callback",
       CLOUDFLARE_CONTROL_PLANE_URL: "https://control.acceptance.example.test",
       LANGGRAPH_API_URL: "https://runner.acceptance.example.test",
     });
-    expect(JSON.stringify(configuration.vercelVariables)).not.toContain("${");
+    expect(JSON.stringify(configuration.webVariables)).not.toContain("${");
     expect(configuration.flySecrets).not.toHaveProperty("WORKOS_API_KEY");
-    expect(configuration.vercelSecrets).not.toHaveProperty("OPENROUTER_API_KEY");
+    expect(configuration.webSecrets).not.toHaveProperty("OPENROUTER_API_KEY");
     expect(configuration.workerSecrets.WORKOS_API_KEY).toBe(roles.vault);
     expect(configuration.workerSecrets).toHaveProperty("SENTRY_DSN");
     expect(configuration.flySecrets).toHaveProperty("SENTRY_DSN");
-    expect(configuration.vercelSecrets).toHaveProperty("SENTRY_AUTH_TOKEN");
+    expect(configuration.webSecrets).toHaveProperty("SENTRY_AUTH_TOKEN");
   });
 });

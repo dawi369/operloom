@@ -42,7 +42,7 @@ if (!configurationOnly && resolved.unresolved.length === 0) {
   for (const [name, value] of Object.entries({
     cloudflare: selectedResolved.cloudflare.origin,
     fly: selectedResolved.fly.origin,
-    vercel: selectedResolved.vercel.origin,
+    web: selectedResolved.web.origin,
   })) {
     try {
       const url = new URL(value);

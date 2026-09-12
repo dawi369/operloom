@@ -126,8 +126,9 @@ pnpm operloom fork init --id my-system --name "My System" --origin https://agent
 pnpm operloom fork --check
 ```
 
-The default topology is **Vercel + Cloudflare + Fly**. Supply your own resources
-and secrets. Heavy-tool compute can stop when idle; schedules, retained data,
+The maintained public demo uses **Railway + Cloudflare + Fly** and can scale
+compute to zero when idle. Vercel remains the simplest optional web host for
+adopters. Supply your own resources and secrets; schedules, retained data,
 connections, and mutations have explicit deployment gates.
 
 [Deployment guide →](docs/environment-separation.md) · [Forking and upgrades →](docs/forking.md)

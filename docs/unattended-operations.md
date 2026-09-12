@@ -33,7 +33,7 @@ negative paths against a unique non-customer WorkOS-shaped tenant:
 ```bash
 WORKBENCH_HOSTED_DRILL_MODE=true \
 GITHUB_SHA="$(git rev-parse HEAD)" \
-HOSTED_VERCEL_ORIGIN=https://<vercel-host> \
+HOSTED_WEB_ORIGIN=https://<web-host> \
 HOSTED_FLY_APP=<fly-app> \
 CLOUDFLARE_CONTROL_PLANE_URL=https://<worker-host> \
 CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET=<current-facade-secret> \

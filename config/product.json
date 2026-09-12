@@ -4,7 +4,7 @@
   "displayName": "Operloom",
   "webTitle": "Operloom",
   "description": "Build and run agent systems you own. TypeScript workflows, durable execution, approvals, and an inspectable workspace.",
-  "webOrigin": "https://assistant-mk1.vercel.app",
+  "webOrigin": "https://operloom.t23.dev",
   "mobile": {
     "displayName": "Operloom",
     "slug": "operloom",

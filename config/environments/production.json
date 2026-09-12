@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "target": "production",
   "conformanceMode": false,
   "vaultBackend": "workos",
@@ -15,11 +15,12 @@
     "appName": "operloom-runner",
     "origin": "${WORKBENCH_PRODUCTION_FLY_ORIGIN}"
   },
-  "vercel": {
+  "web": {
+    "provider": "vercel",
     "projectName": "operloom",
     "organizationId": "${WORKBENCH_PRODUCTION_VERCEL_ORG_ID}",
     "projectId": "${WORKBENCH_PRODUCTION_VERCEL_PROJECT_ID}",
-    "origin": "${WORKBENCH_PRODUCTION_VERCEL_ORIGIN}",
+    "origin": "${WORKBENCH_PRODUCTION_WEB_ORIGIN}",
     "framework": "nextjs",
     "nodeVersion": "24.x"
   },

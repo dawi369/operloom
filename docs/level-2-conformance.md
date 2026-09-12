@@ -27,7 +27,7 @@ acceptance. The generated machine-readable report is
 ```bash
 pnpm conformance:level2
 pnpm verify:docker
-HOSTED_VERCEL_ORIGIN=https://... \
+HOSTED_WEB_ORIGIN=https://... \
 HOSTED_CLOUDFLARE_ORIGIN=https://... \
 HOSTED_FLY_ORIGIN=https://... \
 pnpm acceptance:hosted:public

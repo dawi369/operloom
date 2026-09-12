@@ -13,6 +13,7 @@ export const getAuthConfiguration = (environment: Environment = process.env) => 
     environment.WORKBENCH_ALLOW_LOCAL_DEV_IDENTITY === "true" &&
     environment.NODE_ENV === "development" &&
     !environment.VERCEL_ENV &&
+    !environment.RAILWAY_ENVIRONMENT_ID &&
     !environment.FLY_APP_NAME;
   return { workOsConfigured, localIdentityEnabled };
 };

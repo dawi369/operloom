@@ -33,7 +33,7 @@ const git = (...args: string[]) => {
 const sha256 = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
 const target = valueAfter("--target") ?? "";
 if (!isEnvironmentTarget(target) || target === "local") {
-  throw new Error("--target must be acceptance|production");
+  throw new Error("--target must be acceptance|production|demo");
 }
 const commit = git("rev-parse", "HEAD");
 if (git("status", "--porcelain")) throw new Error("evidence collection requires a clean worktree");
@@ -53,7 +53,7 @@ const records = readdirSync(recordsDirectory)
   });
 if (!records.length) throw new Error(`no ${target} evidence records found for ${commit}`);
 
-const requiredKinds: Record<"acceptance" | "production", string[]> = {
+const requiredKinds: Record<"acceptance" | "production" | "demo", string[]> = {
   acceptance: [
     "hosted.preflight",
     "hosted.public",
@@ -71,6 +71,14 @@ const requiredKinds: Record<"acceptance" | "production", string[]> = {
     "hosted.observability",
     "hosted.public",
     "hosted.signed-in-readonly",
+  ],
+  demo: [
+    "hosted.preflight",
+    "hosted.configuration",
+    "hosted.observability",
+    "hosted.public",
+    "hosted.signed-in-readonly",
+    "hosted.scale-to-zero",
   ],
 };
 const latestByKind = new Map<string, (typeof records)[number]>();
@@ -90,7 +98,9 @@ if (missingKinds.length) {
 const requiredPromotionStages =
   target === "acceptance"
     ? ["disabled", "retained-data", "connections", "mutations"]
-    : ["disabled", "retained-data", "connections"];
+    : target === "demo"
+      ? ["disabled"]
+      : ["disabled", "retained-data", "connections"];
 let previousPromotionTime = 0;
 for (const featureStage of requiredPromotionStages) {
   const path = resolve(root, `promotion-${target}-${featureStage}.json`);

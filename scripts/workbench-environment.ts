@@ -1,11 +1,31 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-export const environmentTargets = ["local", "acceptance", "production"] as const;
+export const environmentTargets = ["local", "acceptance", "production", "demo"] as const;
 export type EnvironmentTarget = (typeof environmentTargets)[number];
 
+type WebDeploymentCommon = {
+  projectName: string;
+  projectId: string;
+  origin: string;
+  framework: "nextjs";
+  nodeVersion: "24.x";
+};
+
+export type WebDeployment = WebDeploymentCommon &
+  (
+    | { provider: "vercel"; organizationId: string }
+    | {
+        provider: "railway";
+        workspaceId: string;
+        environmentId: string;
+        serviceId: string;
+        serverless: true;
+      }
+  );
+
 export type WorkbenchEnvironment = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   target: EnvironmentTarget;
   conformanceMode: boolean;
   vaultBackend: "memory" | "workos";
@@ -18,14 +38,7 @@ export type WorkbenchEnvironment = {
     origin: string;
   };
   fly: { appName: string; origin: string };
-  vercel: {
-    projectName: string;
-    organizationId: string;
-    projectId: string;
-    origin: string;
-    framework: "nextjs";
-    nodeVersion: "24.x";
-  };
+  web: WebDeployment;
   workos: { applicationName: string; applicationId: string; acceptanceWorkspaceId: string };
   secretEnvironmentVariables: {
     facadeSigning: string;
@@ -64,7 +77,7 @@ export const parseWorkbenchEnvironment = (value: unknown): WorkbenchEnvironment 
   const root = isRecord(value) ? value : {};
   const cloudflare = isRecord(root.cloudflare) ? root.cloudflare : {};
   const fly = isRecord(root.fly) ? root.fly : {};
-  const vercel = isRecord(root.vercel) ? root.vercel : {};
+  const web = isRecord(root.web) ? root.web : {};
   const workos = isRecord(root.workos) ? root.workos : {};
   const secrets = isRecord(root.secretEnvironmentVariables) ? root.secretEnvironmentVariables : {};
   const observability = isRecord(root.observabilityEnvironmentVariables)
@@ -72,7 +85,7 @@ export const parseWorkbenchEnvironment = (value: unknown): WorkbenchEnvironment 
     : {};
   const target = requireString(root.target, "target", failures);
   if (!isEnvironmentTarget(target)) failures.push(`target must be ${environmentTargets.join("|")}`);
-  if (root.schemaVersion !== 1) failures.push("schemaVersion must be 1");
+  if (root.schemaVersion !== 2) failures.push("schemaVersion must be 2");
   if (typeof root.conformanceMode !== "boolean") failures.push("conformanceMode must be boolean");
   if (root.vaultBackend !== "memory" && root.vaultBackend !== "workos") {
     failures.push("vaultBackend must be memory|workos");
@@ -81,8 +94,36 @@ export const parseWorkbenchEnvironment = (value: unknown): WorkbenchEnvironment 
     failures.push("mutationDefaultEnabled must be boolean");
   }
 
+  const webCommon = {
+    projectName: requireString(web.projectName, "web.projectName", failures),
+    projectId: requireString(web.projectId, "web.projectId", failures),
+    origin: requireString(web.origin, "web.origin", failures),
+    framework: requireString(web.framework, "web.framework", failures) as "nextjs",
+    nodeVersion: requireString(web.nodeVersion, "web.nodeVersion", failures) as "24.x",
+  };
+  const provider = requireString(web.provider, "web.provider", failures);
+  const parsedWeb: WebDeployment =
+    provider === "railway"
+      ? {
+          ...webCommon,
+          provider,
+          workspaceId: requireString(web.workspaceId, "web.workspaceId", failures),
+          environmentId: requireString(web.environmentId, "web.environmentId", failures),
+          serviceId: requireString(web.serviceId, "web.serviceId", failures),
+          serverless: true,
+        }
+      : {
+          ...webCommon,
+          provider: "vercel",
+          organizationId: requireString(web.organizationId, "web.organizationId", failures),
+        };
+  if (provider !== "vercel" && provider !== "railway")
+    failures.push("web.provider must be vercel|railway");
+  if (provider === "railway" && web.serverless !== true)
+    failures.push("railway web.serverless must be true");
+
   const parsed = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     target: target as EnvironmentTarget,
     conformanceMode: root.conformanceMode === true,
     vaultBackend: root.vaultBackend as "memory" | "workos",
@@ -102,14 +143,7 @@ export const parseWorkbenchEnvironment = (value: unknown): WorkbenchEnvironment 
       appName: requireString(fly.appName, "fly.appName", failures),
       origin: requireString(fly.origin, "fly.origin", failures),
     },
-    vercel: {
-      projectName: requireString(vercel.projectName, "vercel.projectName", failures),
-      organizationId: requireString(vercel.organizationId, "vercel.organizationId", failures),
-      projectId: requireString(vercel.projectId, "vercel.projectId", failures),
-      origin: requireString(vercel.origin, "vercel.origin", failures),
-      framework: requireString(vercel.framework, "vercel.framework", failures) as "nextjs",
-      nodeVersion: requireString(vercel.nodeVersion, "vercel.nodeVersion", failures) as "24.x",
-    },
+    web: parsedWeb,
     workos: {
       applicationName: requireString(workos.applicationName, "workos.applicationName", failures),
       applicationId: requireString(workos.applicationId, "workos.applicationId", failures),
@@ -176,8 +210,8 @@ export const parseWorkbenchEnvironment = (value: unknown): WorkbenchEnvironment 
     },
   } satisfies WorkbenchEnvironment;
 
-  if (parsed.vercel.framework !== "nextjs") failures.push("vercel.framework must be nextjs");
-  if (parsed.vercel.nodeVersion !== "24.x") failures.push("vercel.nodeVersion must be 24.x");
+  if (parsed.web.framework !== "nextjs") failures.push("web.framework must be nextjs");
+  if (parsed.web.nodeVersion !== "24.x") failures.push("web.nodeVersion must be 24.x");
 
   if (failures.length) throw new Error(failures.join("; "));
   return parsed;
@@ -215,12 +249,22 @@ export const resolveEnvironmentReferences = (
         origin: resolveValue(manifest.cloudflare.origin),
       },
       fly: { ...manifest.fly, origin: resolveValue(manifest.fly.origin) },
-      vercel: {
-        ...manifest.vercel,
-        organizationId: resolveValue(manifest.vercel.organizationId),
-        projectId: resolveValue(manifest.vercel.projectId),
-        origin: resolveValue(manifest.vercel.origin),
-      },
+      web:
+        manifest.web.provider === "vercel"
+          ? {
+              ...manifest.web,
+              organizationId: resolveValue(manifest.web.organizationId),
+              projectId: resolveValue(manifest.web.projectId),
+              origin: resolveValue(manifest.web.origin),
+            }
+          : {
+              ...manifest.web,
+              workspaceId: resolveValue(manifest.web.workspaceId),
+              projectId: resolveValue(manifest.web.projectId),
+              environmentId: resolveValue(manifest.web.environmentId),
+              serviceId: resolveValue(manifest.web.serviceId),
+              origin: resolveValue(manifest.web.origin),
+            },
       workos: {
         ...manifest.workos,
         applicationId: resolveValue(manifest.workos.applicationId),
@@ -239,9 +283,9 @@ const resourceValues = (manifest: WorkbenchEnvironment) => ({
   cloudflareOrigin: manifest.cloudflare.origin,
   flyApp: manifest.fly.appName,
   flyOrigin: manifest.fly.origin,
-  vercelProject: manifest.vercel.projectId,
-  vercelProjectName: manifest.vercel.projectName,
-  vercelOrigin: manifest.vercel.origin,
+  webProject: manifest.web.projectId,
+  webProjectName: manifest.web.projectName,
+  webOrigin: manifest.web.origin,
   workosApplication: manifest.workos.applicationId,
   workosApplicationName: manifest.workos.applicationName,
 });

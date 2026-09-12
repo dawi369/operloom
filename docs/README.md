@@ -22,8 +22,8 @@ you need to change a particular boundary.
 
 ## Operate
 
-- [Deployment](environment-separation.md) · [Vercel](deployment-vercel.md) · [Fly](deployment-fly.md)
-- [Minimal hosted testing](minimal-hosted-testing.md): keep the personal demo small.
+- [Deployment](environment-separation.md) · [Railway](deployment-railway.md) · [Vercel](deployment-vercel.md) · [Fly](deployment-fly.md)
+- [Scale-to-zero public demo](minimal-hosted-testing.md): policy, cost controls, and rollout.
 - [Migrations and retention](migrations-and-retention.md): preserve existing data.
 - [Troubleshooting and resource limits](dev-infrastructure-readiness.md) · [Execution deadlines](runtime-deadlines.md)
 - [Release checklist](release-readiness.md) · [Dependency security](dependency-security.md)

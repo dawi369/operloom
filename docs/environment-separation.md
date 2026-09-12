@@ -2,7 +2,7 @@
 
 Document status: current deployment security boundary and operator runbook.
 
-Operloom has three explicit targets. The checked-in
+Operloom has four explicit targets. The checked-in
 `config/environments/*.json` files contain only non-secret names and environment
 variable references. `cloudflare/control-plane/wrangler.jsonc` and
 `fly.langgraph.toml` are local-only; neither is a hosted deployment default.
@@ -12,20 +12,22 @@ variable references. `cloudflare/control-plane/wrangler.jsonc` and
 | `local`      | none           | enabled     | memory | off              |
 | `acceptance` | synthetic only | enabled     | WorkOS | off              |
 | `production` | allowed        | disabled    | WorkOS | off              |
+| `demo`       | seven-day demo | disabled    | WorkOS | off              |
 
 Hosted targets default to cost-idle operation: Cloudflare Cron Triggers are
 empty and Fly keeps zero Machines running when idle. Scheduled and monitor
 triggers remain dormant until a deliberate deployment re-enables the scheduler;
 explicit LangGraph or runner traffic cold-starts the existing Fly Machine.
 
-Worker names, D1 names and IDs, R2 buckets, Fly apps, Vercel projects, WorkOS
+Worker names, D1 names and IDs, R2 buckets, Fly apps, web projects, WorkOS
 applications/workspaces, public origins, and every signing-secret reference are
 mechanically distinct. Production validation rejects conformance mode, the
 memory Vault, a dev transport token, or mutation enabled globally.
 
 ## Required non-secret target variables
 
-Replace `TARGET` with `ACCEPTANCE` or `PRODUCTION`:
+Replace `TARGET` with `ACCEPTANCE`, `PRODUCTION`, or `DEMO`. Vercel targets use
+the Vercel identifiers; the demo uses the Railway identifiers.
 
 ```text
 WORKBENCH_TARGET_D1_DATABASE_ID
@@ -33,7 +35,10 @@ WORKBENCH_TARGET_CLOUDFLARE_ORIGIN
 WORKBENCH_TARGET_FLY_ORIGIN
 WORKBENCH_TARGET_VERCEL_ORG_ID
 WORKBENCH_TARGET_VERCEL_PROJECT_ID
-WORKBENCH_TARGET_VERCEL_ORIGIN
+WORKBENCH_TARGET_RAILWAY_PROJECT_ID
+WORKBENCH_TARGET_RAILWAY_ENVIRONMENT_ID
+WORKBENCH_TARGET_RAILWAY_SERVICE_ID
+WORKBENCH_TARGET_WEB_ORIGIN
 WORKBENCH_TARGET_WORKOS_APPLICATION_ID
 WORKBENCH_TARGET_WORKSPACE_ID                  # acceptance
 WORKBENCH_PRODUCTION_ACCEPTANCE_WORKSPACE_ID  # isolated production acceptance
@@ -57,7 +62,7 @@ pnpm deploy:cloudflare:bootstrap -- --target acceptance
 pnpm environment:configure-secrets -- --target acceptance
 pnpm deploy:cloudflare -- --target acceptance
 pnpm deploy:fly -- --target acceptance
-pnpm deploy:vercel -- --target acceptance
+pnpm deploy:web -- --target acceptance
 ```
 
 Deployment commands are dry runs unless `--execute` is supplied. A dry run
@@ -72,7 +77,8 @@ pnpm deploy:cloudflare -- --target acceptance --execute \
 
 Provisioning is separately confirmed per provider with
 `acceptance:provision-<provider>:<full-sha>`. Cloudflare, Fly, and Vercel have
-guarded executable commands. WorkOS AuthKit application and organization setup
+guarded executable commands. Railway demo provisioning is performed once in the
+existing T23 workspace and its IDs are then supplied to the manifest. WorkOS AuthKit application and organization setup
 remains a dashboard action and must be recorded with
 `pnpm release:evidence:record`; the CLI does not pretend that a Vault object is
 an AuthKit application.
@@ -84,7 +90,7 @@ for deployment.
 For a new Worker, run the guarded Cloudflare bootstrap before configuring
 secrets. It deploys the disabled feature stage with `workers_dev=false` and no
 cron triggers, creating the secret attachment point without public ingress.
-The final Cloudflare, Fly, and Vercel deploy phases require same-commit secret
+The final Cloudflare, Fly, and web deploy phases require same-commit secret
 configuration evidence.
 
 Remote migration is a separate approval phase and requires a same-commit,
@@ -106,11 +112,11 @@ Never use the reset snapshot against acceptance or production.
 
 Record operator approval independently for each external-state phase:
 
-1. create distinct acceptance Worker/D1/R2/DO, Fly, Vercel, and WorkOS resources;
+1. create distinct target Worker/D1/R2/DO, Fly, web, and WorkOS resources;
 2. bootstrap the acceptance Worker without public ingress or cron triggers;
 3. configure provider secrets and verify target-specific secret fingerprints;
 4. back up and apply forward D1 migrations;
-5. deploy acceptance Cloudflare, Fly, then Vercel from one immutable SHA;
+5. deploy acceptance Cloudflare, Fly, then web from one immutable SHA;
 6. promote Cloudflare through `disabled`, `retained-data`, `connections`, and
    `mutations`; each stage requires the preceding stage's same-SHA deployment
    record;
@@ -121,8 +127,8 @@ Record operator approval independently for each external-state phase:
    remain an additional requirement after that gate is deliberately enabled.
 
 Do not proceed if any resource, WorkOS application, secret value, or public
-origin is shared across acceptance and production. Vercel production points
-only to production. Acceptance uses its own protected project/alias.
+origin is shared across targets. Each hosted target uses its own project/service
+and origin.
 
 ## Same-commit evidence
 

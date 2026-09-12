@@ -1,7 +1,7 @@
 # Architecture
 
 Operloom is a reusable agent workbench with a conversational control
-plane, a heavy execution plane, and a hosted dev/staging split across Vercel,
+plane, a heavy execution plane, and hosted environments split across a Next.js web host,
 Cloudflare, and Fly.
 
 The architecture should support personal operation, developer distribution,
@@ -19,8 +19,8 @@ Document status: this page is the concise current system map. Use
 ## System Shape
 
 - Next.js App Router serves the frontend and same-origin API facades.
-- WorkOS AuthKit runs at the Vercel web boundary.
-- Vercel derives trusted WorkOS/local identity before calling Cloudflare.
+- WorkOS AuthKit runs at the Next.js web boundary.
+- The web facade derives trusted WorkOS/local identity before calling Cloudflare.
 - assistant-ui renders the thread, composer, messages, reasoning, tools, and
   attachments.
 - Cloudflare resolves authorization, workspace, active agent, active thread,
@@ -41,7 +41,7 @@ The browser is the supported product client in `0.5.1`; the Expo app
 is WIP on `codex/mobile-wip`, outside the web release. Shared clients use the
 runtime-validated `@operloom/workbench-client` contract, while cookie auth
 and Cloudflare Agent React remain web adapters. The native boundary is specified
-in `docs/mobile-frontends.md`; native clients never receive the Vercel facade
+in `docs/mobile-frontends.md`; native clients never receive the web facade
 signing secret or bypass Cloudflare authorization.
 
 ## Control Plane Model
@@ -93,7 +93,7 @@ observe -> analyze -> propose -> execute -> review
 - `components/workbench/*`: product-specific shell, sidebar, runtime hints, and
   Admin surfaces.
 - `app/api/[..._path]/route.ts`: LangGraph API proxy.
-- `app/api/workbench/*`: Vercel same-origin facades over Cloudflare.
+- `app/api/workbench/*`: same-origin web facades over Cloudflare.
 - `cloudflare/control-plane/src/connection-broker.ts`: tenant-scoped WorkOS
   Vault metadata, OAuth/API-key authorization, refresh/revoke/health, and
   provider-host-scoped request capabilities.
@@ -134,14 +134,14 @@ pnpm dev
 The hosted dev baseline is:
 
 ```txt
-Browser -> Vercel Next.js app
+Browser -> Next.js web app (Railway for the maintained demo; Vercel optional)
         -> WorkOS AuthKit session
-        -> Vercel API facade
+        -> web API facade
         -> Cloudflare Worker/D1 for authz, chat/session, and control state
         -> Cloudflare Agents for normal messages
         -> Fly/LangGraph only for explicit heavy execution
 ```
 
-Vercel owns hosted web sign-in and browser ergonomics. Cloudflare is the
+The configured web provider owns hosted sign-in and browser ergonomics. Cloudflare is the
 authorization, control-plane, chat coordination, and canonical-state boundary.
 Fly remains the execution plane.

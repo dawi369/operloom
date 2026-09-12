@@ -10,7 +10,7 @@ import { isEnvironmentTarget } from "./workbench-environment";
 const execFileAsync = promisify(execFile);
 const commit = process.env.GITHUB_SHA?.trim();
 const requestedTarget = process.env.WORKBENCH_ENVIRONMENT?.trim() ?? "";
-const vercelOrigin = process.env.HOSTED_VERCEL_ORIGIN?.trim().replace(/\/$/, "");
+const webOrigin = process.env.HOSTED_WEB_ORIGIN?.trim().replace(/\/$/, "");
 const signingSecret = process.env.CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET?.trim();
 const enabled = process.env.WORKBENCH_HOSTED_DRILL_MODE === "true";
 const pollTimeoutMs = Number(process.env.HOSTED_DRILL_TIMEOUT_MS ?? 120_000);
@@ -23,7 +23,7 @@ if (!isEnvironmentTarget(requestedTarget) || requestedTarget === "local") {
 const rendered = renderEnvironmentConfig(requestedTarget);
 const flyAppName = process.env.HOSTED_FLY_APP?.trim() || rendered.manifest.fly.appName;
 if (!commit || !/^[a-f0-9]{40}$/.test(commit)) throw new Error("GITHUB_SHA must be a full commit");
-if (!vercelOrigin) throw new Error("HOSTED_VERCEL_ORIGIN is required");
+if (!webOrigin) throw new Error("HOSTED_WEB_ORIGIN is required");
 if (!signingSecret) {
   throw new Error("CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET is required");
 }
@@ -221,7 +221,7 @@ const main = async () => {
     throw new Error("hosted webhook trigger did not return one-time credentials");
   }
   const webhookKey = `hosted-duplicate-${suffix}`;
-  const webhookUrl = `${vercelOrigin}/api/external-signals/${encodeURIComponent(
+  const webhookUrl = `${webOrigin}/api/external-signals/${encodeURIComponent(
     webhook.trigger.publicId,
   )}`;
   const webhookRequest = () =>
@@ -488,7 +488,7 @@ const main = async () => {
     generatedAt: new Date().toISOString(),
     startedAt,
     topology: {
-      vercelOrigin,
+      webOrigin,
       cloudflareOrigin: baseUrl,
       flyAppName,
     },

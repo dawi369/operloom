@@ -146,6 +146,12 @@ import {
   sweepNotificationDeliveries,
 } from "./notification-delivery";
 import type { MessageBatch, NotificationQueueMessage } from "./types";
+import {
+  demoDisabledResponse,
+  demoModeEnabled,
+  demoMutationCapabilityForRequest,
+  ensureDemoRetentionPolicy,
+} from "./demo-policy";
 
 export { WorkbenchThreadChatAgent };
 export { WorkbenchSessionAgent };
@@ -233,6 +239,7 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
 
   const triggerIngressMatch = url.pathname.match(/^\/trigger-ingress\/([^/]+)$/);
   if (request.method === "POST" && triggerIngressMatch?.[1]) {
+    if (demoModeEnabled(env)) return demoDisabledResponse("Webhook triggers");
     const authResult = await requireControlPlaneAuth(request, env);
     if (!authResult.ok) return authResult.response;
     return handleTriggerWebhookIngress(
@@ -272,6 +279,11 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
   const authzEndedAtMs = Date.now();
   if (!identityResult.ok) return identityResult.response;
   const { identity } = identityResult;
+  await ensureDemoRetentionPolicy(env, identity);
+  if (demoModeEnabled(env)) {
+    const disabledCapability = demoMutationCapabilityForRequest(request);
+    if (disabledCapability) return demoDisabledResponse(disabledCapability);
+  }
   const vercelTiming = readVercelTimingHeaders(request);
   const incomingTrace = {
     traceId: getTraceId(request),
@@ -708,7 +720,7 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
   }
 
   if (request.method === "GET" && url.pathname === "/agent-behavior-templates") {
-    return handleListAgentBehaviorTemplates();
+    return handleListAgentBehaviorTemplates(env);
   }
 
   if (request.method === "POST" && url.pathname === "/agents") {

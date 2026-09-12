@@ -19,8 +19,15 @@ if (enabled) {
     sendDefaultPii: false,
     beforeSend: scrubSentryEvent,
     beforeBreadcrumb: scrubSentryBreadcrumb,
-    environment: process.env.SENTRY_ENVIRONMENT ?? process.env.VERCEL_ENV ?? process.env.NODE_ENV,
-    release: process.env.SENTRY_RELEASE ?? process.env.VERCEL_GIT_COMMIT_SHA,
+    environment:
+      process.env.SENTRY_ENVIRONMENT ??
+      process.env.RAILWAY_ENVIRONMENT_NAME ??
+      process.env.VERCEL_ENV ??
+      process.env.NODE_ENV,
+    release:
+      process.env.SENTRY_RELEASE ??
+      process.env.RAILWAY_GIT_COMMIT_SHA ??
+      process.env.VERCEL_GIT_COMMIT_SHA,
     tracesSampleRate: parseSampleRate(
       process.env.SENTRY_TRACES_SAMPLE_RATE,
       isDevelopment ? 1.0 : 0.02,
@@ -28,7 +35,7 @@ if (enabled) {
     initialScope: {
       tags: {
         service: "operloom",
-        "runtime.surface": "vercel-next",
+        "runtime.surface": "next-web",
         "runtime.target": "edge",
       },
     },

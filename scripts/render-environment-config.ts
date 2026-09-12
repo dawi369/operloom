@@ -32,7 +32,10 @@ export const renderEnvironmentConfig = (
     throw new Error(`missing required variables: ${resolved.unresolved.join(", ")}`);
   }
   const manifest = resolved.manifest;
-  const features = featureFlags(featureStage);
+  const isDemo = target === "demo";
+  const features = isDemo
+    ? { retainedData: true, connections: false, mutations: false }
+    : featureFlags(featureStage);
   const flyHost = new URL(manifest.fly.origin).hostname;
   const conformanceProviders = manifest.conformanceMode
     ? JSON.stringify([
@@ -67,24 +70,39 @@ export const renderEnvironmentConfig = (
       LANGGRAPH_UPSTREAM_URL: manifest.fly.origin,
       LANGGRAPH_ASSISTANT_ID: "agent",
       OPENROUTER_MODEL: "deepseek/deepseek-v4-flash",
-      OPENROUTER_SITE_URL: manifest.vercel.origin,
+      OPENROUTER_SITE_URL: manifest.web.origin,
       OPENROUTER_APP_NAME: `operloom-${target}-cloudflare-chat`,
       WORKBENCH_CALLBACK_URL: `${manifest.cloudflare.origin}/workbench/run-callbacks`,
       WORKBENCH_RUNNER_TRANSPORT: "fly",
       WORKBENCH_RUNNER_URL: `${manifest.fly.origin}/workbench/tool-runners/invocations`,
-      WORKBENCH_OPERATOR_ALERT_WEBHOOK_URL: `${manifest.vercel.origin}/api/workbench/operator-alerts/ingest`,
+      WORKBENCH_OPERATOR_ALERT_WEBHOOK_URL: `${manifest.web.origin}/api/workbench/operator-alerts/ingest`,
       WORKBENCH_CONFORMANCE_MODE: String(manifest.conformanceMode),
       WORKBENCH_RETAINED_DATA_ENABLED: String(features.retainedData),
       WORKBENCH_CONNECTIONS_ENABLED: String(features.connections),
       WORKBENCH_MUTATIONS_ENABLED: String(features.mutations),
       WORKBENCH_PUSH_ENABLED: "false",
       WORKBENCH_VAULT_BACKEND: manifest.vaultBackend,
+      ...(isDemo
+        ? {
+            WORKBENCH_DEMO_MODE: "true",
+            WORKBENCH_DEMO_PACK_ALLOWLIST: JSON.stringify([
+              "operloom",
+              "repo-analyst",
+              "baby-polymancer",
+            ]),
+            WORKBENCH_DEMO_CHAT_DAILY_LIMIT: "20",
+            WORKBENCH_DEMO_WORKFLOW_DAILY_LIMIT: "3",
+            WORKBENCH_DEMO_MODEL_BUDGET_USD: "20",
+            WORKBENCH_DEMO_ARTIFACT_WORKSPACE_BYTES: String(20 * 1024 * 1024),
+            WORKBENCH_DEMO_RETENTION_DAYS: "7",
+          }
+        : {}),
       ...(conformanceProviders ? { WORKBENCH_OAUTH_PROVIDERS_JSON: conformanceProviders } : {}),
       WORKBENCH_RELEASE_SHA: releaseSha,
       SENTRY_ENVIRONMENT: target,
-      SENTRY_TRACES_SAMPLE_RATE: "0.02",
+      SENTRY_TRACES_SAMPLE_RATE: isDemo ? "0" : "0.02",
     },
-    ...(bootstrap ? {} : { triggers: { crons: [] } }),
+    ...(bootstrap ? {} : { triggers: { crons: isDemo ? ["17 3 * * *"] : [] } }),
     d1_databases: [
       {
         binding: "DB",
@@ -95,7 +113,7 @@ export const renderEnvironmentConfig = (
       },
     ],
     r2_buckets: [{ binding: "ARTIFACTS", bucket_name: manifest.cloudflare.r2BucketName }],
-    ...(bootstrap
+    ...(bootstrap || isDemo
       ? {}
       : {
           queues: {
@@ -182,7 +200,7 @@ memory = "1gb"
         target,
         bootstrap,
         featureStage,
-        vercel: manifest.vercel,
+        web: manifest.web,
         workos: manifest.workos,
         requiredSecretEnvironmentVariables: manifest.secretEnvironmentVariables,
       },

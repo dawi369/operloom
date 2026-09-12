@@ -7,7 +7,7 @@ on:
         description: Protected hosted target
         type: choice
         required: true
-        options: [acceptance, production]
+        options: [acceptance, production, demo]
       gate:
         description: Separately approved evidence phase
         type: choice
@@ -48,7 +48,7 @@ jobs:
     env:
       WORKBENCH_ENVIRONMENT: ${{ inputs.target }}
       GITHUB_SHA: ${{ github.sha }}
-      HOSTED_VERCEL_ORIGIN: ${{ vars.HOSTED_VERCEL_ORIGIN }}
+      HOSTED_WEB_ORIGIN: ${{ vars.HOSTED_WEB_ORIGIN }}
       HOSTED_CLOUDFLARE_ORIGIN: ${{ vars.HOSTED_CLOUDFLARE_ORIGIN }}
       HOSTED_FLY_ORIGIN: ${{ vars.HOSTED_FLY_ORIGIN }}
       HOSTED_FLY_APP: ${{ vars.HOSTED_FLY_APP }}
@@ -92,7 +92,10 @@ jobs:
           FLY_ORIGIN: ${{ vars.HOSTED_FLY_ORIGIN }}
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-          VERCEL_ORIGIN: ${{ vars.HOSTED_VERCEL_ORIGIN }}
+          WEB_ORIGIN: ${{ vars.HOSTED_WEB_ORIGIN }}
+          RAILWAY_PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+          RAILWAY_ENVIRONMENT_ID: ${{ vars.RAILWAY_ENVIRONMENT_ID }}
+          RAILWAY_SERVICE_ID: ${{ vars.RAILWAY_SERVICE_ID }}
           WORKOS_APPLICATION_ID: ${{ vars.WORKOS_APPLICATION_ID }}
           ACCEPTANCE_WORKSPACE_ID: ${{ vars.HOSTED_VAULT_WORKSPACE_ID }}
         run: |
@@ -103,12 +106,19 @@ jobs:
             echo "${prefix}_FLY_ORIGIN=${FLY_ORIGIN}"
             echo "${prefix}_VERCEL_ORG_ID=${VERCEL_ORG_ID}"
             echo "${prefix}_VERCEL_PROJECT_ID=${VERCEL_PROJECT_ID}"
-            echo "${prefix}_VERCEL_ORIGIN=${VERCEL_ORIGIN}"
+            echo "${prefix}_WEB_ORIGIN=${WEB_ORIGIN}"
+            if [[ "${WORKBENCH_ENVIRONMENT}" == "demo" ]]; then
+              echo "WORKBENCH_DEMO_RAILWAY_PROJECT_ID=${RAILWAY_PROJECT_ID}"
+              echo "WORKBENCH_DEMO_RAILWAY_ENVIRONMENT_ID=${RAILWAY_ENVIRONMENT_ID}"
+              echo "WORKBENCH_DEMO_RAILWAY_SERVICE_ID=${RAILWAY_SERVICE_ID}"
+            fi
             echo "${prefix}_WORKOS_APPLICATION_ID=${WORKOS_APPLICATION_ID}"
             if [[ "${WORKBENCH_ENVIRONMENT}" == "acceptance" ]]; then
               echo "WORKBENCH_ACCEPTANCE_WORKSPACE_ID=${ACCEPTANCE_WORKSPACE_ID}"
-            else
+            elif [[ "${WORKBENCH_ENVIRONMENT}" == "production" ]]; then
               echo "WORKBENCH_PRODUCTION_ACCEPTANCE_WORKSPACE_ID=${ACCEPTANCE_WORKSPACE_ID}"
+            else
+              echo "WORKBENCH_DEMO_ACCEPTANCE_WORKSPACE_ID=${ACCEPTANCE_WORKSPACE_ID}"
             fi
           } >> "${GITHUB_ENV}"
 

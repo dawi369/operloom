@@ -40,8 +40,8 @@ if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error("GITHUB_SHA must be a full c
 if (phase !== "start" && phase !== "finish") throw new Error("--phase must be start|finish");
 
 const rendered = renderEnvironmentConfig("acceptance");
-const vercelOrigin = process.env.HOSTED_VERCEL_ORIGIN?.trim().replace(/\/$/, "");
-if (!vercelOrigin) throw new Error("HOSTED_VERCEL_ORIGIN is required");
+const webOrigin = process.env.HOSTED_WEB_ORIGIN?.trim().replace(/\/$/, "");
+if (!webOrigin) throw new Error("HOSTED_WEB_ORIGIN is required");
 const { readJson } = createSmokeContext({ pollTimeoutDefault: 180_000 });
 const safeSql = (value: string) => `'${value.replaceAll("'", "''")}'`;
 const d1Execute = (sql: string) => {
@@ -101,7 +101,7 @@ const createTrigger = async (
 const sendWebhook = async (trigger: Trigger, secret: string, idempotencyKey: string) => {
   if (!trigger.publicId) throw new Error("Webhook public ID is missing");
   const request = () =>
-    fetch(`${vercelOrigin}/api/external-signals/${encodeURIComponent(trigger.publicId!)}`, {
+    fetch(`${webOrigin}/api/external-signals/${encodeURIComponent(trigger.publicId!)}`, {
       method: "POST",
       headers: {
         authorization: `Bearer ${secret}`,

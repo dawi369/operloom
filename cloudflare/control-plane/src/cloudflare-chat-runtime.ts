@@ -42,6 +42,12 @@ import {
   type Env,
   type WorkerExecutionContext,
 } from "./types";
+import {
+  claimDemoDailyUsage,
+  demoPackAllowed,
+  requireDemoConcurrencyAvailable,
+  requireDemoModelBudget,
+} from "./demo-policy";
 
 type StoredMessage = {
   id: string;
@@ -283,7 +289,7 @@ const extractInputMessages = (body: unknown) => {
 const openRouterHeaders = (env: Env) => ({
   authorization: `Bearer ${env.OPENROUTER_API_KEY ?? ""}`,
   "content-type": "application/json",
-  "http-referer": env.OPENROUTER_SITE_URL ?? "https://assistant-mk1.vercel.app",
+  "http-referer": env.OPENROUTER_SITE_URL ?? "https://operloom.t23.dev",
   "x-title": env.OPENROUTER_APP_NAME ?? "operloom-cloudflare-chat",
 });
 
@@ -501,6 +507,16 @@ export const handleCloudflareRunStream = async (
   const activeAgent = await selectAgent(env, identity.agentId, identity.scope.workspaceId);
   const runtimeConfig = resolveAgentRuntimeConfig(env, activeAgent);
   const behaviorConfig = resolveAgentBehaviorConfig(activeAgent);
+  if (!demoPackAllowed(env, behaviorConfig.pack?.id)) {
+    return json(
+      {
+        ok: false,
+        error: "This agent is unavailable in the public demo.",
+        errorCode: "demo_pack_disabled",
+      },
+      { status: 403 },
+    );
+  }
   const behaviorInstruction = resolveAgentBehaviorInstruction(activeAgent);
   const agentMetadata = toAgentRuntimeMetadata(env, activeAgent, identity.agentId);
   const inputMessages = extractInputMessages(parsedBody);
@@ -634,6 +650,13 @@ export const handleCloudflareRunStream = async (
       { status: policy.status },
     );
   }
+
+  const budgetResponse = await requireDemoModelBudget(env);
+  if (budgetResponse) return budgetResponse;
+  const concurrencyResponse = await requireDemoConcurrencyAvailable(env, identity);
+  if (concurrencyResponse) return concurrencyResponse;
+  const quotaResponse = await claimDemoDailyUsage(env, identity, "chat");
+  if (quotaResponse) return quotaResponse;
 
   let boundary: { intentId: string; policyDecisionId: string; runId: string };
   try {
