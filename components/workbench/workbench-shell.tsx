@@ -106,15 +106,20 @@ const adminTestToolInputs: Record<
 };
 
 export function WorkbenchShell({
+  demoMode = false,
   initialSignedOutPresentation = false,
 }: {
+  demoMode?: boolean;
   initialSignedOutPresentation?: boolean;
 }) {
   return (
     <WorkbenchClientProvider client={browserWorkbenchClient}>
       <ChatSessionProvider>
         <WorkbenchComposerFocusProvider>
-          <WorkbenchShellContent initialSignedOutPresentation={initialSignedOutPresentation} />
+          <WorkbenchShellContent
+            demoMode={demoMode}
+            initialSignedOutPresentation={initialSignedOutPresentation}
+          />
         </WorkbenchComposerFocusProvider>
       </ChatSessionProvider>
     </WorkbenchClientProvider>
@@ -122,8 +127,10 @@ export function WorkbenchShell({
 }
 
 function WorkbenchShellContent({
+  demoMode,
   initialSignedOutPresentation,
 }: {
+  demoMode: boolean;
   initialSignedOutPresentation: boolean;
 }) {
   const [adminOpen, setAdminOpen] = useState(false);
@@ -483,6 +490,11 @@ function WorkbenchShellContent({
       <AssistantSlashCommandProvider commands={slashCommands}>
         <PackWorkflowProvider openWorkflow={openPackWorkflowByType}>
           <div className="absolute top-3 right-3 z-30 flex max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2">
+            {demoMode && hasAuthenticatedSession ? (
+              <span className="border-border bg-background/90 text-muted-foreground rounded-full border px-2.5 py-1 font-mono text-[10px] tracking-[0.14em] uppercase shadow-sm backdrop-blur">
+                Public demo
+              </span>
+            ) : null}
             {hasAuthenticatedSession ? (
               <AuthButton
                 localSession={!user && hasAuthenticatedSession}
@@ -518,7 +530,10 @@ function WorkbenchShellContent({
               Workspace unavailable? Check deletion recovery
             </a>
           ) : null}
-          <Assistant initialSignedOutPresentation={initialSignedOutPresentation}>
+          <Assistant
+            demoMode={demoMode}
+            initialSignedOutPresentation={initialSignedOutPresentation}
+          >
             <WorkbenchAssistantEvents />
             <div className="pointer-events-none absolute top-4 left-4 z-20 md:hidden">
               <WorkbenchMark compact />

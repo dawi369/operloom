@@ -14,13 +14,17 @@ import { cookies } from "next/headers";
 
 export default async function Home() {
   const cookieStore = await cookies();
+  const demoMode = process.env.WORKBENCH_ENVIRONMENT === "demo";
   const initialSignedOutPresentation = isSignedOutPresentation(
     cookieStore.get(authPresentationCookieName)?.value,
   );
 
   return (
     <main className="h-dvh">
-      <WorkbenchShell initialSignedOutPresentation={initialSignedOutPresentation} />
+      <WorkbenchShell
+        demoMode={demoMode}
+        initialSignedOutPresentation={initialSignedOutPresentation}
+      />
     </main>
   );
 }

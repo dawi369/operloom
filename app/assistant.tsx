@@ -23,6 +23,7 @@ import { useAgentChat } from "@cloudflare/ai-chat/react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useAgent } from "agents/react";
 import { ArrowUpIcon, Loader2Icon, LogInIcon, PlusIcon, RefreshCwIcon } from "lucide-react";
+import Link from "next/link";
 
 import {
   workbenchComposerInputClassName,
@@ -62,9 +63,11 @@ const writeSignedOutPresentation = (isSignedOut: boolean) => {
 
 export function Assistant({
   children,
+  demoMode = false,
   initialSignedOutPresentation = false,
 }: {
   children?: ReactNode;
+  demoMode?: boolean;
   initialSignedOutPresentation?: boolean;
 }) {
   const {
@@ -152,6 +155,7 @@ export function Assistant({
         onStarterPrompt={submitStarterPrompt}
         onRetry={retry}
         session={session}
+        demoMode={demoMode}
         initialSignedOutPresentation={initialSignedOutPresentation}
       />
     );
@@ -287,6 +291,7 @@ function RuntimeDraftHandoff({
 }
 
 function PreRuntimeDraftSurface({
+  demoMode,
   draft,
   error,
   isLocalNewSession,
@@ -299,6 +304,7 @@ function PreRuntimeDraftSurface({
   session,
   initialSignedOutPresentation,
 }: {
+  demoMode: boolean;
   draft: string;
   error: string | null;
   isLocalNewSession: boolean;
@@ -385,7 +391,14 @@ function PreRuntimeDraftSurface({
               className="workbench-enter my-auto w-full border-l border-foreground/15 py-3 pl-6"
               aria-labelledby="signed-out-title"
             >
-              <WorkbenchMark className="mb-12" />
+              <div className="mb-12 flex items-center gap-3">
+                <WorkbenchMark />
+                {demoMode ? (
+                  <span className="border-border bg-background/80 text-muted-foreground rounded-full border px-2.5 py-1 font-mono text-[10px] tracking-[0.14em] uppercase">
+                    Public demo
+                  </span>
+                ) : null}
+              </div>
               <h1
                 id="signed-out-title"
                 className="font-display text-4xl leading-tight font-semibold tracking-[-0.03em]"
@@ -393,9 +406,16 @@ function PreRuntimeDraftSurface({
                 {isRestoringSession ? "Restoring your workspace" : "Resume your workspace"}
               </h1>
               {!isRestoringSession ? (
-                <p className="text-muted-foreground mt-3 max-w-lg text-base leading-6">
-                  Pick up your chats, agents, and history.
-                </p>
+                <>
+                  <p className="text-muted-foreground mt-3 max-w-lg text-base leading-6">
+                    Pick up your chats, agents, and history.
+                  </p>
+                  {demoMode ? (
+                    <p className="text-muted-foreground/80 mt-2 max-w-lg text-xs leading-5">
+                      Usage is limited. Demo data is deleted after 7 days.
+                    </p>
+                  ) : null}
+                </>
               ) : null}
               {isRestoringSession ? (
                 <div className="text-muted-foreground mt-4 flex items-center gap-2 text-sm">
@@ -403,14 +423,29 @@ function PreRuntimeDraftSurface({
                   Verifying access
                 </div>
               ) : (
-                <Button
-                  type="button"
-                  className="mt-6"
-                  onClick={() => void refreshAuth({ ensureSignedIn: true })}
-                >
-                  <LogInIcon className="size-4" />
-                  Sign in
-                </Button>
+                <>
+                  <Button
+                    type="button"
+                    className="mt-6"
+                    onClick={() => void refreshAuth({ ensureSignedIn: true })}
+                  >
+                    <LogInIcon className="size-4" />
+                    Sign in
+                  </Button>
+                  {demoMode ? (
+                    <nav
+                      aria-label="Demo policies"
+                      className="text-muted-foreground mt-4 flex gap-4 text-xs"
+                    >
+                      <Link className="underline-offset-4 hover:underline" href="/privacy">
+                        Privacy
+                      </Link>
+                      <Link className="underline-offset-4 hover:underline" href="/terms">
+                        Terms
+                      </Link>
+                    </nav>
+                  ) : null}
+                </>
               )}
             </section>
           </div>
