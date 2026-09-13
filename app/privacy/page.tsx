@@ -53,14 +53,13 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="font-display text-xl font-semibold">Questions or deletion</h2>
           <p className="text-muted-foreground leading-7">
-            Use the workspace controls to manage your account data, or contact the project owner
-            through the Operloom repository.
+            Use the workspace controls to manage your account data, or contact the project owner.
           </p>
           <a
             className="inline-flex text-sm underline underline-offset-4"
-            href="https://github.com/dawi369/operloom/issues"
+            href="mailto:operloom@t23.dev"
           >
-            Contact via GitHub
+            operloom@t23.dev
           </a>
         </section>
       </article>

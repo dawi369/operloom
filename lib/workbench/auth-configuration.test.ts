@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAuthConfiguration } from "./auth-configuration";
+import { getAuthConfiguration, getWorkOSBaseURL } from "./auth-configuration";
 
 const local = { NODE_ENV: "development", WORKBENCH_ALLOW_LOCAL_DEV_IDENTITY: "true" };
 
@@ -32,5 +32,20 @@ describe("local authentication configuration", () => {
         NEXT_PUBLIC_WORKOS_REDIRECT_URI: "http://localhost:3000/auth/callback",
       }),
     ).toEqual({ workOsConfigured: true, localIdentityEnabled: false });
+  });
+});
+
+describe("WorkOS public callback origin", () => {
+  it("pins hosted callback redirects to the configured public origin", () => {
+    expect(
+      getWorkOSBaseURL({
+        NEXT_PUBLIC_WORKOS_REDIRECT_URI: "https://operloom.t23.dev/auth/callback",
+        HOSTNAME: "0.0.0.0",
+      }),
+    ).toBe("https://operloom.t23.dev");
+  });
+
+  it("lets the SDK infer the origin when WorkOS is not configured", () => {
+    expect(getWorkOSBaseURL({})).toBeUndefined();
   });
 });
