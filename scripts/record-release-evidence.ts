@@ -18,7 +18,7 @@ const target = valueAfter("--target") ?? "";
 const kind = valueAfter("--kind")?.trim() ?? "";
 const inputPath = valueAfter("--input");
 if (!isEnvironmentTarget(target) || target === "local") {
-  throw new Error("--target must be acceptance|production");
+  throw new Error("--target must be acceptance|production|demo");
 }
 if (!/^hosted\.[a-z0-9][a-z0-9.-]+$/.test(kind)) throw new Error("--kind is invalid");
 if (!inputPath || !existsSync(inputPath))

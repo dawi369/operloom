@@ -19,7 +19,7 @@ const git = (...args: string[]) => {
 const target = valueAfter("--target") ?? "";
 const execute = process.argv.includes("--execute");
 if (!isEnvironmentTarget(target) || target === "local") {
-  throw new Error("--target must be acceptance|production");
+  throw new Error("--target must be acceptance|production|demo");
 }
 const commit = git("rev-parse", "HEAD");
 const confirmation = `${target}:backup-cloudflare:${commit}`;
