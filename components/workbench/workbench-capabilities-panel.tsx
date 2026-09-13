@@ -25,11 +25,13 @@ import { resolvePackToolCapabilities } from "@/lib/workbench/pack-capabilities";
 import { useWorkbenchAgentConnection } from "@/lib/workbench/use-agent-connection";
 
 export function WorkbenchCapabilitiesPanel({
+  demoMode = false,
   open,
   onOpenChange,
   onCloseAutoFocus,
   onRunWorkflow,
 }: {
+  demoMode?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCloseAutoFocus?: (event: Event) => void;
@@ -49,7 +51,9 @@ export function WorkbenchCapabilitiesPanel({
   const workflowTools = tools.filter((tool) => tool.invocation === "workflow");
   const userWorkflows =
     pack?.workflows.filter((workflow) => workflow.userInvocable !== false) ?? [];
-  const connectionsQuery = useWorkbenchConnections({ enabled: open && Boolean(pack) });
+  const connectionsQuery = useWorkbenchConnections({
+    enabled: !demoMode && open && Boolean(pack),
+  });
   const connections = connectionsQuery.data?.connections ?? [];
   const { mutateAsync: submitCredential } = useConnectionAction("submitCredential");
   const { mutateAsync: revokeCredential } = useConnectionAction("revoke");
@@ -96,12 +100,12 @@ export function WorkbenchCapabilitiesPanel({
   };
 
   useEffect(() => {
-    if (!open || !pack) return;
+    if (demoMode || !open || !pack) return;
     void Promise.all([refreshKillSwitches(), refreshMutationPermissions()]).catch(() => {
       setKillSwitches([]);
       setMutationPermissions({});
     });
-  }, [open, pack?.id]);
+  }, [demoMode, open, pack?.id]);
 
   const authorizeConnection = async (connectionId: string) => {
     setConnectionNotice("Authorizing connection...");
@@ -272,99 +276,101 @@ export function WorkbenchCapabilitiesPanel({
                 ) : null}
               </CapabilitySection>
 
-              <CapabilitySection
-                icon={LinkIcon}
-                title="Connections"
-                description="Credentials remain in the platform vault and are never exposed to the agent."
-              >
-                {connections.map((connection) => (
-                  <div
-                    key={connection.id}
-                    className="border-border space-y-2 border-b px-3 py-3 last:border-b-0"
-                  >
-                    <CapabilityRow
-                      name={connection.id}
-                      description={`${connection.provider} · ${connection.requestedScopes.join(", ") || "no scopes"}`}
-                      badge={connection.status}
-                      action={
-                        connection.status === "authorized" ? (
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => void checkConnection(connection.id)}
-                            >
-                              Check
-                            </Button>
-                            {connection.credentialClass === "oauth2" ? (
+              {!demoMode ? (
+                <CapabilitySection
+                  icon={LinkIcon}
+                  title="Connections"
+                  description="Credentials remain in the platform vault and are never exposed to the agent."
+                >
+                  {connections.map((connection) => (
+                    <div
+                      key={connection.id}
+                      className="border-border space-y-2 border-b px-3 py-3 last:border-b-0"
+                    >
+                      <CapabilityRow
+                        name={connection.id}
+                        description={`${connection.provider} · ${connection.requestedScopes.join(", ") || "no scopes"}`}
+                        badge={connection.status}
+                        action={
+                          connection.status === "authorized" ? (
+                            <div className="flex flex-wrap gap-2">
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => void checkConnection(connection.id, true)}
+                                onClick={() => void checkConnection(connection.id)}
                               >
-                                Refresh
+                                Check
                               </Button>
-                            ) : null}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => void revokeConnection(connection.id)}
-                            >
-                              Revoke
-                            </Button>
-                          </div>
-                        ) : undefined
-                      }
-                    />
-                    {connection.status !== "authorized" &&
-                    connection.credentialClass === "api_key" ? (
-                      <div className="flex gap-2">
-                        <input
-                          className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring h-9 min-w-0 flex-1 rounded-md border px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-                          type="password"
-                          value={connectionSecrets[connection.id] ?? ""}
-                          autoComplete="off"
-                          aria-label={`${connection.id} credential`}
-                          placeholder="API key"
-                          onChange={(event) =>
-                            setConnectionSecrets((current) => ({
-                              ...current,
-                              [connection.id]: event.target.value,
-                            }))
-                          }
-                        />
+                              {connection.credentialClass === "oauth2" ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => void checkConnection(connection.id, true)}
+                                >
+                                  Refresh
+                                </Button>
+                              ) : null}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void revokeConnection(connection.id)}
+                              >
+                                Revoke
+                              </Button>
+                            </div>
+                          ) : undefined
+                        }
+                      />
+                      {connection.status !== "authorized" &&
+                      connection.credentialClass === "api_key" ? (
+                        <div className="flex gap-2">
+                          <input
+                            className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring h-9 min-w-0 flex-1 rounded-md border px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                            type="password"
+                            value={connectionSecrets[connection.id] ?? ""}
+                            autoComplete="off"
+                            aria-label={`${connection.id} credential`}
+                            placeholder="API key"
+                            onChange={(event) =>
+                              setConnectionSecrets((current) => ({
+                                ...current,
+                                [connection.id]: event.target.value,
+                              }))
+                            }
+                          />
+                          <Button
+                            size="sm"
+                            disabled={!connectionSecrets[connection.id]}
+                            onClick={() => void authorizeConnection(connection.id)}
+                          >
+                            Connect
+                          </Button>
+                        </div>
+                      ) : null}
+                      {connection.status !== "authorized" &&
+                      connection.credentialClass === "oauth2" ? (
                         <Button
                           size="sm"
-                          disabled={!connectionSecrets[connection.id]}
-                          onClick={() => void authorizeConnection(connection.id)}
+                          variant="outline"
+                          onClick={() => void startOAuthConnection(connection.id)}
                         >
-                          Connect
+                          Authorize with OAuth
                         </Button>
-                      </div>
-                    ) : null}
-                    {connection.status !== "authorized" &&
-                    connection.credentialClass === "oauth2" ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void startOAuthConnection(connection.id)}
-                      >
-                        Authorize with OAuth
-                      </Button>
-                    ) : null}
-                  </div>
-                ))}
-                {connections.length === 0 ? (
-                  <EmptyCapabilityRow text="This agent does not require an external connection." />
-                ) : null}
-                {connectionNotice ? (
-                  <p className="text-muted-foreground border-border border-t px-3 py-2 text-xs">
-                    {connectionNotice}
-                  </p>
-                ) : null}
-              </CapabilitySection>
+                      ) : null}
+                    </div>
+                  ))}
+                  {connections.length === 0 ? (
+                    <EmptyCapabilityRow text="This agent does not require an external connection." />
+                  ) : null}
+                  {connectionNotice ? (
+                    <p className="text-muted-foreground border-border border-t px-3 py-2 text-xs">
+                      {connectionNotice}
+                    </p>
+                  ) : null}
+                </CapabilitySection>
+              ) : null}
 
-              {pack.risk.externalMutation ? (
+              {!demoMode && pack.risk.externalMutation ? (
                 <CapabilitySection
                   icon={ShieldAlertIcon}
                   title="Mutation authority"

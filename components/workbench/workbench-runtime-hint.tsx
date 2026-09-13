@@ -23,10 +23,12 @@ import { hasWorkbenchSessionAccess } from "@/lib/workbench/session-access";
 import { cn } from "@/lib/utils";
 
 export function WorkbenchRuntimeHint({
+  demoMode = false,
   onOpenAdmin,
   onOpenCapabilities,
   onOpenHistory,
 }: {
+  demoMode?: boolean;
   onOpenAdmin: () => void;
   onOpenCapabilities: () => void;
   onOpenHistory: () => void;
@@ -169,7 +171,9 @@ export function WorkbenchRuntimeHint({
             value={liveRuntime.cloudflareStatus}
             tone={liveRuntime.cloudflareTone}
           />
-          <RuntimeHintRow icon={Building2Icon} label="Workspace" value={workspaceName} />
+          {!demoMode ? (
+            <RuntimeHintRow icon={Building2Icon} label="Workspace" value={workspaceName} />
+          ) : null}
           <RuntimeHintRow icon={BotIcon} label="Agent" value={agentLabel ?? "Agent"} />
           <RuntimeHintRow icon={CpuIcon} label="Model" value={modelLabel ?? "System default"} />
           <RuntimeHintRow

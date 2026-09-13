@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   clearAllWorkbenchTenantCaches,
@@ -9,6 +9,7 @@ import {
   workbenchQueryKeys,
   workbenchSessionEventInvalidations,
 } from "../../packages/workbench-react/src/index";
+import { preloadWorkbenchSurface } from "./surface-preloading";
 
 describe("workbench query model", () => {
   it("keeps tenant and parameterized resources distinct", () => {
@@ -60,5 +61,36 @@ describe("workbench query model", () => {
       const source = readFileSync(resolve(process.cwd(), file), "utf8");
       expect(source, file).not.toContain("browserWorkbenchClient");
     }
+  });
+
+  it("warms list data once while leaving heavy run details demand-loaded", async () => {
+    const queryClient = createWorkbenchQueryClient();
+    const client = {
+      agents: { list: vi.fn().mockResolvedValue({ agents: [] }) },
+      history: {
+        listRuns: vi.fn().mockResolvedValue({ runs: [] }),
+        listArtifacts: vi.fn().mockResolvedValue({ artifacts: [] }),
+        getRun: vi.fn(),
+      },
+      actions: { list: vi.fn().mockResolvedValue({ proposals: [] }) },
+    };
+
+    await preloadWorkbenchSurface({
+      surface: "history",
+      client: client as never,
+      queryClient,
+      workspaceId: "workspace:a",
+    });
+    await preloadWorkbenchSurface({
+      surface: "history",
+      client: client as never,
+      queryClient,
+      workspaceId: "workspace:a",
+    });
+
+    expect(client.history.listRuns).toHaveBeenCalledTimes(1);
+    expect(client.history.listArtifacts).toHaveBeenCalledTimes(1);
+    expect(client.actions.list).toHaveBeenCalledTimes(1);
+    expect(client.history.getRun).not.toHaveBeenCalled();
   });
 });

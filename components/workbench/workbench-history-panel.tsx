@@ -166,6 +166,13 @@ export function WorkbenchHistoryPanel({
     () => actions.filter((action) => attentionActionStatuses.has(action.status)),
     [actions],
   );
+  const hasFreshHistory =
+    runsQuery.data !== undefined &&
+    artifactsQuery.data !== undefined &&
+    actionsQuery.data !== undefined &&
+    !runsQuery.isStale &&
+    !artifactsQuery.isStale &&
+    !actionsQuery.isStale;
 
   useEffect(() => {
     selectedRunIdRef.current = selectedRunId;
@@ -252,7 +259,7 @@ export function WorkbenchHistoryPanel({
     if (!open) return;
     let cancelled = false;
     const refresh = async () => {
-      const loadedRuns = await loadHistory();
+      const loadedRuns = hasFreshHistory ? runs : await loadHistory();
       if (cancelled || !loadedRuns) return;
       const runId = focus
         ? resolveFocusedRunId(loadedRuns, focus)
@@ -268,7 +275,7 @@ export function WorkbenchHistoryPanel({
     return () => {
       cancelled = true;
     };
-  }, [focus, inspectRun, loadHistory, onFocusConsumed, open]);
+  }, [focus, hasFreshHistory, inspectRun, loadHistory, onFocusConsumed, open, runs]);
 
   const closeFromOverlay = (event: { preventDefault: () => void }) => {
     event.preventDefault();

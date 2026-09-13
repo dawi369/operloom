@@ -2,7 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRunWorkflow, WorkbenchClientProvider } from "@operloom/workbench-react";
+import {
+  useRunWorkflow,
+  useWorkbenchClient,
+  useWorkbenchQueryClient,
+  WorkbenchClientProvider,
+} from "@operloom/workbench-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import {
   ActivityIcon,
@@ -55,6 +60,10 @@ import {
 } from "@/lib/workbench/pack-workflow-bindings";
 import type { AgentSlashWorkflowAction } from "@/lib/workbench/agent-slash-actions";
 import { hasWorkbenchSessionAccess } from "@/lib/workbench/session-access";
+import {
+  preloadWorkbenchSurface,
+  type WorkbenchPreloadSurface,
+} from "@/lib/workbench/surface-preloading";
 
 const AdminPanel = dynamic(
   () => import("@/components/workbench/dev-monitor-drawer").then((module) => module.AdminPanel),
@@ -148,6 +157,8 @@ function WorkbenchShellContent({
   const [workflowInput, setWorkflowInput] = useState<Record<string, string | boolean>>({});
   const [isWorkflowRunning, setIsWorkflowRunning] = useState(false);
   const { mutateAsync: runWorkflow } = useRunWorkflow();
+  const workbenchClient = useWorkbenchClient();
+  const queryClient = useWorkbenchQueryClient();
   const { user, loading } = useAuth();
   const {
     error: sessionError,
@@ -160,12 +171,45 @@ function WorkbenchShellContent({
     session,
     sessionError,
   });
+  const workspaceId = session?.workspace?.id;
   const { focusComposerAfterInteraction, focusComposerAfterOverlayClose } =
     useWorkbenchComposerFocus();
   const workflowSlashActions = useMemo(
     () => resolveAgentSlashWorkflowActions(session?.activeAgent?.behavior.pack),
     [session?.activeAgent?.behavior.pack],
   );
+
+  const warmSurface = useCallback(
+    (surface: WorkbenchPreloadSurface) => {
+      if (!workspaceId) return;
+      void preloadWorkbenchSurface({
+        surface,
+        client: workbenchClient,
+        queryClient,
+      });
+    },
+    [queryClient, workbenchClient, workspaceId],
+  );
+
+  useEffect(() => {
+    if (!hasAuthenticatedSession || !workspaceId || session?.isStale) return;
+    const warmLikelyPanels = () => {
+      warmSurface("agents");
+      warmSurface("history");
+    };
+    const timeoutId = window.setTimeout(warmLikelyPanels, 750);
+    return () => window.clearTimeout(timeoutId);
+  }, [hasAuthenticatedSession, session?.isStale, warmSurface, workspaceId]);
+
+  const openAgents = useCallback(() => {
+    warmSurface("agents");
+    setAgentsOpen(true);
+  }, [warmSurface]);
+
+  const openHistory = useCallback(() => {
+    warmSurface("history");
+    setHistoryOpen(true);
+  }, [warmSurface]);
 
   useEffect(() => {
     if (loading) return;
@@ -305,7 +349,7 @@ function WorkbenchShellContent({
           label: action.label,
           createdAt: Date.now(),
         });
-        setHistoryOpen(true);
+        openHistory();
         setAdminNotice(`${action.label} ${status}. Opening History.`);
         setWorkflowAction(null);
         requestWorkbenchSummaryRefresh({ source: "event" });
@@ -325,7 +369,7 @@ function WorkbenchShellContent({
         window.setTimeout(() => setAdminNotice(null), 3500);
       }
     },
-    [focusComposerAfterInteraction, runWorkflow],
+    [focusComposerAfterInteraction, openHistory, runWorkflow],
   );
 
   const handleWorkflowInputChange = useCallback((name: string, value: string | boolean) => {
@@ -398,25 +442,27 @@ function WorkbenchShellContent({
       {
         id: "new",
         label: "New chat",
-        description: "Start a fresh thread in the current workspace.",
+        description: demoMode ? "Start a fresh chat." : "Start a fresh thread in this workspace.",
         icon: MessageSquarePlusIcon,
         execute: startNewChat,
       },
-      {
-        id: "workspace",
-        label: "Workspace",
-        description: "Switch accounts and manage workspace access.",
-        icon: Building2Icon,
-        execute: () => setWorkspaceOpen(true),
-      },
+      ...(!demoMode
+        ? [
+            {
+              id: "workspace",
+              label: "Workspace",
+              description: "Switch accounts and manage workspace access.",
+              icon: Building2Icon,
+              execute: () => setWorkspaceOpen(true),
+            },
+          ]
+        : []),
       {
         id: "agents",
         label: "Agents",
         description: "Pick the active chat agent.",
         icon: BotIcon,
-        execute: () => {
-          setAgentsOpen(true);
-        },
+        execute: openAgents,
       },
       {
         id: "tools",
@@ -437,17 +483,19 @@ function WorkbenchShellContent({
         label: "History",
         description: "Inspect recent scoped runs and artifacts.",
         icon: HistoryIcon,
-        execute: () => setHistoryOpen(true),
+        execute: openHistory,
       },
-      {
-        id: "admin",
-        label: "Admin",
-        description: adminAccess?.isAdmin
-          ? "Open workspace, agent, and runtime controls."
-          : "Restricted operator panel.",
-        icon: ShieldCheckIcon,
-        execute: openAdmin,
-      },
+      ...(!demoMode || adminAccess?.isAdmin
+        ? [
+            {
+              id: "admin",
+              label: "Admin",
+              description: "Open agent and runtime controls.",
+              icon: ShieldCheckIcon,
+              execute: openAdmin,
+            },
+          ]
+        : []),
     ];
 
     if (!adminAccess?.isAdmin) return commands;
@@ -478,7 +526,10 @@ function WorkbenchShellContent({
     ];
   }, [
     adminAccess?.isAdmin,
+    demoMode,
+    openAgents,
     openAdmin,
+    openHistory,
     openPackWorkflowAction,
     runAdminTestTool,
     startNewChat,
@@ -498,7 +549,15 @@ function WorkbenchShellContent({
             {hasAuthenticatedSession ? (
               <AuthButton
                 localSession={!user && hasAuthenticatedSession}
-                onOpenWorkspace={() => setWorkspaceOpen(true)}
+                onOpenWorkspace={demoMode ? undefined : () => setWorkspaceOpen(true)}
+              />
+            ) : null}
+            {hasAuthenticatedSession ? (
+              <WorkbenchRuntimeHint
+                demoMode={demoMode}
+                onOpenAdmin={openAdmin}
+                onOpenCapabilities={() => setCapabilitiesOpen(true)}
+                onOpenHistory={openHistory}
               />
             ) : null}
             {adminNotice ? (
@@ -513,13 +572,6 @@ function WorkbenchShellContent({
                 disableNewChat={false}
                 disableThreadActions={isInitialLoading}
               />
-              <div className="absolute top-14 right-3 z-20 flex max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2">
-                <WorkbenchRuntimeHint
-                  onOpenAdmin={openAdmin}
-                  onOpenCapabilities={() => setCapabilitiesOpen(true)}
-                  onOpenHistory={() => setHistoryOpen(true)}
-                />
-              </div>
             </>
           ) : null}
           {sessionError && hasAuthenticatedSession ? (
@@ -545,19 +597,22 @@ function WorkbenchShellContent({
             onCloseAutoFocus={handlePanelCloseAutoFocus}
           />
           <WorkbenchCapabilitiesPanel
+            demoMode={demoMode}
             open={capabilitiesOpen}
             onOpenChange={handleCapabilitiesOpenChange}
             onCloseAutoFocus={handlePanelCloseAutoFocus}
             onRunWorkflow={openPackWorkflowByType}
           />
-          <WorkbenchWorkspacePanel
-            open={workspaceOpen}
-            onOpenChange={(nextOpen) => {
-              setWorkspaceOpen(nextOpen);
-              if (!nextOpen) focusComposerAfterOverlayClose();
-            }}
-            onCloseAutoFocus={handlePanelCloseAutoFocus}
-          />
+          {!demoMode ? (
+            <WorkbenchWorkspacePanel
+              open={workspaceOpen}
+              onOpenChange={(nextOpen) => {
+                setWorkspaceOpen(nextOpen);
+                if (!nextOpen) focusComposerAfterOverlayClose();
+              }}
+              onCloseAutoFocus={handlePanelCloseAutoFocus}
+            />
+          ) : null}
           <WorkbenchHistoryPanel
             open={historyOpen}
             focus={historyFocus}
@@ -575,7 +630,7 @@ function WorkbenchShellContent({
               if (runId) {
                 setHistoryFocus({ runId, createdAt: Date.now() });
               }
-              setHistoryOpen(true);
+              openHistory();
             }}
           />
           <WorkflowRunDialog
@@ -585,7 +640,7 @@ function WorkbenchShellContent({
             onViewRun={() => {
               setHistoryFocus({ runId: workflowError?.runId, createdAt: Date.now() });
               setWorkflowAction(null);
-              setHistoryOpen(true);
+              openHistory();
             }}
             isRunning={isWorkflowRunning}
             onInputChange={handleWorkflowInputChange}

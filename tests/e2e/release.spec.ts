@@ -14,6 +14,55 @@ test.beforeEach(async ({ page }) => {
   page.on("console", captureHydrationErrors);
 });
 
+test("demo account controls stay clear of the runtime summary", async ({ page }) => {
+  test.skip(releaseMode !== "local-session" || process.env.WORKBENCH_ENVIRONMENT !== "demo");
+
+  await page.setViewportSize({ width: 785, height: 420 });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "What are we working on?" })).toBeVisible();
+  await expect(page.getByText("Public demo", { exact: true })).toBeVisible();
+
+  const accountControls = page.getByText("Local development", { exact: true }).locator("..");
+  const runtimeSummary = page.locator("[data-summary-sync-status]");
+  await expect(accountControls).toBeVisible();
+  await expect(runtimeSummary).toBeVisible();
+  const [accountBox, runtimeBox] = await Promise.all([
+    accountControls.boundingBox(),
+    runtimeSummary.boundingBox(),
+  ]);
+  expect(accountBox).not.toBeNull();
+  expect(runtimeBox).not.toBeNull();
+  expect(accountBox!.y + accountBox!.height).toBeLessThanOrEqual(runtimeBox!.y);
+  await expect(page.getByRole("button", { name: "Workspace access" })).toHaveCount(0);
+});
+
+test("demo warms bounded panels before the first click", async ({ page }) => {
+  test.skip(releaseMode !== "local-session" || process.env.WORKBENCH_ENVIRONMENT !== "demo");
+
+  let listRequests = 0;
+  page.on("request", (request) => {
+    if (
+      /\/api\/workbench\/(agents|history\/runs|history\/artifacts|actions)(\?|$)/.test(
+        request.url(),
+      )
+    ) {
+      listRequests += 1;
+    }
+  });
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "What are we working on?" })).toBeVisible();
+  await expect.poll(() => listRequests).toBeGreaterThanOrEqual(4);
+  const warmedRequestCount = listRequests;
+
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  const history = page.getByRole("dialog", { name: "Workbench History" });
+  await expect(history).toBeVisible();
+  await expect(history.getByText("Loading history.", { exact: true })).toHaveCount(0);
+  await page.waitForTimeout(250);
+  expect(listRequests).toBeLessThanOrEqual(warmedRequestCount + 1);
+});
+
 test("signed-out refresh stays on the deliberate access screen", async ({ page, context }) => {
   test.skip(releaseMode !== "signed-out");
 

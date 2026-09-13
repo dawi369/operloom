@@ -29,19 +29,31 @@ export function AuthButton({
 
   if (user || localSession) {
     return (
-      <div className="flex items-center gap-2">
-        <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
-          <UserIcon className="size-3.5" />
-          {user?.email ?? user?.firstName ?? "Local development"}
+      <div className="flex max-w-full min-w-0 items-center gap-2">
+        <span className="text-muted-foreground flex min-w-0 items-center gap-1.5 text-xs">
+          <UserIcon className="size-3.5 shrink-0" />
+          <span className="truncate">{user?.email ?? user?.firstName ?? "Local development"}</span>
         </span>
         {onOpenWorkspace ? (
-          <Button variant="ghost" size="sm" onClick={onOpenWorkspace} title="Workspace access">
+          <Button
+            className="shrink-0"
+            variant="ghost"
+            size="sm"
+            onClick={onOpenWorkspace}
+            title="Workspace access"
+          >
             <Building2Icon className="size-4" />
             <span className="sr-only">Workspace access</span>
           </Button>
         ) : null}
         {user ? (
-          <Button variant="ghost" size="sm" onClick={() => void signOut()} title="Sign out">
+          <Button
+            className="shrink-0"
+            variant="ghost"
+            size="sm"
+            onClick={() => void signOut()}
+            title="Sign out"
+          >
             <LogOutIcon className="size-4" />
             <span className="sr-only">Sign out</span>
           </Button>
