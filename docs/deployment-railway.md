@@ -4,10 +4,13 @@ Railway is the maintained Next.js host for the `demo` environment and
 `operloom.t23.dev`. The provider-neutral `web` manifest keeps Vercel available
 for adopters without making it part of Operloom's public demo.
 
-The demo service uses [railway.toml](../railway.toml): one replica, no volume,
+Configure the isolated demo service directly with one replica, no volume,
 `sleepApplication = true`, `/api/health` health checks, and the repository's
-pnpm build/start commands. Do not add application heartbeats, periodic outbound
-traffic, background workers, or monitors that prevent Serverless sleep.
+pnpm build/start commands. Railway no longer accepts the legacy
+[`railway.toml` Config-as-Code format](https://docs.railway.com/config-as-code)
+for new services. Do not add application
+heartbeats, periodic outbound traffic, background workers, or monitors that
+prevent Serverless sleep.
 
 Required non-secret references are `WORKBENCH_DEMO_RAILWAY_PROJECT_ID`,
 `WORKBENCH_DEMO_RAILWAY_ENVIRONMENT_ID`, and
