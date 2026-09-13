@@ -229,7 +229,7 @@ test("trusted local session is immediately usable and exposes release controls",
   await page.getByRole("button", { name: "Close" }).click();
 
   await composer.fill("/admin");
-  await page.getByText("Open workspace, agent, and runtime controls.", { exact: true }).click();
+  await composer.press("Enter");
   await expect(page.getByRole("dialog", { name: "Admin" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Overview" })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Agents" })).toBeVisible();
@@ -380,7 +380,7 @@ test("trusted local session is immediately usable and exposes release controls",
   const recoveredComposer = page.getByRole("textbox", { name: "Message input" });
   await expect(recoveredComposer).toBeEditable();
   await recoveredComposer.fill("/admin");
-  await page.getByText("Open workspace, agent, and runtime controls.", { exact: true }).click();
+  await recoveredComposer.press("Enter");
   await expect(page.getByRole("dialog", { name: "Admin" })).toBeVisible();
 
   expect(hydrationErrors).toEqual([]);
