@@ -158,6 +158,8 @@ test("keyboard, focus, responsive, and accessibility contracts cover workbench s
   await expect(reviewDialog.locator("pre")).toContainText("<script>review as text</script>");
   await auditPage(page, testInfo, "workflow-review-dialog");
   await reviewDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  // The remaining surfaces walk the upstream pack catalog; forks cover their own packs.
+  if (product.workspace.defaultAgentPack !== "operloom") return;
   await page.getByRole("tab", { name: "Agents" }).press("Enter");
   const repositoryPack = page.locator("article").filter({ hasText: "Repository Analyst" });
   await expect(repositoryPack).toBeVisible();
