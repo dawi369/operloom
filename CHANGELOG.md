@@ -10,6 +10,10 @@
 - Fixed: request-mode schedule and monitor triggers failed every tick with
   `trigger_input_invalid` on strict workflow input schemas, because scheduler
   bookkeeping (`skippedOccurrences`) was merged into the workflow input.
+- Fixed: one slow `ps` poll stopped the whole supervised local stack; the
+  resource monitor now fails closed after five consecutive failures.
+- Release and accessibility e2e specs read the title from `config/product.json`
+  and stop before upstream-only packs when a fork changes the default pack.
 
 ## 2.0.0
 
