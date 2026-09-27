@@ -5,20 +5,18 @@ bundles reviewed behavior, declared tools and workflows, user-facing starters,
 risk metadata, and verification scenarios. Creating an agent snapshots the
 installed pack version into the workspace-scoped D1 agent record.
 
-The complete target composition boundary is defined in
-`capability-model.md`. API v2 implements serializable extension descriptors and
-the subset of runtime bindings that can be validated and enforced today.
-
-Document status: Agent Pack API v2 and Runtime Module v1 are implemented for
+Document status: Agent Pack API v2 and Runtime Module v2 are implemented for
 trusted build-time packages. Remote installation, a marketplace, arbitrary
 executable uploads, secret binding, and automatic snapshot upgrades are not
 implemented.
 
 ## Default and example agents
 
-`agent-packs/operloom` is the default conversational pack. It has no external
-tools, workflows, connections, or background triggers. New workspaces snapshot
-it into their default agent; the catalog lists it before the specialist packs.
+`config/product.json` (`workspace.defaultAgentPack`, `workspace.maxAgents`)
+chooses the pack new workspaces snapshot into their default agent and caps the
+number of agents. Upstream, the default is `agent-packs/operloom`, a
+conversational pack with no external tools, workflows, connections, or
+background triggers; the catalog lists it before the specialist packs.
 The agent picker keeps the workspace default first without changing an existing
 chat or the user's selected agent.
 
@@ -129,18 +127,15 @@ export const examplePack = defineAgentPack({
 template id `pack-<id>`. Versions must be semantic. The adjacent `prompt.xml`
 must match the inline prompt exactly.
 
-Pack manifests remain serializable snapshots. Adjacent Runtime Module v1
+Pack manifests remain serializable snapshots. Adjacent Runtime Module v2
 exports provide trusted control-plane, runner, and web implementations. The
 deterministic compiler owns forms, schemas, generic routes, policy defaults,
 compatibility, health/eval bindings, and renderer lookup; there is no
 handwritten workflow catalog or per-workflow Vercel route.
 
-The manifest engine must match the registered workflow binding. `cloudflare`
-means Cloudflare owns orchestration even when a step uses the signed Fly runner.
-`langgraph` is persisted only after delegation creates a real LangGraph run and
-records its external run id. Runner transport (`cloudflare-inline` or `fly`) is
-separate tool-call metadata. Unknown workflow declarations remain inspectable
-but are not runnable.
+Cloudflare owns workflow orchestration even when a step uses the signed runner.
+Runner transport (`cloudflare_inline` or `fly`) is separate tool-call metadata.
+Unknown workflow declarations remain inspectable but are not runnable.
 
 Runtime workflow `label` text names the launcher action. The optional
 `runDisplayName` supplies a stable History label when that surface needs
@@ -291,7 +286,8 @@ Pack-backed agents are immutable snapshots:
   workspace, pack, and version using an idempotent insert.
 - Activation starts a fresh chat and leaves the current thread unchanged.
 
-The Vercel activation facade requires the operator allowlist. Cloudflare also
+The console's instantiate route requires the admin allowlist
+(`OPERLOOM_ADMIN_USER_IDS` or `OPERLOOM_ADMIN_EMAILS`). Cloudflare also
 requires active workspace `owner` or `admin` membership. `/agents` remains the
 normal member-facing switcher for existing agents.
 

@@ -110,18 +110,31 @@ export const handlePublicApi = async (
   } catch (error) {
     const known = error instanceof WorkbenchAuthError;
     const conflict = agentRevisionConflict(error);
-    response = json(
-      {
-        ok: false,
-        requestId,
-        code: conflict?.code ?? (known ? `http_${error.status}` : "internal_error"),
-        error: conflict?.error ?? (known ? error.message : "Public API request failed"),
-      },
-      { status: conflict ? 409 : known ? error.status : 500 },
-    );
+    const fenced =
+      !known && error instanceof Error && error.message.includes("workspace_export_in_progress");
+    response = fenced
+      ? json(
+          {
+            ok: false,
+            requestId,
+            code: "workspace_export_in_progress",
+            error: "Workspace writes are briefly paused while an export snapshot is captured.",
+          },
+          { status: 423 },
+        )
+      : json(
+          {
+            ok: false,
+            requestId,
+            code: conflict?.code ?? (known ? `http_${error.status}` : "internal_error"),
+            error: conflict?.error ?? (known ? error.message : "Public API request failed"),
+          },
+          { status: conflict ? 409 : known ? error.status : 500 },
+        );
   }
   const headers = new Headers(response.headers);
   headers.set("x-request-id", requestId);
-  headers.set("cache-control", "no-store");
+  if (!/(^|,)\s*no-store\s*(,|$)/.test(headers.get("cache-control") ?? ""))
+    headers.set("cache-control", "no-store");
   return withCors(new Response(response.body, { status: response.status, headers }), request, env);
 };

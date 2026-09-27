@@ -1,11 +1,12 @@
-# Environment Separation And Release Evidence
+# Environments And Deployment
 
 Document status: current deployment security boundary and operator runbook.
 
 Operloom has four explicit targets. The checked-in
 `config/environments/*.json` files contain only non-secret names and environment
 variable references. `cloudflare/control-plane/wrangler.jsonc` and
-`fly.langgraph.toml` are local-only; neither is a hosted deployment default.
+`fly.runner.toml` carry local defaults; the deploy commands render
+target-specific configuration from the manifest.
 
 | Target       | Customer data  | Conformance | Vault  | Mutation default |
 | ------------ | -------------- | ----------- | ------ | ---------------- |
@@ -17,7 +18,7 @@ variable references. `cloudflare/control-plane/wrangler.jsonc` and
 Hosted targets default to cost-idle operation: Cloudflare Cron Triggers are
 empty and Fly keeps zero Machines running when idle. Scheduled and monitor
 triggers remain dormant until a deliberate deployment re-enables the scheduler;
-explicit LangGraph or runner traffic cold-starts the existing Fly Machine.
+runner invocations cold-start the existing Fly Machine.
 
 Worker names, D1 names and IDs, R2 buckets, Fly apps, web projects, WorkOS
 applications/workspaces, public origins, and every signing-secret reference are
@@ -44,8 +45,8 @@ OPERLOOM_TARGET_WORKSPACE_ID                  # acceptance
 OPERLOOM_PRODUCTION_ACCEPTANCE_WORKSPACE_ID  # isolated production acceptance
 ```
 
-The target-specific facade, runner, callback, Agent connection, alert receiver,
-cookie, proxy, Vault, and model-provider secret names in the manifest identify
+The target-specific runner, callback, Agent connection, operator-alert, cookie,
+Vault, and model-provider secret names in the manifest identify
 provider-secret-store entries. Values never belong in the manifest, generated
 config, release evidence, shell history, or CI logs. The runner accepts
 callbacks only to the configured target Cloudflare origin. Every role is unique
@@ -78,10 +79,9 @@ pnpm deploy:cloudflare -- --target acceptance --execute \
 Provisioning is separately confirmed per provider with
 `acceptance:provision-<provider>:<full-sha>`. Cloudflare, Fly, and Vercel have
 guarded executable commands. Railway demo provisioning is performed once in the
-existing T23 workspace and its IDs are then supplied to the manifest. WorkOS AuthKit application and organization setup
-remains a dashboard action and must be recorded with
-`pnpm release:evidence:record`; the CLI does not pretend that a Vault object is
-an AuthKit application.
+existing T23 workspace and its IDs are then supplied to the manifest. WorkOS
+AuthKit application and organization setup remains a dashboard action; the CLI
+does not pretend that a Vault object is an AuthKit application.
 
 Vercel provisioning also converges the project to the repository contract:
 Next.js with Node 24. A project left on a provider default runtime is not ready
@@ -130,7 +130,7 @@ Record operator approval independently for each external-state phase:
 6. promote Cloudflare through `disabled`, `retained-data`, `connections`, and
    `mutations`; each stage requires the preceding stage's same-SHA deployment
    record;
-7. collect all acceptance evidence and complete the 24-hour soak;
+7. run the hosted acceptance checks below against the same SHA;
 8. deploy the accepted SHA to production and promote only through
    `connections`. Production mutation remains globally disabled until isolated
    hosted mutation acceptance is complete; workspace-level authority checks
@@ -140,65 +140,29 @@ Do not proceed if any resource, WorkOS application, secret value, or public
 origin is shared across targets. Each hosted target uses its own project/service
 and origin.
 
-## Same-commit evidence
+## Hosted acceptance
 
-Run gates through the recorder so duration, status, operator, target, and SHA
-are durable without recording environment values:
-
-```bash
-pnpm release:evidence:run -- --target acceptance --kind repository.release-check \
-  -- pnpm release:check
-pnpm release:evidence:run -- --target acceptance --kind hosted.data-lifecycle \
-  -- env OPERLOOM_HOSTED_DATA_LIFECYCLE_MODE=true pnpm acceptance:hosted:data-lifecycle
-pnpm release:evidence:run -- --target acceptance --kind hosted.alert-outage-redelivery \
-  -- env OPERLOOM_HOSTED_ALERT_REDELIVERY_MODE=true pnpm acceptance:hosted:alert-redelivery
-pnpm release:evidence:collect -- --target acceptance
-```
-
-Manual and hosted acceptance records may add secret-free service versions,
-run/artifact/proposal/job identifiers, screenshots, dashboards, and artifact
-paths using the same record schema. The collector rejects mixed commits or
-targets and writes `output/release/<full-sha>/manifest.json`. The directory is
-ignored; attach it to the protected release evidence store.
-
-Start the acceptance soak, retain its state artifact, and finish it no earlier
-than 24 elapsed hours later against the same SHA:
+Run the local release gate on the candidate SHA first (`pnpm release:check`),
+then check the deployed target:
 
 ```bash
-OPERLOOM_HOSTED_SOAK_MODE=true pnpm acceptance:hosted:soak -- --phase start
-OPERLOOM_HOSTED_SOAK_MODE=true pnpm acceptance:hosted:soak -- --phase finish \
-  --state output/release/<full-sha>/soak-24h-state.json
-pnpm release:evidence:record -- --target acceptance --kind hosted.soak-24h \
-  --input output/release/<full-sha>/soak-24h.json \
-  --confirm acceptance:hosted.soak-24h:<full-sha>
+pnpm acceptance:hosted:configuration -- --target acceptance
+GITHUB_SHA=<full-sha> OPERLOOM_ENVIRONMENT=acceptance SENTRY_AUTH_TOKEN=<token> \
+  pnpm acceptance:hosted:observability
+OPERLOOM_HOSTED_VAULT_MODE=true GITHUB_SHA=<full-sha> OPERLOOM_ENVIRONMENT=acceptance \
+  HOSTED_VAULT_WORKSPACE_ID=<synthetic-workspace> pnpm acceptance:hosted:vault
+HOSTED_WEB_ORIGIN=<web-url> \
+HOSTED_CLOUDFLARE_ORIGIN=<worker-url> \
+HOSTED_FLY_ORIGIN=<fly-url> \
+pnpm acceptance:hosted:public
 ```
 
-The guarded `Hosted release evidence` workflow exposes `soak-start` and
-`soak-finish`; the finish run consumes the start run's protected artifact.
-Required evidence also includes duplicate delivery, receiver outage and
-redelivery, Worker/Fly restart, lease expiry/replay, lifecycle alert
-acknowledgement, export recovery and purge, Vault lifecycle, mutation
-reconciliation, and signed-in browser acceptance. Local time-shifts are not
-substitutes.
-
-Signed-in browser acceptance remains an operator observation because it uses a
-real WorkOS session. Record it with a secret-free JSON input containing
-`schemaVersion: 1`, target, full commit, `status: "passed"`, start/completion
-timestamps, operator, screenshot `artifactPaths`, safe service versions, and
-the run/artifact IDs. Then bind it to the commit:
-
-```bash
-pnpm release:evidence:record -- --target acceptance --kind hosted.signed-in \
-  --input output/release/<full-sha>/signed-in-input.json \
-  --confirm acceptance:hosted.signed-in:<full-sha>
-pnpm release:evidence:record -- --target production --kind hosted.signed-in-readonly \
-  --input output/release/<full-sha>/production-signed-in-input.json \
-  --confirm production:hosted.signed-in-readonly:<full-sha>
-```
-
-The recorder rejects mixed targets/commits, missing artifacts, invalid elapsed
-time, and credential-shaped content. Production acceptance is read-only and
-must never enable conformance mode or global mutation.
+Then complete a signed-in browser journey with a real WorkOS session: open the
+web origin, send a message and confirm the thread streams, run a runner-backed
+workflow such as Repository Analyst's **Readiness report**, and confirm History
+shows the run, runner tool call, artifact, policy decision and audit timeline.
+Server logs must not expose provider secrets. Production acceptance is
+read-only and must never enable conformance mode or global mutation.
 
 ## Forward fix and rollback
 

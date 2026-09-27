@@ -100,7 +100,10 @@ const main = async () => {
         ],
       ),
     );
-    for (const item of modules) {
+    // Test fixtures need prior runtime state and have dedicated suites (provider-operations).
+    for (const item of modules.filter(
+      (module) => !module.entry.source?.startsWith("./tests/fixtures/"),
+    )) {
       const guarantees = agentConformanceRegistry
         .filter((row) => row.packId === item.manifest.id && row.required)
         .map((row) => row.id);

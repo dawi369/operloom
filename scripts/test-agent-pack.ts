@@ -13,6 +13,14 @@ import { resolve } from "node:path";
 
 import { loadAgentModules } from "./agent-pack-compiler";
 import { createAgentPackTestFetch } from "./agent-pack-test-fetch";
+import { createPackTestRuntime } from "../cloudflare/control-plane/src/pack-test-runtime";
+
+const runtimePortCapabilities = new Set([
+  "state.atomic",
+  "context.snapshots",
+  "models.structured",
+  "usage.reservations",
+]);
 
 const readArg = (name: string) => {
   const index = process.argv.indexOf(name);
@@ -159,37 +167,61 @@ export const runAgentPackConformance = async (root: string, requested: string) =
       execute: NonNullable<RuntimeWorkflowBinding["execute"]>;
     } => typeof candidate.execute === "function",
   );
-  for (const workflow of workflows) {
-    const { context, controller, toolCalls } = createContext(workflow.type);
-    const defaults = exampleValue(workflow.inputSchema) as Record<string, unknown>;
-    const conformanceInput = { ...defaults, ...workflow.conformanceInput };
-    const input = workflow.normalizeInput
-      ? workflow.normalizeInput(conformanceInput)
-      : conformanceInput;
-    assertSchemaValue(workflow.inputSchema, input, `${workflow.type} input`);
-    const output = await workflow.execute(input, context);
-    controller.abort("workflow_complete");
-    if (!output.ok) throw new Error(output.error.message);
-    assertSchemaValue(workflow.outputSchema, output.output, `${workflow.type} output`);
-    const artifacts = output.artifacts ?? [];
-    const artifactBytes = artifacts.reduce(
-      (total, artifact) => total + Buffer.byteLength(JSON.stringify(artifact)),
-      0,
-    );
-    if (
-      artifacts.some((artifact) => !artifact.kind || !artifact.title || !artifact.mimeType) ||
-      artifactBytes > loaded.manifest.resourceLimits.maxArtifactBytes
-    ) {
-      throw new Error(`${workflow.type} returned artifacts outside its declared limits.`);
+  // The stub context has no state, context or model ports; such packages run on the real runtime.
+  const packRuntime = loaded.controlPlane.requirements.capabilities.some((capability) =>
+    runtimePortCapabilities.has(capability),
+  )
+    ? createPackTestRuntime({
+        packId: loaded.manifest.id as Parameters<typeof createPackTestRuntime>[0]["packId"],
+      })
+    : null;
+  try {
+    for (const workflow of workflows) {
+      const defaults = exampleValue(workflow.inputSchema) as Record<string, unknown>;
+      const conformanceInput = { ...defaults, ...workflow.conformanceInput };
+      const input = workflow.normalizeInput
+        ? workflow.normalizeInput(conformanceInput)
+        : conformanceInput;
+      assertSchemaValue(workflow.inputSchema, input, `${workflow.type} input`);
+      if (packRuntime) {
+        const response = await packRuntime.runWorkflow(workflow.type, input);
+        if (response.status !== 201)
+          throw new Error(`${workflow.type} failed: ${JSON.stringify(response.body)}`);
+        assertSchemaValue(workflow.outputSchema, response.body.report, `${workflow.type} output`);
+        results.push({
+          id: `workflow.${workflow.type}`,
+          ok: true,
+          summary: `${workflow.type} completed on the in-memory control plane.`,
+        });
+        continue;
+      }
+      const { context, controller, toolCalls } = createContext(workflow.type);
+      const output = await workflow.execute(input, context);
+      controller.abort("workflow_complete");
+      if (!output.ok) throw new Error(output.error.message);
+      assertSchemaValue(workflow.outputSchema, output.output, `${workflow.type} output`);
+      const artifacts = output.artifacts ?? [];
+      const artifactBytes = artifacts.reduce(
+        (total, artifact) => total + Buffer.byteLength(JSON.stringify(artifact)),
+        0,
+      );
+      if (
+        artifacts.some((artifact) => !artifact.kind || !artifact.title || !artifact.mimeType) ||
+        artifactBytes > loaded.manifest.resourceLimits.maxArtifactBytes
+      ) {
+        throw new Error(`${workflow.type} returned artifacts outside its declared limits.`);
+      }
+      if (toolCalls() > loaded.manifest.resourceLimits.maxToolCallsPerRun) {
+        throw new Error(`${workflow.type} exceeded its declared tool-call limit.`);
+      }
+      results.push({
+        id: `workflow.${workflow.type}`,
+        ok: true,
+        summary: output.summary,
+      });
     }
-    if (toolCalls() > loaded.manifest.resourceLimits.maxToolCallsPerRun) {
-      throw new Error(`${workflow.type} exceeded its declared tool-call limit.`);
-    }
-    results.push({
-      id: `workflow.${workflow.type}`,
-      ok: true,
-      summary: output.summary,
-    });
+  } finally {
+    packRuntime?.close();
   }
 
   for (const declared of loaded.controlPlane.tools) {
@@ -198,6 +230,15 @@ export const runAgentPackConformance = async (root: string, requested: string) =
       exampleValue(declared.inputSchema),
       `${declared.id} generated conformance input`,
     );
+    if (declared.action?.providerOperation) {
+      // The platform executes these through a reviewed provider operation, never directly.
+      results.push({
+        id: `tool.${declared.id}`,
+        ok: true,
+        summary: `Provider operation ${declared.action.providerOperation.id}.`,
+      });
+      continue;
+    }
     if (!exercisedTools.has(declared.id)) {
       const { context, controller } = createContext(`tool-${declared.id}`);
       const runner = loaded.runner.tools.find((candidate) => candidate.id === declared.id);

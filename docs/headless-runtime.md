@@ -1,9 +1,10 @@
 # Headless runtime (experimental)
 
-The Worker exposes an opt-in `/v1` API. The Next cookie facade and its existing
-routes remain compatible. The API calls the same canonical authorization and
-command handlers. Every operational request explicitly identifies its workspace
-and agent; selecting a different workspace in another client cannot redirect it.
+The Worker serves only `/v1` to the network; the bundled web console is a `/v1`
+client too. The API calls the canonical authorization and command handlers.
+Every operational request identifies its workspace and agent, explicitly or
+through `/v1/me`; selecting a different workspace in another client cannot
+redirect it.
 
 ## Local operation
 
@@ -19,8 +20,8 @@ pnpm dev:runtime
 
 The supervisor starts only Wrangler on `127.0.0.1:8787`; it does not load
 `.env.local`, start Next, start React, or require web auth callback variables.
-Heavy runner tools and explicit LangGraph workflows still require their own
-services. Use `pnpm conformance:runtime` for a disposable migrated D1/Worker
+Runner-backed tools need the signed runner as well (`pnpm operloom dev` starts
+all services). Use `pnpm conformance:runtime` for a disposable migrated D1/Worker
 journey using deterministic chat without a model provider.
 
 The local adapter requires all three: `OPERLOOM_LOCAL_API_ENABLED=true`,
@@ -77,12 +78,10 @@ The packaging uses Cloudflare's documented
 
 ## Production authentication configuration
 
-Keep `OPERLOOM_PUBLIC_API_ENABLED=false` until hosted acceptance is complete.
-To test WorkOS verification on an isolated deployment, configure these Worker
-variables alongside the existing Worker deployment configuration:
+Hosted Workers verify WorkOS access tokens. Configure these Worker variables
+alongside the existing deployment configuration:
 
 ```text
-OPERLOOM_PUBLIC_API_ENABLED=true
 OPERLOOM_LOCAL_API_ENABLED=false
 OPERLOOM_WORKOS_ISSUER=<exact token issuer, including path/trailing slash>
 OPERLOOM_WORKOS_JWKS_URL=<HTTPS signing-key endpoint>
@@ -92,8 +91,9 @@ OPERLOOM_WORKOS_ALLOWED_CLIENT_IDS=<comma-separated authorized client IDs>
 Clients obtain and refresh access tokens through WorkOS. The API checks RS256
 signature, exact issuer, subject, issued-at, expiry, and authorized client claims.
 Membership and administrative permissions come from canonical Operloom records;
-JWT role claims cannot restore a revoked existing membership. Secrets stay on
-the server. Existing signed facade header names and service identities are unchanged.
+JWT role claims cannot restore a revoked existing membership. User rows record
+`email` and `name` only when a WorkOS JWT template adds those claims. Secrets
+stay on the server.
 
 `GET /v1/account` authenticates/bootstrap-resolves the account using existing
 platform rules. Subsequent operations use:
@@ -296,14 +296,14 @@ before upgrading. Hosted renderers leave this capability disabled.
 
 ## Model/tool budgets
 
-With `OPERLOOM_USAGE_LIMITS_ENABLED=true`, configure a workspace policy through
-`client.budgets.update({ expectedVersion, idempotencyKey, limits })` before
-submitting model or tool work. Both daily workspace and canonical root-run limits
+Each workspace starts with a default policy; owners/admins change it through
+`client.budgets.update({ expectedVersion, idempotencyKey, limits })`. Both daily
+workspace and canonical root-run limits
 are enforced before dispatch. Owners/admins inspect `client.budgets.get()` and
 `client.budgets.usage({ day, limit, cursor })` using the same explicit target and
 authentication. Listen for `usage.reserved`, `usage.settled` and `budget.updated`
 events, then fetch canonical usage. Workflow structured calls additionally require
-`OPERLOOM_STRUCTURED_MODELS_ENABLED=true` and the package capability declaration.
+the package's `models.structured` capability declaration.
 See model/budget semantics and the
 [document-review example](../examples/document-review/README.md) for complete setup.
 

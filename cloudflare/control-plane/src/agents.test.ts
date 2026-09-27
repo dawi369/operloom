@@ -17,6 +17,9 @@ type RecordedStatement = {
 };
 
 const timestamp = "2026-06-23T00:00:00.000Z";
+const activateRequest = new Request("https://worker.test/agents/agent-swordfish/activate", {
+  method: "POST",
+});
 
 const identity = {
   agentId: "agent-current",
@@ -134,7 +137,7 @@ describe("agents", () => {
   it("allows active workspace members to activate existing active agents", async () => {
     const { env, statements } = createRecordingEnv({ role: "member", agent: agentRow() });
 
-    const response = await handleActivateAgent(env, identity, "agent-swordfish");
+    const response = await handleActivateAgent(activateRequest, env, identity, "agent-swordfish");
     const body = (await response.json()) as { ok?: boolean; activeAgentId?: string };
 
     expect(response.status).toBe(200);
@@ -148,6 +151,30 @@ describe("agents", () => {
           JSON.stringify(statement.values).includes("agent-activated"),
       ),
     ).toBe(true);
+  });
+
+  it("moves the chat session to the activated agent", async () => {
+    const { env } = createRecordingEnv({ role: "member", agent: agentRow() });
+    const coordinatorCalls: unknown[] = [];
+    env.SessionAgent = {
+      idFromName: (name: string) => name,
+      get: () => ({
+        fetch: async (_url: string, init: RequestInit) => {
+          coordinatorCalls.push(JSON.parse(String(init.body)));
+          return Response.json({ ok: true });
+        },
+      }),
+    } as unknown as Env["SessionAgent"];
+
+    const response = await handleActivateAgent(activateRequest, env, identity, "agent-swordfish");
+
+    expect(response.status).toBe(200);
+    expect(coordinatorCalls).toMatchObject([
+      {
+        action: "switchAgent",
+        agentSwitch: { agentId: "agent-swordfish", target: "new_thread" },
+      },
+    ]);
   });
 
   it("keeps pack instantiation admin-only", async () => {

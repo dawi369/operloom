@@ -22,6 +22,17 @@ test.describe.serial("Agent-system executable conformance", () => {
     expect((await owner.account()).ok()).toBe(true);
     const activate = await owner.post("/agents/e2e-complex-agent/activate");
     expect(activate.status(), await activate.text()).toBe(200);
+    // Agents start in simulation; this journey proves the external signed-Fly path.
+    const effectTarget = await worker.get("/agents/e2e-complex-agent/effect-target");
+    expect(effectTarget.status(), await effectTarget.text()).toBe(200);
+    const external = await worker.put("/agents/e2e-complex-agent/effect-target", {
+      data: {
+        effectTarget: "external",
+        expectedRevision: ((await effectTarget.json()) as { runtimeRevision: number })
+          .runtimeRevision,
+      },
+    });
+    expect(external.status(), await external.text()).toBe(200);
 
     const retention = await worker.patch("/workbench/retention-policy", {
       data: {
@@ -235,6 +246,7 @@ test.describe.serial("Agent-system executable conformance", () => {
     expect(reconciled.status(), await reconciled.text()).toBe(200);
     expect(await reconciled.json()).toMatchObject({ result: { status: "reconciled" } });
 
+    const blockedProposal = await runFixture("kill-switch");
     const packPaused = await worker.put("/workbench/kill-switches", {
       data: {
         scopeKind: "pack",
@@ -244,12 +256,22 @@ test.describe.serial("Agent-system executable conformance", () => {
       },
     });
     expect(packPaused.status(), await packPaused.text()).toBe(200);
-    const blockedProposal = await runFixture("kill-switch");
+    // A paused pack admits no new runs and cancels its pending proposals.
+    const pausedRun = await worker.post("/workbench/workflows/complex-operator.observe", {
+      data: { executionMode: "dry_run", input: { subject: "kill-switch-run" } },
+    });
+    expect(pausedRun.status(), await pausedRun.text()).toBe(409);
+    expect(await pausedRun.json()).toMatchObject({ code: "resource_admission_denied" });
+    const afterPause = await worker.get("/workbench/actions");
+    expect(await afterPause.json()).toMatchObject({
+      proposals: expect.arrayContaining([
+        expect.objectContaining({ id: blockedProposal.id, status: "cancelled" }),
+      ]),
+    });
     const blockedExecution = await worker.post(
       `/workbench/actions/${encodeURIComponent(blockedProposal.id)}/execute`,
     );
-    expect(blockedExecution.status(), await blockedExecution.text()).toBe(403);
-    expect(await blockedExecution.json()).toMatchObject({ code: "kill_switch_active" });
+    expect(blockedExecution.status(), await blockedExecution.text()).toBe(409);
     const packResumed = await worker.put("/workbench/kill-switches", {
       data: {
         scopeKind: "pack",

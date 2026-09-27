@@ -1,127 +1,76 @@
 # Architecture
 
-## Runtime evolution (experimental)
-
-The v2 simulation action port uses the typed-state transaction for state, immutable
-decisions/effects and delivery receipts. The server selects the simulation scope
-and rechecks tool policy, evidence and attempt authority in the transaction.
-External proposal/dispatch rejects simulation bindings. No additional service or
-table is needed; see simulation contracts.
-
-The opt-in `/v1` Worker facade accepts WorkOS bearer tokens and dispatches through
-the same authorization and command handlers as the signed Next facade. Command
-targets carry explicit workspace and agent identities; caller identity headers
-are discarded. The pure verifier is shared with native clients.
-
-Typed-state commits extend D1 with scoped records, declared equality indexes,
-receipts, immutable evidence and outbox intents. All mutations share one batch
-with database-enforced preconditions. See state design.
-Operator reads and failed-event retry use the same backend authority, with shared
-OpenAPI/Fetch schemas. Retry is conditional on observed attempts and commits its
-audit event in the same D1 batch; simulation/external state targets stay separate.
-Schema migrations pin declarative plans in D1 and advance through bounded,
-transactional batches with persistent writer fences, cursors and replay receipts.
-Authorized partial repair retains both reviewed plans and replaces only the
-unprocessed suffix under the same revision guard and write fence.
-Server-owned agent execution revisions are pinned in authenticated identities and
-signed chat claims. D1 checks the pin at run admission/resumption; typed-state
-ports check it on reads and commits. Revision changes reject active work. This
-now supports explicit idle-agent package upgrades with immutable snapshots,
-state/index validation and atomic receipts/audit; see upgrade design. Pending HTTP
-chat commands now register in D1 before acknowledgement and pin the same revision.
-Run admission atomically links a command to one run, and terminal outcomes publish
-durable events. Deadline recovery closes abandoned work without re-executing it.
-See chat admission for the cross-store failure model.
-Opt-in v2 context resolvers receive immutable scope/input, read-only typed state
-and cancellation. Schema-validated evidence and run linkage commit atomically in
-D1 under current authority. Chat and workflows use the same collector; required
-stale evidence blocks work, and typed commits recheck expiry atomically. Trust
-comes from manifest declarations. See scoped context.
-Workflow structured model calls use the configured OpenRouter model and schema
-validation, with no automatic provider retry. D1 atomically admits model/tool
-reservations against workspace and canonical root-run budgets. Chat follow-up
-steps use the same admission boundary. Settlement and its durable event share a
-transaction; failed/ambiguous settlement retains the original charge. Evidence
-configuration hashes include the effective model settings. See models and budgets.
-The internal durable-execution kernel now records atomic submission/run identity,
-immutable pins, named step attempts and validated outcome receipts in D1. Safe
-retry is explicit and bounded; unknown unsafe attempts cannot redispatch. Its
-tables join export and purge. State/context publication and model/tool admission
-now enforce active step-attempt authority inside D1 transactions; incurred usage
-can settle afterward without granting new authority. The gated native Workflows
-adapter now supplies v2 steps, timer waits and `202` submission. A leased D1
-reconciler inspects bounded engine batches, recovers pending starts, closes expired/
-revoked/failed work atomically and terminates cancelled instances. Unknown step
-outcomes remain inspectable; started instances are never recreated automatically.
-It caches opaque result references, with inputs/results retained in D1.
-Native creation dispatches have scoped acknowledgement receipts. Workspace purge
-confirms native deletion in bounded batches before D1 identities can be removed;
-unsettled or ambiguous creation outcomes preserve a reconciliation fence.
-Durable steps now have separate immutable context captures and ordered revisions;
-new steps refresh evidence after waits, while retries retain the same capture.
-Clients page capture metadata and fetch evidence by ID. Approval pauses bind immutable
-review content and expiry in D1; the decision and wake intent commit together.
-Native events only wake execution, which must consume the canonical approval under
-current authority. Review descriptors are shared by headless clients and web views.
-Opt-in durable triggers transfer their leased dispatch into the run admission
-transaction. The dispatch ID remains the logical event identity. Pinned trigger
-configuration and current membership fence resumed work; pausing or changing the
-trigger cancels active runs. Pending observations coalesce; manual/webhook intake
-has a bounded backlog. The existing scheduler and signed ingress remain in control.
-Worker deployment now freezes its candidate and fences new durable admissions
-in D1 while comparing active handler pins inside the candidate runtime. An
-uncertain upload retains that fence for explicit operator recovery. Hosted
-activation/restart acceptance remains open; request-mode handlers keep their
-original execution semantics.
-See durable execution for the engine and authority gates.
-
-Delivery evidence records implemented versus
-verified behavior; [headless runtime](headless-runtime.md) documents the new API.
-
-Operloom is a reusable agent workbench with a conversational control
-plane, a heavy execution plane, and hosted environments split across a Next.js web host,
-Cloudflare, and Fly.
-
-The architecture should support personal operation, developer distribution,
-and business integrations without forking the core runtime. Customer- or
-domain-specific behavior belongs in workspace, agent, policy, tool, context,
-and integration configuration, not in hard-coded product assumptions.
-
-The cumulative autonomy levels and guarantees expected from those subsystems
-are defined in `capability-model.md`.
-
-Document status: this page is the concise current system map. Use
-`docs/infrastructure.md` for request flow and ownership, and
-`docs/cloudflare-control-plane.md` for Worker/D1 details.
+Operloom is a reusable agent workbench: a conversational control plane on
+Cloudflare, a signed Node.js runner for heavy tools, and a Next.js web console.
+Customer- or domain-specific behavior belongs in workspace, agent, policy, tool,
+context and integration configuration or in a fork's Runtime Modules, not in
+hard-coded product assumptions.
 
 ## System Shape
 
-- Next.js App Router serves the frontend and same-origin API facades.
-- WorkOS AuthKit runs at the Next.js web boundary.
-- The web facade derives trusted WorkOS/local identity before calling Cloudflare.
-- assistant-ui renders the thread, composer, messages, reasoning, tools, and
+- The Cloudflare Worker serves only `/v1` to the network. It resolves
+  authorization, workspace, active agent and thread, chat coordination, runtime
+  events and all control-plane state.
+- The Next.js App Router console is a `/v1` client. Its same-origin routes
+  (`app/api/workbench/*`, `app/api/v1/me/*`) call the Worker with the signed-in
+  WorkOS access token, or the local API token in development. No identity
+  headers or facade signatures cross that boundary.
+- WorkOS AuthKit runs at the web boundary; the Worker verifies WorkOS access
+  tokens itself.
+- assistant-ui renders the thread, composer, messages, reasoning, tools and
   attachments.
-- Cloudflare resolves authorization, workspace, active agent, active thread,
-  normal chat coordination, Admin summaries, runtime events, and control-plane
-  state.
-- Cloudflare Agents own normal hosted chat through a per-thread
-  `ThreadChatAgent` Durable Object.
-- `SessionAgent` owns hot user/workspace session snapshots, thread
-  switching, Agent connection payloads, and live-session events.
-- Durable Object SQLite owns hot per-thread messages; D1 mirrors compact
-  product/control-plane state for authorization and Admin visibility.
-- Fly/LangGraph remain the explicit heavy workflow and server-side tool
-  execution plane.
-- OpenRouter is configured server-side for Cloudflare Agent chat and the
-  Fly/LangGraph runtime. New agents default to `openai/gpt-6-luna` with
-  `reasoning.effort=none`; saved per-agent model selections remain authoritative.
+- Cloudflare Agents own chat through a per-thread `ThreadChatAgent` Durable
+  Object. `SessionAgent` owns per-user/workspace session snapshots, thread and
+  agent switching, and live session events.
+- Durable Object SQLite holds hot per-thread messages; D1 holds canonical
+  product and control-plane state.
+- The signed runner (`runner/server.ts`) executes runner-transport tools and
+  reports results through signed callbacks.
+- OpenRouter is configured server-side. New agents default to
+  `openai/gpt-6-luna`; saved per-agent model selections remain authoritative.
 
-The browser is the supported product client in `0.5.1`; the Expo app
-is WIP on `codex/mobile-wip`, outside the web release. Shared clients use the
-runtime-validated `@operloom/client` contract, while cookie auth
-and Cloudflare Agent React remain web adapters. The native boundary is specified
-in `docs/mobile-frontends.md`; native clients never receive the web facade
-signing secret or bypass Cloudflare authorization.
+```txt
+Browser -> Next.js console (WorkOS session)
+        -> Cloudflare Worker /v1 (authz, chat/session, control state, D1)
+        -> Cloudflare Agents (chat)
+        -> signed runner (heavy tools only) -> signed callbacks -> Worker
+```
+
+Native clients are WIP on `codex/mobile-wip` and use the same
+`@operloom/client` contract against `/v1`.
+
+## Runtime Guarantees
+
+- Typed state: scoped records, declared indexes, receipts, immutable
+  decisions/effects and outbox events commit in one D1 batch with
+  database-enforced preconditions. Simulation and external targets stay
+  separate, and each agent's effect target is pinned on its runs.
+- Execution revisions: agent revisions are pinned in identities and signed chat
+  claims; D1 checks them at admission and typed-state ports check them on reads
+  and commits. Idle-agent package upgrades use immutable snapshots.
+- Chat admission: HTTP chat commands register in D1 before acknowledgement and
+  link atomically to one run; deadline recovery closes abandoned work without
+  re-executing it.
+- Context: resolvers receive immutable scope and read-only state; evidence and
+  run linkage commit atomically, and stale required evidence blocks work.
+- Models and budgets: structured model calls use the configured model with
+  schema validation. D1 admits model/tool reservations against workspace and
+  root-run budgets (a default policy is seeded) and refuses them while a
+  workspace or pack kill switch is active.
+- Durable execution: submissions, step attempts and outcome receipts live in
+  D1; native Workflows supply steps, timer waits and `202` submission. Unknown
+  unsafe attempts never redispatch.
+- Triggers: schedules and monitors dispatch through a leased D1 scheduler
+  (local development ticks it every minute); webhooks verify per-trigger
+  secrets. Durable triggers hand their dispatch to run admission.
+- Approvals and actions: every action is proposed, reviewed and approved
+  against immutable review content; approval and dispatch re-validate current
+  authority, and kill switches cancel pending proposals.
+- Provider operations: named operations run inside the Cloudflare broker with
+  platform-controlled destination, signing and credentials; receipts are kept
+  separate from action projection and reconcile without redispatch.
+
+See [headless runtime](headless-runtime.md) for the public API.
 
 ## Control Plane Model
 
@@ -135,9 +84,9 @@ trusted identity -> workspace/member/agent resolution
   -> audit, artifacts, decisions, traces, and events
 ```
 
-Normal chat stays on Cloudflare Agents. Complex workflows should be represented
-as typed intents and escalated to Fly/LangGraph only when graph semantics,
-container execution, browser automation, or heavy tools are needed.
+Chat stays on Cloudflare Agents. Workflows run in the Cloudflare workflow
+kernel; a step uses the signed runner only when a tool needs container
+execution, browser automation or other heavy work.
 
 The generic workflow lifecycle remains:
 
@@ -148,16 +97,16 @@ observe -> analyze -> propose -> execute -> review
 ## Generic Subsystems
 
 - Identity and tenancy: every durable read/write is scoped to a user,
-  workspace, membership, and agent resolved from trusted server context.
+  workspace, membership, and agent resolved from the verified caller.
 - Tool registry and exposure: installed tools can be broader than the
   model-visible set; exposure is resolved by policy, agent, stage, execution
   mode, and approval state.
 - Server-side execution: browser code can request, approve, and inspect tools,
   but secrets and tool credentials stay server-side.
-- Run control: foreground/workflow runs and read-only trigger dispatches track
+- Run control: foreground/workflow runs and trigger dispatches track
   cancellation, retry/replay, leases, heartbeats, concurrency, and recovery as
-  durable state. Delegated parent/child execution remains a target capability.
-- Canonical state: outputs return as scoped decision records, managed state,
+  durable state.
+- Canonical state: outputs return as typed state, decision and effect entries,
   artifacts, audit events, traces, UI events, immutable action proposals, and
   append-only action-ledger entries.
 - Observability: Admin and D1 runtime summaries are product truth; Sentry and
@@ -169,82 +118,62 @@ observe -> analyze -> propose -> execute -> review
 - `lib/workbench/use-agent-connection.tsx`: loads the Cloudflare-owned session
   and active Agent connection.
 - `components/assistant-ui/*`: reusable assistant-ui components.
-- `components/workbench/*`: product-specific shell, sidebar, runtime hints, and
-  Admin surfaces.
-- `app/api/[..._path]/route.ts`: LangGraph API proxy.
-- `app/api/workbench/*`: same-origin web facades over Cloudflare.
-- `cloudflare/control-plane/src/connection-broker.ts`: tenant-scoped WorkOS
-  Vault metadata, OAuth/API-key authorization, refresh/revoke/health, and
-  provider-host-scoped request capabilities.
+- `components/workbench/*`: product-specific shell, sidebar, operations panel,
+  runtime hints, and Admin surfaces.
+- `app/api/workbench/*`, `app/api/v1/me/[...path]/route.ts` and
+  `lib/workbench/control-plane-client/transport.ts`: console routes that call
+  Worker `/v1` with the caller's bearer token.
+- `app/api/external-signals/[publicId]/route.ts`: forwards per-trigger webhooks;
+  the Worker verifies each trigger secret and takes tenant scope from the
+  retained trigger, never the caller.
+- `cloudflare/control-plane/src/public-api.ts`: the `/v1` boundary
+  (authentication, route allowlist, error mapping).
+- `cloudflare/control-plane/*`: Worker, D1 schema/migrations, Durable Object
+  Agents, authz, policy, chat, tools, events, traces, and the
+  schedule/monitor/webhook trigger runtime.
+- `cloudflare/control-plane/src/runtime-workflows.ts`: the package workflow
+  kernel for schema/resource checks, scoped execution, state and response
+  formatting.
+- `cloudflare/control-plane/src/runtime-tool-execution.ts`: the shared
+  inline/runner dispatcher used by workflows, model tools, and Admin tools.
+- `cloudflare/control-plane/src/runtime-run-lifecycle.ts`: atomic D1 start,
+  promotion, terminal publication, trigger completion, and cancellation.
 - `cloudflare/control-plane/src/action-authority.ts`: durable proposals,
   policy/approval rechecks, kill switches, execution CAS, terminal ledger, and
   ambiguous-outcome reconciliation.
+- `cloudflare/control-plane/src/provider-operations.ts`: credential-isolated
+  provider operations and their receipts.
+- `cloudflare/control-plane/src/connection-broker.ts`: tenant-scoped WorkOS
+  Vault metadata, OAuth/API-key authorization, refresh/revoke/health, and
+  provider-host-scoped request capabilities.
 - `cloudflare/control-plane/src/workspace-data-lifecycle.ts`: asynchronous
   D1/R2/DO export plus workspace quarantine, recovery, and purge.
-- `app/api/external-signals/[publicId]/route.ts`: signed public facade for
-  per-trigger Agent Pack webhooks. Tenant scope comes from the retained trigger,
-  never the caller.
-- `backend/agent.ts`: LangGraph graph/provider seam.
-- `cloudflare/control-plane/*`: Worker, D1 schema/migrations, Durable Object
-  Agents, authz, policy, chat, tools, events, traces, and the canonical
-  schedule/monitor/webhook trigger runtime.
-- `workbench.config.ts`: the only manual registry for trusted build-time Agent
-  Runtime packages.
-- `packages/agent-sdk/*`: Pack API v2 and Runtime Module v1 public contracts.
+- `cloudflare/control-plane/src/pack-test-runtime.ts`: in-memory control plane
+  for package acceptance tests.
+- `runner/server.ts`: the signed Node.js tool runner.
+- `workbench.config.ts`: the only manual registry for trusted build-time
+  Runtime Modules.
+- `packages/agent-sdk/*`: the Runtime Module v2 public contract.
 - `generated/agent-runtime/*`: deterministic manifest, Cloudflare, runner, web,
   conformance, and compiled-workbench-version registries.
-- `cloudflare/control-plane/src/runtime-workflows.ts`: the sole package workflow
-  kernel for schema/resource checks, scoped execution, CAS state, and response
-  formatting.
-- `cloudflare/control-plane/src/runtime-tool-execution.ts`: the shared inline/Fly
-  dispatcher used by workflows, model tools, and pack-backed Admin tools.
-- `cloudflare/control-plane/src/runtime-run-lifecycle.ts`: atomic D1 start,
-  promotion, terminal publication, trigger completion, and cancellation boundary.
-- `examples/complex-operator/*`: provider-free external-style extension proof.
+- `examples/complex-operator/*`, `examples/resource-allocator/*`: external-style
+  extension and complex-operator proofs.
 
 ## Deployment Boundary
 
-Local development normally runs the Next app and LangGraph server with:
+Local development runs every service under one supervisor:
 
 ```bash
-pnpm dev
+pnpm operloom dev
 ```
 
-The hosted dev baseline is:
+It starts the console on 3000, the Worker on 8787, the signed runner on 3101 and
+a one-minute trigger scheduler, with local API authentication. Hosted targets
+deploy the same three pieces separately: the Worker and D1 to Cloudflare, the
+runner to Fly, and the console to the configured web host. See
+[environments](environment-separation.md) and
+[Fly runner deployment](deployment-fly.md).
 
-```txt
-Browser -> Next.js web app (Railway for the maintained demo; Vercel optional)
-        -> WorkOS AuthKit session
-        -> web API facade
-        -> Cloudflare Worker/D1 for authz, chat/session, and control state
-        -> Cloudflare Agents for normal messages
-        -> Fly/LangGraph only for explicit heavy execution
-```
-
-The configured web provider owns hosted sign-in and browser ergonomics. Cloudflare is the
+The web host owns sign-in and browser ergonomics. Cloudflare is the
 authorization, control-plane, chat coordination, and canonical-state boundary.
-Fly remains the execution plane.
-
-### External-action review authority
-
-Migration 0031 adds immutable review bindings and CHECK-backed ledger transitions
-to the existing D1 control plane. Approval and dispatch each atomically validate
-current authority against the reviewed payload, policy, credentials and state.
-Bounded scheduler expiry revokes pending work while preserving accepted effects.
-Reviews participate in export and purge; exports omit internal vault references.
-See review design. Provider operation isolation and
-response reconciliation remain separate delivery gates.
-
-### Credential-isolated operation dispatch
-
-Experimental named provider operations run inside the Cloudflare broker. Packages
-supply an approved domain payload; the platform controls the operation registry,
-destination, method, signing and credential access. Migration 0032 separates
-provider receipts from action projection. A recorded dispatch is never reclaimed
-for another mutation; read-only reconciliation and projection repair preserve its
-identity. Provider resource lifecycle (pending/active/rejected) is distinct from
-dispatch acceptance. Recovery without a receipt atomically proves absence and
-fences proposal admission; it cannot race a dispatcher into a false no-effect
-result. The public API exposes redacted receipts separately from action status,
-with shared response schemas for frontend and headless clients. See
-provider operations.
+The runner only executes.

@@ -1,82 +1,68 @@
-# Fly.io Acceptance And Production Deployment
+# Fly Runner Deployment
 
-The personal deployment uses the minimal hosted testing profile.
-Separate acceptance and production stacks are optional fork configurations.
-
-Fly is the hosted dev/staging execution runtime. Local development remains the
-primary coding loop. Vercel owns the hosted frontend; Fly owns LangGraph and
-signed executor work.
+Fly hosts the signed Node.js tool runner (`runner/server.ts`). Cloudflare owns
+chat, authorization, state and the user-facing stream; the runner only executes
+tools the Worker dispatches to it and reports results back through signed
+callbacks. Local development runs the same runner on port 3101
+(`pnpm operloom dev`).
 
 ## Shape
 
-Each hosted target has its own app and public gateway, declared in
-`config/environments/<target>.json`. `fly.langgraph.toml` is local-only.
+Each hosted target declares its own Fly app in
+`config/environments/<target>.json` (`fly.appName`, `fly.origin`).
 
-- Acceptance app: `operloom-acceptance-runner`
-- Production app: `operloom-runner`
-- Gateway on `PORT`, default `3000`
-- LangGraph dev server on `LANGGRAPH_PORT`, default `2024`
-- Gateway proxies LangGraph traffic to `LANGGRAPH_UPSTREAM_URL`
-- Gateway serves signed workbench executor requests
+- Image: `Dockerfile.runner` (Node 24, production dependencies, `PORT=3000`).
+- Config: `fly.runner.toml` (`internal_port = 3000`, `/health/live` checks,
+  `auto_stop_machines = "stop"`, `min_machines_running = 0`).
+- Invocations: `POST /workbench/tool-runners/invocations`, signed with
+  `OPERLOOM_RUNNER_SIGNING_SECRET`.
+- Results: signed callbacks (`OPERLOOM_CALLBACK_SIGNING_SECRET`) to the Worker's
+  `/workbench/run-callbacks`, accepted only for `OPERLOOM_CALLBACK_ORIGIN`.
 
-This split removes the old Vercel -> Fly Next proxy -> LangGraph hop. Normal
-hosted chat now runs through Cloudflare Agents. The Fly gateway remains for
-LangGraph compatibility paths, explicit workflow escalation, and signed tool
-runner work.
+The runner holds no durable state and mounts no volume. Do not rely on its
+filesystem.
 
-## Required Secrets
+## Secrets
 
-Set secrets with `fly secrets set`; do not commit them.
-
-For the dedicated LangGraph runtime, set:
+Set secrets with `pnpm environment:configure-secrets -- --target <target>` or
+`fly secrets set`; never commit them. The runner needs:
 
 ```bash
-fly secrets set --app <target-app> OPENROUTER_API_KEY=...
 fly secrets set --app <target-app> OPERLOOM_RUNNER_SIGNING_SECRET=...
 fly secrets set --app <target-app> OPERLOOM_CALLBACK_SIGNING_SECRET=...
-fly secrets set --app <target-app> LANGGRAPH_PROXY_TOKEN=...
+fly secrets set --app <target-app> OPERLOOM_CALLBACK_ORIGIN=<target-worker-origin>
 ```
 
-Optional:
+The Worker uses the runner only with `OPERLOOM_RUNNER_TRANSPORT=fly`,
+`OPERLOOM_RUNNER_URL` and the matching signing secret. Without them, runner-only
+tools such as `url.inspect` are unavailable; they never fall back to Cloudflare
+egress.
+
+## Deploy
 
 ```bash
-fly secrets set LANGSMITH_API_KEY=...
-fly secrets set LANGSMITH_TRACING=true
-fly secrets set --app <target-app> LANGSMITH_PROJECT=operloom-<target>
-```
-
-## First Deploy
-
-```bash
-fly apps create operloom-acceptance-runner --region fra
+fly apps create <target-app> --region fra
 pnpm environment:check --target acceptance
 pnpm deploy:fly -- --target acceptance
 ```
 
-If a planned app name is unavailable, change only the target manifest and
-re-run cross-target validation before provisioning.
+Deployment commands are dry runs until `--execute` and the printed confirmation
+token are supplied; see [environments](environment-separation.md). The wrapper
+creates one Machine per process group (`--ha=false`). Idle Machines stop and
+cold-start on the next runner invocation; do not raise the minimum without an
+approved latency-versus-cost decision.
 
 ## Smoke Checks
 
-Health:
-
 ```bash
-curl <target-fly-origin>/health
+curl <target-fly-origin>/health/live
+OPERLOOM_RUNNER_BASE_URL=<target-fly-origin> \
+OPERLOOM_RUNNER_SIGNING_SECRET=<runner-secret> \
+pnpm smoke:fly-tool-runner
 ```
 
-LangGraph gateway:
-
-```bash
-LANGGRAPH_RUNTIME_BASE_URL=<target-fly-origin> \
-LANGGRAPH_PROXY_TOKEN=<token> \
-pnpm smoke:langgraph-runtime
-```
-
-Cloudflare-to-Fly and chat/session boundaries are exercised with signed facade
-requests by `pnpm acceptance:hosted:level3`. Hosted dev-token smokes are
-rejected.
-
-Public hosted boundary agreement:
+Set `OPERLOOM_RUNNER_CALLBACK_URL` as well to exercise callbacks against a
+reachable receiver. Check that the Worker, web and runner origins agree:
 
 ```bash
 HOSTED_WEB_ORIGIN=<web-url> \
@@ -85,87 +71,5 @@ HOSTED_FLY_ORIGIN=<fly-url> \
 pnpm acceptance:hosted:public
 ```
 
-The signed-in acceptance journey must then activate Repository Analyst and
-complete a readiness workflow through this production-shaped path:
-
-```text
-remote Cloudflare Worker -> remote D1
-                         -> signed Fly runtime executor
-                         -> Worker callbacks -> remote D1 snapshot
-```
-
-Tool runner transport:
-
-```bash
-LANGGRAPH_RUNTIME_BASE_URL=<target-fly-origin> \
-OPERLOOM_RUNNER_SIGNING_SECRET=<runner-secret> \
-pnpm smoke:fly-tool-runner
-```
-
-When validating callback-backed runner behavior against a reachable callback
-receiver, also set `OPERLOOM_RUNNER_CALLBACK_URL`.
-
-Cloudflare uses this path only when the Worker is configured with
-`OPERLOOM_RUNNER_TRANSPORT=fly`, `OPERLOOM_RUNNER_URL`, and the matching
-`OPERLOOM_RUNNER_SIGNING_SECRET`. Without those settings, Fly-only tools such
-as `url.inspect` are unavailable; they never fall back to Cloudflare egress.
-
-Fly machine health uses `GET /health/live`, a shallow gateway liveness check
-that does not call LangGraph. Use `GET /health` for deep manual or smoke checks
-that should prove the gateway can reach the LangGraph `/ok` endpoint. A healthy
-steady-state Fly log should show startup plus Fly health state changes, not
-recurring LangGraph `/ok` lines every 15 seconds from machine checks.
-
-The deployment wrapper uses `--ha=false` to create one Machine per process group.
-This deliberately trades redundancy for a small testing footprint.
-Hosted Fly targets keep `min_machines_running = 0`, with automatic stop and
-start enabled. Idle Machines therefore release CPU and RAM and cold-start only
-when explicit LangGraph or runner traffic arrives. Do not raise the minimum
-without an approved latency-versus-cost decision.
-
-The Fly image installs the root production dependency set and boots the checked
-in LangGraph CLI/graph pair. Dependency updates must pass
-`pnpm verify:security`, the LangGraph runtime boot smoke, and
-`pnpm verify:docker`; do not update the CLI independently of that evidence.
-
-Hosted Vercel workbench routes require a signed-in WorkOS browser session.
-`pnpm conformance:level2` remains the deterministic local same-origin proof;
-the hosted workflow journey is recorded manually against a signed-in session.
-
-Scoped remote D1 reads/writes and cross-tenant `404` behavior are covered by
-the signed hosted Level 3, data-lifecycle, and mutation gates.
-
-Cloudflare target deploy sequence:
-
-```bash
-pnpm environment:provision -- --target acceptance --provider cloudflare
-pnpm environment:check --target acceptance
-pnpm db:cloudflare:backup -- --target acceptance
-pnpm db:cloudflare:migrate -- --target acceptance
-pnpm deploy:cloudflare -- --target acceptance
-pnpm acceptance:hosted:level3:preflight
-pnpm acceptance:hosted:public
-```
-
-Only run `d1 create` during the separately approved provisioning phase. Store
-its returned ID in the target environment variable; never copy it into the
-local Wrangler config. Hosted reset/rebuild commands are intentionally absent.
-
-Frontend:
-
-- Open the Vercel URL.
-- Activate Repository Analyst, run **Readiness report**, and confirm History
-  shows the completed run, runner tool call, readiness artifact, policy
-  decision, and audit timeline.
-- Send a message.
-- Confirm a thread is created and streaming works.
-- Confirm server logs do not expose provider secrets.
-
-## Health Checks
-
-`fly.langgraph.toml` checks `/health/live`. That endpoint confirms the runtime
-gateway is up without calling LangGraph or the model provider.
-
-## Persistence Warning
-
-This first Fly setup does not mount volumes. Do not rely on local filesystem state for important work. Before production use, verify LangGraph persistence behavior across Machine restarts and choose durable persistence intentionally.
+Image changes must pass `pnpm verify:security` and `pnpm verify:docker`, which
+builds the image and checks signed-runner readiness in a container.

@@ -47,16 +47,17 @@ if (/<!--\s*Add the .* screenshot/i.test(readme)) {
 const packageJson = JSON.parse(readRepositoryFile("package.json")) as {
   scripts?: Record<string, string>;
 };
-const documentedCommandFiles = [
-  "README.md",
-  "CONTRIBUTING.md",
-  "docs/getting-started.md",
-  "docs/first-agent.md",
-];
-const packageManagerBuiltins = new Set(["install", "exec", "dlx"]);
-for (const file of documentedCommandFiles) {
-  const content = readRepositoryFile(file);
-  for (const match of content.matchAll(/^pnpm ([a-z][a-z0-9:-]*)/gim)) {
+const packageManagerBuiltins = new Set(["install", "exec", "dlx", "add", "run"]);
+const packageDocs = ["examples", "agent-packs"].flatMap((root) =>
+  readdirSync(join(repositoryRoot, root), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => join(repositoryRoot, root, entry.name, "README.md"))
+    .filter((path) => existsSync(path)),
+);
+for (const markdownFile of [...markdownRoots.flatMap(collectMarkdownFiles), ...packageDocs]) {
+  const file = markdownFile.slice(repositoryRoot.length + 1);
+  const content = readFileSync(markdownFile, "utf8");
+  for (const match of content.matchAll(/(?:^|[\s`(])pnpm ([a-z][a-z0-9:-]*)/gim)) {
     const command = match[1]!;
     if (!packageManagerBuiltins.has(command) && !packageJson.scripts?.[command]) {
       failures.push(`${file} documents missing package script ${command}`);
@@ -65,7 +66,7 @@ for (const file of documentedCommandFiles) {
 }
 
 if (failures.length > 0) {
-  console.error(`Found ${failures.length} broken local Markdown link(s):`);
+  console.error(`Found ${failures.length} documentation problem(s):`);
   for (const failure of failures) console.error(`- ${failure}`);
   process.exitCode = 1;
 } else {

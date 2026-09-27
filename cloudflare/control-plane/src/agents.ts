@@ -19,6 +19,7 @@ import { agentManifestRegistry } from "../../../generated/agent-runtime/manifest
 import type { LocalAgentPackManifest } from "../../../agent-packs";
 import { upsertActiveAgentPreference } from "./authz";
 import { selectAgent, selectMembership, selectWorkspaceAgents } from "./authz-store";
+import { switchChatSessionAgent } from "./chat-session";
 import { isRecord, json, parseJson } from "./http";
 import { requireActiveMembership, requireAdminMembership } from "./membership-policy";
 import { createId, toJson, type AgentIdentity, type Env } from "./types";
@@ -243,7 +244,12 @@ export const handleInstantiateAgentPack = async (
   );
 };
 
-export const handleActivateAgent = async (env: Env, identity: AgentIdentity, agentId: string) => {
+export const handleActivateAgent = async (
+  request: Request,
+  env: Env,
+  identity: AgentIdentity,
+  agentId: string,
+) => {
   const currentMembership = await selectMembership(
     env,
     identity.scope.userId,
@@ -269,6 +275,11 @@ export const handleActivateAgent = async (env: Env, identity: AgentIdentity, age
     agentId: agent.id,
     reason: "agent-activated",
   });
+  // The session coordinator caches its agent; without this, chat stays on the previous one.
+  if (env.SessionAgent) {
+    const switched = await switchChatSessionAgent(request, env, identity, agent.id);
+    if (!switched.ok) return switched;
+  }
 
   return json({
     ok: true,
