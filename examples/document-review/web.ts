@@ -4,5 +4,8 @@ export const web = defineWebModule({
   runtimeVersion: "1.0.0",
   compatiblePackVersions: "^1.0.0",
   artifactRenderers: {},
-  managedStateRenderers: {},
+  managedStateRenderers: {
+    "documents.review": { kind: "generic_detail", version: 1 },
+    "documents.summary": { kind: "generic_detail", version: 1 },
+  },
 });

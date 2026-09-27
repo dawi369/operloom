@@ -14,6 +14,16 @@
   resource monitor now fails closed after five consecutive failures.
 - Release and accessibility e2e specs read the title from `config/product.json`
   and stop before upstream-only packs when a fork changes the default pack.
+- Fixed: `POST /agents/{id}/activate` left chat on the previous agent; it now
+  moves the session coordinator to the activated agent on a new thread.
+- Fixed: `/v1` returned 500 instead of 423 `workspace_export_in_progress` for
+  writes during an export, and overwrote `private, no-store` with `no-store`.
+- `pnpm agent-packs:test` runs workflows of packages that need state, context or
+  model ports on the in-memory control plane and skips direct execution of
+  provider-operation tools; `document-review` and `resource-allocator` declare
+  their managed-state renderers.
+- The agent-system conformance journey opts its agent into `external` and
+  asserts that a pack kill switch blocks new runs and cancels pending proposals.
 
 ## 2.0.0
 
