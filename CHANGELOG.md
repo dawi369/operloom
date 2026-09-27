@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (unreleased)
+## 2.0.0
 
 Clean-slate baseline. There is no upgrade path from 1.x; rebuild databases from
 the baseline schema.

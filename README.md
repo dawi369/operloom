@@ -50,7 +50,7 @@ Node 26 is also supported. The repository example uses `ripgrep`; allow about
 10 GiB of available RAM for the full local stack and browser.
 
 ```bash
-git clone --branch v1.0.0 https://github.com/dawi369/operloom.git
+git clone --branch v2.0.0 https://github.com/dawi369/operloom.git
 cd operloom
 pnpm install --frozen-lockfile
 pnpm operloom init
@@ -149,7 +149,7 @@ independent adoption evidence, or future maintenance is promised.
 **Mobile is WIP / future work**, preserved on
 [`codex/mobile-wip`](https://github.com/dawi369/operloom/tree/codex/mobile-wip).
 
-[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release notes](https://github.com/dawi369/operloom/releases/tag/v1.0.0)
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release notes](https://github.com/dawi369/operloom/releases/tag/v2.0.0)
 
 ## License
 
