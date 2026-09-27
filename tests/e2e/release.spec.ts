@@ -1,3 +1,4 @@
+import product from "../../config/product.json";
 import { expect, test, type ConsoleMessage } from "./fixtures";
 
 const releaseMode = process.env.E2E_RELEASE_MODE;
@@ -67,7 +68,7 @@ test("signed-out refresh stays on the deliberate access screen", async ({ page, 
   test.skip(releaseMode !== "signed-out");
 
   await page.goto("/");
-  await expect(page).toHaveTitle("Operloom");
+  await expect(page).toHaveTitle(product.webTitle);
   await expect(page.getByRole("heading", { name: "Resume your workspace" })).toBeVisible();
   await expect(page.getByText("Pick up your chats, agents, and history.")).toBeVisible();
   await expect(page.getByText("agent workbench", { exact: true })).toBeVisible();
@@ -168,6 +169,8 @@ test("trusted local session is immediately usable and exposes release controls",
   page,
 }) => {
   test.skip(releaseMode !== "local-session");
+  // This journey walks the upstream pack catalog; forks cover their own default pack.
+  test.skip(product.workspace.defaultAgentPack !== "operloom");
 
   test.setTimeout(120_000);
   let adminSummaryRequests = 0;
@@ -176,7 +179,7 @@ test("trusted local session is immediately usable and exposes release controls",
   });
 
   await page.goto("/");
-  await expect(page).toHaveTitle("Operloom");
+  await expect(page).toHaveTitle(product.webTitle);
   await expect(page.getByText("agent workbench", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "What are we working on?" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Message input" })).toBeEditable();
