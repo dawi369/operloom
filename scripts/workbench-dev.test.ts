@@ -62,9 +62,5 @@ describe("local workbench supervisor", () => {
       url: "http://127.0.0.1:8787/cdn-cgi/handler/scheduled?cron=*%20*%20*%20*%20*",
       intervalMs: 60_000,
     });
-    const production = createLocalWorkbenchConfiguration(root, {}, "production");
-    const served = production.services.find((service) => service.name === "frontend")!;
-    expect(served.args).toEqual(["exec", "next", "start", "--hostname", "127.0.0.1"]);
-    expect(served.env.NODE_ENV).toBe("production");
   });
 });

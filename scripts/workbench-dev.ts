@@ -1,5 +1,4 @@
 import { serviceMemoryBudgetMb, startManagedProcess } from "./managed-process";
-import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -34,7 +33,6 @@ const required = (values: Record<string, string>, key: string, source: string) =
 export const createLocalWorkbenchConfiguration = (
   root: string,
   environment: Readonly<Record<string, string | undefined>> = process.env,
-  mode: "development" | "production" = "development",
 ): LocalWorkbenchConfiguration => {
   const frontend = readLocalEnvironment(root, ".env.local");
   const worker = readLocalEnvironment(root, "cloudflare/control-plane/.dev.vars");
@@ -79,26 +77,18 @@ export const createLocalWorkbenchConfiguration = (
       {
         name: "frontend",
         command: "pnpm",
-        // Production mode serves the output of `pnpm build`.
-        args:
-          mode === "production"
-            ? ["exec", "next", "start", "--hostname", "127.0.0.1"]
-            : [
-                "exec",
-                "next",
-                "dev",
-                "--webpack",
-                "--disable-source-maps",
-                "--hostname",
-                "127.0.0.1",
-              ],
+        args: [
+          "exec",
+          "next",
+          "dev",
+          "--webpack",
+          "--disable-source-maps",
+          "--hostname",
+          "127.0.0.1",
+        ],
         port: frontendPort,
         healthUrl: `http://127.0.0.1:${frontendPort}`,
-        env: {
-          ...shared,
-          PORT: String(frontendPort),
-          ...(mode === "production" ? { NODE_ENV: "production" } : {}),
-        },
+        env: { ...shared, PORT: String(frontendPort) },
       },
       {
         name: "worker",
@@ -154,10 +144,7 @@ const main = async () => {
   if (!nodeRuntime.supported) throw new Error(nodeRuntime.message);
   const diagnosis = await diagnoseWorkbench({ root, offline: true });
   if (diagnosis.failures.length) throw new Error(diagnosis.failures.join("\n"));
-  const mode = process.argv.includes("--production") ? "production" : "development";
-  if (mode === "production" && !existsSync(resolve(root, ".next/BUILD_ID")))
-    throw new Error("No production build found; run pnpm build first");
-  const configuration = createLocalWorkbenchConfiguration(root, process.env, mode);
+  const configuration = createLocalWorkbenchConfiguration(root);
   await Promise.all(configuration.services.map((service) => assertPortAvailable(service.port)));
 
   console.log("Starting complete local workbench:");

@@ -9,7 +9,6 @@ const help = `Operloom developer commands
   pnpm operloom fork init --id <id> --name <name> --origin <url>
   pnpm operloom fork --check
   pnpm operloom dev
-  pnpm operloom start          (after pnpm build: production frontend, same Worker and runner)
   pnpm operloom doctor [--offline]
   pnpm operloom verify [fast|full|release]
   pnpm operloom pack create --id <id> --name <name>
@@ -30,8 +29,6 @@ export const resolveWorkbenchCommand = (arguments_: string[]): ResolvedCommand |
     };
   }
   if (group === "dev") return { script: "workbench:dev", args: arguments_.slice(1) };
-  if (group === "start")
-    return { script: "workbench:dev", args: ["--production", ...arguments_.slice(1)] };
   if (group === "doctor") return { script: "workbench:doctor", args: arguments_.slice(1) };
   if (group === "verify") {
     if (!action || action === "fast") return { script: "verify:fast", args: rest };
