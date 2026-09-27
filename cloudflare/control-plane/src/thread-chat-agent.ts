@@ -31,7 +31,6 @@ import {
   createUIMessageStreamResponse,
   stepCountIs,
   streamText,
-  type StreamTextOnFinishCallback,
   type ToolSet,
   type UIMessage,
 } from "ai";
@@ -639,7 +638,7 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
   }
 
   async onChatMessage(
-    onFinish: StreamTextOnFinishCallback<ToolSet>,
+    onFinish: Parameters<AIChatAgent<Env>["onChatMessage"]>[0],
     options?: Parameters<AIChatAgent<Env>["onChatMessage"]>[1],
   ) {
     if (this.lifecycleFence()) {

@@ -640,7 +640,11 @@ describe("resource reservations and structured models", () => {
       "control_budget_changes",
     ])
       expect(
-        await loadCollection(env, identity, exportCollections.find((item) => item.name === name)!),
+        await loadCollection(
+          env,
+          identity,
+          exportCollections.find((item) => item.name === name)!,
+        ),
       ).toHaveLength(1);
     db.exec(`INSERT INTO control_workspace_write_fences (workspace_id,job_id,status,lease_owner,lease_expires_at,acquired_at,updated_at)
       VALUES ('w','export','active','owner','2999-01-01T00:00:00Z','now','now')`);

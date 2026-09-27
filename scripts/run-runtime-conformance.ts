@@ -1429,7 +1429,7 @@ const main = async () => {
     // Independently inspect the stored ZIP rather than checking only its checksum.
     const zip = Buffer.from(archive);
     const exportedCollections = new Map<string, Record<string, unknown>[]>();
-    for (let offset = 0; zip.readUInt32LE(offset) === 0x04034b50; ) {
+    for (let offset = 0; zip.readUInt32LE(offset) === 0x04034b50;) {
       if (zip.readUInt16LE(offset + 8) !== 0) throw new Error("Unexpected compressed export entry");
       const size = zip.readUInt32LE(offset + 18);
       const nameLength = zip.readUInt16LE(offset + 26),

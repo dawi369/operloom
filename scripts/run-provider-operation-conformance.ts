@@ -353,7 +353,7 @@ const main = async () => {
     assert.ok(!archive.includes(Buffer.from(secret)));
     let providerRows: Record<string, unknown>[] = [];
     const resourceCollections: Record<string, number> = {};
-    for (let offset = 0; archive.readUInt32LE(offset) === 0x04034b50; ) {
+    for (let offset = 0; archive.readUInt32LE(offset) === 0x04034b50;) {
       assert.equal(archive.readUInt16LE(offset + 8), 0);
       const size = archive.readUInt32LE(offset + 18),
         nameLength = archive.readUInt16LE(offset + 26),

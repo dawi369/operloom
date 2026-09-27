@@ -72,9 +72,7 @@ export const examplePack = defineAgentPack({
     welcome: {
       title: "Example Analyst",
       description: "Choose a focused starting point.",
-      starters: [
-        /* exactly two or four message or workflow actions */
-      ],
+      starters: [/* exactly two or four message or workflow actions */],
     },
   },
   risk: {

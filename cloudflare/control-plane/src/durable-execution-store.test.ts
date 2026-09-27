@@ -1891,7 +1891,11 @@ describe("durable execution persistence", () => {
     ];
     for (const table of tables)
       expect(
-        await loadCollection(env, identity, exportCollections.find((c) => c.name === table)!),
+        await loadCollection(
+          env,
+          identity,
+          exportCollections.find((c) => c.name === table)!,
+        ),
       ).toHaveLength(1);
     db.exec(`INSERT INTO control_workspace_write_fences (workspace_id,job_id,status,lease_owner,lease_expires_at,acquired_at,updated_at)
       VALUES ('w','export','active','owner','2999-01-01T00:00:00Z','now','now')`);
