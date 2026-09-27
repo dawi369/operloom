@@ -30,7 +30,6 @@
     "acceptanceWorkspaceId": "local"
   },
   "secretEnvironmentVariables": {
-    "facadeSigning": "WORKBENCH_LOCAL_FACADE_SIGNING_SECRET",
     "runnerSigning": "WORKBENCH_LOCAL_RUNNER_SIGNING_SECRET",
     "callbackSigning": "WORKBENCH_LOCAL_CALLBACK_SIGNING_SECRET",
     "agentConnection": "WORKBENCH_LOCAL_AGENT_CONNECTION_SECRET",

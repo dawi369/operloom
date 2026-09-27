@@ -33,7 +33,6 @@
     "acceptanceWorkspaceId": "${WORKBENCH_DEMO_ACCEPTANCE_WORKSPACE_ID}"
   },
   "secretEnvironmentVariables": {
-    "facadeSigning": "WORKBENCH_DEMO_FACADE_SIGNING_SECRET",
     "runnerSigning": "WORKBENCH_DEMO_RUNNER_SIGNING_SECRET",
     "callbackSigning": "WORKBENCH_DEMO_CALLBACK_SIGNING_SECRET",
     "agentConnection": "WORKBENCH_DEMO_AGENT_CONNECTION_SECRET",

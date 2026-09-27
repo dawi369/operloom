@@ -20,7 +20,6 @@ export const hostedEnvironmentPolicy = (target: EnvironmentTarget) => {
   return {
     web: {
       required: [
-        "CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET",
         "WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET",
         "WORKOS_API_KEY",
         "WORKOS_COOKIE_PASSWORD",
@@ -49,7 +48,6 @@ export const hostedEnvironmentPolicy = (target: EnvironmentTarget) => {
     },
     cloudflare: {
       required: [
-        "CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET",
         "WORKBENCH_RUNNER_SIGNING_SECRET",
         "WORKBENCH_CALLBACK_SIGNING_SECRET",
         "WORKBENCH_AGENT_CONNECTION_SECRET",

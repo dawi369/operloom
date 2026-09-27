@@ -1,7 +1,7 @@
 import { appendControlPlaneEvent } from "./control-plane-events";
 import { dispatchWorkbenchSessionEvent } from "./session-coordinator";
 import { activeRunStatusSql, isTerminalRunStatus } from "./run-transitions";
-import { isRecord, json, parseDataJson, parseJson, type ControlPlaneAuthContext } from "./http";
+import { isRecord, json, parseDataJson, parseJson } from "./http";
 import { getRuntimeTraceSnapshot, recordSpan, type RuntimeSpanStatus } from "./runtime-traces";
 import {
   canonicalFacadeRequest,
@@ -282,9 +282,7 @@ export const validateWorkflowCallbackPayload = (
   };
 };
 
-const callbackSigningSecret = (env: Env) =>
-  env.WORKBENCH_CALLBACK_SIGNING_SECRET?.trim() ||
-  env.CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET?.trim();
+const callbackSigningSecret = (env: Env) => env.WORKBENCH_CALLBACK_SIGNING_SECRET?.trim();
 
 const readAuthHeader = (request: Request, name: string) => request.headers.get(name)?.trim() ?? "";
 
@@ -292,7 +290,7 @@ export const verifyWorkflowCallbackSignature = async (
   request: Request,
   env: Env,
   bodyText: string,
-): Promise<{ ok: true; context: ControlPlaneAuthContext } | { ok: false; response: Response }> => {
+): Promise<{ ok: true } | { ok: false; response: Response }> => {
   const secret = callbackSigningSecret(env);
   if (!secret) {
     return {
@@ -380,7 +378,7 @@ export const verifyWorkflowCallbackSignature = async (
     };
   }
 
-  return { ok: true, context: { mode: "facade_signature", nonce, signatureHash } };
+  return { ok: true };
 };
 
 const readStoredCallbackRun = async (

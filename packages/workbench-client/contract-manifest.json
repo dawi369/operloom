@@ -97,7 +97,7 @@
         },
         {
           "path": "workbench-client/dist/public-api.d.ts",
-          "sha256": "038d32cfc92e4cb444a76a92b0e8e0bd249138fc04b0f6cf2c54d6aeb079e862"
+          "sha256": "354234421bc2ba7cf6406aa45ac6e4a7185a4b1f001ce4a6221b27e97626927e"
         },
         {
           "path": "workbench-client/dist/public-budget-contracts.d.ts",

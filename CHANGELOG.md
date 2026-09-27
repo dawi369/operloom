@@ -21,3 +21,4 @@ the baseline schema.
   always on; their rollout flags are removed. Workspaces without an
   administrator budget receive default limits on first use.
 - D1 history is squashed into `0001_baseline.sql`; recreate databases instead of upgrading.
+- `/v1` is the only public control-plane API. Internal routes, facade signatures and caller-supplied identity headers are no longer accepted from the network.

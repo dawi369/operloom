@@ -41,7 +41,6 @@ export type WorkbenchEnvironment = {
   web: WebDeployment;
   workos: { applicationName: string; applicationId: string; acceptanceWorkspaceId: string };
   secretEnvironmentVariables: {
-    facadeSigning: string;
     runnerSigning: string;
     callbackSigning: string;
     agentConnection: string;
@@ -153,11 +152,6 @@ export const parseWorkbenchEnvironment = (value: unknown): WorkbenchEnvironment 
       ),
     },
     secretEnvironmentVariables: {
-      facadeSigning: requireString(
-        secrets.facadeSigning,
-        "secretEnvironmentVariables.facadeSigning",
-        failures,
-      ),
       runnerSigning: requireString(
         secrets.runnerSigning,
         "secretEnvironmentVariables.runnerSigning",

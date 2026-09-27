@@ -416,34 +416,6 @@ const bootstrapAuthz = async (
   });
 };
 
-const createLocalExplicitAgentIfMissing = async (
-  env: Env,
-  input: { userId: string; workspaceId: string; agentId: string },
-) => {
-  const timestamp = new Date().toISOString();
-  await env.DB.prepare(
-    `INSERT OR IGNORE INTO agents (
-       id, workspace_id, name, description, status, is_default, created_by_user_id,
-       data_json, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, 'active', 0, ?, ?, ?, ?)`,
-  )
-    .bind(
-      input.agentId,
-      input.workspaceId,
-      "Local Development Agent",
-      "Explicit local-development workbench agent.",
-      input.userId,
-      toJson({
-        bootstrap: "local-dev",
-        profile: "default",
-        behavior: createAgentBehaviorSnapshot("default"),
-      }),
-      timestamp,
-      timestamp,
-    )
-    .run();
-};
-
 const selectActiveWorkspaceId = async (
   env: Env,
   input: { userId: string; accountId: string; defaultWorkspaceId: string },
@@ -562,68 +534,11 @@ export const resolveAgentIdentity = async (
         ),
       };
     }
-    let resolvedAgentId = explicitAgentId;
-    if (auth.mode === "dev_token") {
-      if (!accountId || !accountSource) {
-        return {
-          ok: false,
-          response: json(
-            { ok: false, error: "Local explicit identity requires account headers" },
-            { status: 400 },
-          ),
-        };
-      }
-      const [existingUser, existingWorkspace, existingMembership, existingWorkspacePreference] =
-        await Promise.all([
-          selectUser(env, userId),
-          selectWorkspace(env, workspaceId),
-          selectMembership(env, userId, workspaceId),
-          selectActiveWorkspacePreference(env, { userId, accountId }),
-        ]);
-      let activeAgentPreference = await selectActiveAgentPreference(env, { userId, workspaceId });
-      const existingAgent = activeAgentPreference
-        ? await selectAgent(env, activeAgentPreference.agent_id, workspaceId)
-        : null;
-      const identityAlreadyBootstrapped =
-        existingUser?.status === "active" &&
-        existingWorkspace?.status === "active" &&
-        existingWorkspace.account_id === accountId &&
-        existingWorkspace.account_source === accountSource &&
-        existingMembership?.status === "active" &&
-        existingWorkspacePreference?.workspace_id === workspaceId &&
-        existingAgent?.status === "active";
-      if (!identityAlreadyBootstrapped) {
-        await bootstrapAuthz(env, request, { userId, accountId, accountSource, workspaceId });
-        await createLocalExplicitAgentIfMissing(env, {
-          userId,
-          workspaceId,
-          agentId: explicitAgentId,
-        });
-        await upsertActiveWorkspacePreference(env, {
-          userId,
-          accountId,
-          workspaceId,
-          reason: "local-dev-bootstrap",
-        });
-        activeAgentPreference = await selectActiveAgentPreference(env, { userId, workspaceId });
-      }
-      if (activeAgentPreference) {
-        resolvedAgentId = activeAgentPreference.agent_id;
-      } else {
-        await upsertActiveAgentPreference(env, {
-          userId,
-          workspaceId,
-          agentId: explicitAgentId,
-          reason: "local-dev-bootstrap",
-        });
-      }
-    }
-
     const [user, workspace, membership, agent] = await Promise.all([
       selectUser(env, userId),
       selectWorkspace(env, workspaceId),
       selectMembership(env, userId, workspaceId),
-      selectAgent(env, resolvedAgentId, workspaceId),
+      selectAgent(env, explicitAgentId, workspaceId),
     ]);
     if (!user || user.status !== "active") {
       return {
@@ -658,7 +573,7 @@ export const resolveAgentIdentity = async (
       ok: true,
       identity: {
         scope: { userId, workspaceId },
-        agentId: resolvedAgentId,
+        agentId: explicitAgentId,
         agentRevision: agent.runtime_revision ?? 0,
         accountId: accountId ?? undefined,
         accountSource: accountSource ?? undefined,

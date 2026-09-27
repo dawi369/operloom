@@ -21,7 +21,6 @@ const rendered = renderEnvironmentConfig(requestedTarget, { releaseSha: commit }
 const wranglerConfig = rendered.wranglerPath;
 const expectedBucket = rendered.manifest.cloudflare.r2BucketName;
 const requiredWorkerSecrets = [
-  "CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET",
   "WORKBENCH_RUNNER_SIGNING_SECRET",
   "WORKBENCH_CALLBACK_SIGNING_SECRET",
   "WORKBENCH_AGENT_CONNECTION_SECRET",
@@ -34,7 +33,6 @@ const requiredFlySecrets = [
   "WORKBENCH_CALLBACK_SIGNING_SECRET",
 ] as const;
 const requiredWebVariables = [
-  "CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET",
   "WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET",
   "WORKOS_API_KEY",
   "WORKOS_COOKIE_PASSWORD",

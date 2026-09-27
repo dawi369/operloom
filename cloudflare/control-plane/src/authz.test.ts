@@ -111,7 +111,7 @@ describe("hosted identity resolution", () => {
     const result = await resolveAgentIdentity(
       makeRequest(),
       env,
-      { mode: "facade_signature" },
+      { mode: "access_token" },
       { skipBootstrapWrites: true },
     );
 
@@ -132,7 +132,7 @@ describe("hosted identity resolution", () => {
     const result = await resolveAgentIdentity(
       makeRequest(),
       env,
-      { mode: "facade_signature" },
+      { mode: "access_token" },
       { skipBootstrapWrites: true },
     );
 

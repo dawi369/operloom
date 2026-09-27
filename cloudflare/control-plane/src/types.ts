@@ -115,8 +115,6 @@ export type Env = {
   WorkbenchThreadChatAgent?: DurableObjectNamespace;
   WorkbenchSessionAgent?: DurableObjectNamespace;
   CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN?: string;
-  CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET?: string;
-  CLOUDFLARE_CONTROL_PLANE_REQUIRE_FACADE_SIGNATURE?: string;
   WORKBENCH_AGENT_CONNECTION_SECRET?: string;
   OPENROUTER_API_KEY?: string;
   OPENROUTER_MODEL?: string;
@@ -182,7 +180,7 @@ export type AgentIdentity = {
   agentRevision?: number;
   accountId?: string;
   accountSource?: string;
-  authMode?: "facade_signature" | "dev_token" | "access_token" | "local_api";
+  authMode?: "access_token" | "local_api";
 };
 
 export type ControlRequestNonceRow = {

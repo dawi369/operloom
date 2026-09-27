@@ -3,6 +3,17 @@ import { handlePublicApi } from "./public-api";
 import { authenticatePublicApi } from "./public-api-auth";
 import type { Env } from "./types";
 
+vi.mock("../../../lib/workbench/access-token", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../lib/workbench/access-token")>()),
+  verifyWorkbenchAccessToken: vi.fn(async () => ({
+    scope: { userId: "workos-user", workspaceId: "workspace:org-1:default" },
+    accountId: "org-1",
+    accountSource: "workos_organization",
+    workspaceSource: "workos",
+    authMode: "workos",
+  })),
+}));
+
 const env = {
   WORKBENCH_LOCAL_API_ENABLED: "true",
   WORKBENCH_ENVIRONMENT: "local",
@@ -149,5 +160,38 @@ describe("public API boundary", () => {
     );
     expect(result.status).toBe(204);
     expect(result.headers.get("access-control-allow-headers")).toContain("idempotency-key");
+  });
+  it("selects a validated local user only in loopback local mode with the local token", async () => {
+    const withUser = (user: string, init?: { url?: string; token?: string }) =>
+      new Request(init?.url ?? "http://127.0.0.1:8787/v1/account", {
+        headers: {
+          authorization: `Bearer ${init?.token ?? "local-test-token"}`,
+          "x-operloom-local-user": user,
+        },
+      });
+    const { principal } = await authenticatePublicApi(withUser("alice.test:1"), env);
+    expect(principal.scope.userId).toBe("alice.test:1");
+    expect(principal.accountId).toBe("local-api:alice.test:1");
+    expect((await authenticatePublicApi(request("/v1/account"), env)).principal.scope.userId).toBe(
+      "operloom-local",
+    );
+    for (const user of ["", "bob/../admin", "a".repeat(129), "bob smith"]) {
+      await expect(authenticatePublicApi(withUser(user), env)).rejects.toMatchObject({
+        status: 400,
+      });
+    }
+    await expect(
+      authenticatePublicApi(withUser("alice", { token: "wrong" }), env),
+    ).rejects.toMatchObject({ status: 401 });
+    await expect(
+      authenticatePublicApi(withUser("alice", { url: "https://runtime.example/v1/account" }), env),
+    ).rejects.toMatchObject({ status: 503 });
+    const hosted = await authenticatePublicApi(withUser("alice", { token: "workos-jwt" }), {
+      WORKBENCH_WORKOS_ISSUER: "https://auth.example",
+      WORKBENCH_WORKOS_JWKS_URL: "https://auth.example/jwks",
+      WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS: "client_1",
+    } as Env);
+    expect(hosted.context.mode).toBe("access_token");
+    expect(hosted.principal.scope.userId).toBe("workos-user");
   });
 });

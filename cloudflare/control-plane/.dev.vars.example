@@ -1,4 +1,5 @@
 # Copy to .dev.vars for local Worker development. Never commit real values.
+# Local /v1 API bearer token; honored only with WORKBENCH_LOCAL_API_ENABLED=true on loopback.
 CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN=replace-with-a-local-token
 OPENROUTER_API_KEY=
 WORKBENCH_AGENT_CONNECTION_SECRET=replace-with-a-long-random-secret
@@ -14,6 +15,4 @@ WORKBENCH_CALLBACK_URL=http://127.0.0.1:8787/workbench/run-callbacks
 WORKBENCH_OPERATOR_ALERT_WEBHOOK_URL=
 WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET=
 
-# Local development accepts the bearer token above when facade signing is absent.
-CLOUDFLARE_CONTROL_PLANE_REQUIRE_FACADE_SIGNATURE=false
 ALLOWED_ORIGINS=http://localhost:3000

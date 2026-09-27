@@ -15,7 +15,6 @@ export const buildProviderSecretConfiguration = (
   observability: HostedObservabilityValues,
 ) => ({
   workerSecrets: {
-    CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET: roleValues.facadeSigning,
     WORKBENCH_RUNNER_SIGNING_SECRET: roleValues.runnerSigning,
     WORKBENCH_CALLBACK_SIGNING_SECRET: roleValues.callbackSigning,
     WORKBENCH_AGENT_CONNECTION_SECRET: roleValues.agentConnection,
@@ -30,7 +29,6 @@ export const buildProviderSecretConfiguration = (
     SENTRY_DSN: observability.sentryDsn,
   },
   webSecrets: {
-    CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET: roleValues.facadeSigning,
     WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET: roleValues.operatorAlertSigning,
     WORKOS_API_KEY: roleValues.vault,
     WORKOS_COOKIE_PASSWORD: roleValues.workosCookie,

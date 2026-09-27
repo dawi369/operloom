@@ -103,12 +103,7 @@ import {
   handleUpdateWorkspaceMember,
 } from "./workspace-members";
 import { resolveAgentIdentity } from "./authz";
-import {
-  internalErrorResponse,
-  json,
-  requireControlPlaneAuth,
-  type ControlPlaneAuthContext,
-} from "./http";
+import { internalErrorResponse, json, type ControlPlaneAuthContext } from "./http";
 import { handlePublicApi } from "./public-api";
 import { handleCreatePublicThread, handlePublicThreadOperation } from "./public-chat";
 import type { Env, WorkerExecutionContext, WorkerScheduledController } from "./types";
@@ -272,8 +267,6 @@ const handleRequest = async (
   const triggerIngressMatch = url.pathname.match(/^\/trigger-ingress\/([^/]+)$/);
   if (request.method === "POST" && triggerIngressMatch?.[1]) {
     if (demoModeEnabled(env)) return demoDisabledResponse("Webhook triggers");
-    const authResult = await requireControlPlaneAuth(request, env);
-    if (!authResult.ok) return authResult.response;
     return handleTriggerWebhookIngress(
       request,
       env,
@@ -282,18 +275,13 @@ const handleRequest = async (
     );
   }
 
-  const authResult = publicAuth
-    ? { ok: true as const, context: publicAuth }
-    : await requireControlPlaneAuth(request, env);
-  if (!authResult.ok) return authResult.response;
-
-  if (request.method === "GET" && url.pathname === "/health/facade") {
-    return json({
-      ok: true,
-      service: "operloom-control-plane-facade",
-      version: compiledWorkbenchVersion,
-      release: env.WORKBENCH_RELEASE_SHA ?? "development",
-    });
+  // Internal routes are reachable only through in-process /v1 dispatch.
+  if (!publicAuth) {
+    return withCors(
+      json({ ok: false, code: "not_found", error: "Not found" }, { status: 404 }),
+      request,
+      env,
+    );
   }
 
   const authzStartedAtMs = Date.now();
@@ -304,7 +292,7 @@ const handleRequest = async (
   const exportObservationRoute =
     request.method === "GET" &&
     /^\/workbench\/data-exports\/[^/]+(?:\/download)?$/.test(url.pathname);
-  const identityResult = await resolveAgentIdentity(request, env, authResult.context, {
+  const identityResult = await resolveAgentIdentity(request, env, publicAuth, {
     allowedInactiveWorkspaceStatuses: deletionRecoveryRoute
       ? ["quarantined", "purging", "failed"]
       : undefined,
@@ -347,7 +335,8 @@ const handleRequest = async (
       env,
       identity,
       decodeURIComponent(operatorPurgeRetryMatch[1]),
-      authResult.context.mode === "facade_signature",
+      // The platform-operator assertion came from the retired signed facade; fail closed.
+      false,
     );
   }
 

@@ -11,6 +11,10 @@ import { sha256Hex } from "../../../lib/workbench/control-plane-signing";
 import type { ControlPlaneAuthContext } from "./http";
 import type { Env } from "./types";
 
+/** Local-only test affordance: selects one of several loopback users sharing the local token. */
+const localUserHeader = "x-operloom-local-user";
+const localUserIdPattern = /^[a-zA-Z0-9._:-]{1,128}$/;
+
 export const authenticatePublicApi = async (
   request: Request,
   env: Env,
@@ -34,7 +38,10 @@ export const authenticatePublicApi = async (
     const expected = env.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN;
     if (!expected || (await sha256Hex(token)) !== (await sha256Hex(expected)))
       throw new WorkbenchAuthError("Invalid local access token", 401);
-    const userId = env.WORKBENCH_LOCAL_API_USER_ID?.trim() || "operloom-local";
+    const requestedUserId = request.headers.get(localUserHeader);
+    if (requestedUserId !== null && !localUserIdPattern.test(requestedUserId))
+      throw new WorkbenchAuthError("Invalid local user", 400);
+    const userId = requestedUserId ?? (env.WORKBENCH_LOCAL_API_USER_ID?.trim() || "operloom-local");
     const accountId = `local-api:${userId}`;
     return {
       context: { mode: "local_api" },
