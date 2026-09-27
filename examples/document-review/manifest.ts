@@ -17,7 +17,7 @@ export const manifest = defineAgentPack({
       required: false,
       executionModes: ["dry_run"],
       modelVisibleDefault: false,
-      purpose: "Commit a review in isolated simulation state.",
+      purpose: "Record a document review in the agent's typed state scope.",
     },
   ],
   workflows: [
@@ -25,7 +25,7 @@ export const manifest = defineAgentPack({
       type: "document-review.simulate",
       status: "declared",
       userInvocable: true,
-      description: "Simulate a review with atomic state, decision and effect receipts.",
+      description: "Record a review with atomic state, decision and effect entries.",
     },
     {
       type: "document-review.summarize",

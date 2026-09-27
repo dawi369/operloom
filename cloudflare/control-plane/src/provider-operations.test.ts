@@ -180,7 +180,6 @@ const providerFixture = async (signed = false) => {
     ...old,
     transport: "cloudflare_inline",
     action: {
-      target: "external",
       connectionId: "operator.external-account",
       proposalSchema: { type: "object" },
       resultSchema: { type: "object" },

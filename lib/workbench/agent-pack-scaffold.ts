@@ -180,6 +180,17 @@ export const controlPlane = defineControlPlaneModule({
   runtimeVersion: "1.0.0",
   compatiblePackVersions: "^0.1.0",
   requirements: { minimumBackendVersion: "2.0.0", capabilities: ["workflow.request"] },
+  // Mutating tools add an action binding. Agents in simulation run \`simulate\`
+  // instead of the provider, connection or runner; approvals and receipts match:
+  // action: {
+  //   proposalSchema: { type: "object" },
+  //   resultSchema: { type: "object", required: ["resourceId"] },
+  //   idempotency: "required",
+  //   approval: "required",
+  //   timeoutMs: 1000,
+  //   execute: async (proposal, context) => ({ proposalId: "pending", status: "executed", summary: "Done." }),
+  //   simulate: (proposal) => ({ resourceId: \`sim-\${proposal.idempotencyKey}\` }),
+  // },
   tools: [{
     id: ${JSON.stringify(`${id.replaceAll("-", "_")}.inspect`)},
     description: "Starter deterministic read-only tool.",
@@ -289,6 +300,7 @@ add pack-specific Vercel or Worker routes.
 - Add managed state and triggers only through manifest descriptors.
 - Declare provider connections before adding provider-backed tools.
 - Add durable proposals, idempotency, reconciliation, and approval before execute mode.
+- Give every action binding a \`simulate\` function so agents can run in simulation.
 - Keep credentials, raw D1/R2/Env access, and package-specific HTTP routes out of the pack.
 `;
 };

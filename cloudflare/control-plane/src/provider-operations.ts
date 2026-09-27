@@ -13,6 +13,7 @@ import { sha256Hex } from "./connection-broker-shared";
 import {
   providerOperationDescriptor,
   providerOperationOutput,
+  providerOperationReference,
   type ProviderOperationDescriptor,
 } from "./provider-operation-registry";
 import type { AgentIdentity, ControlActionProposalRow, Env } from "./types";
@@ -361,6 +362,93 @@ export const dispatchProviderOperation = async (
   );
 };
 
+/** Same admission, receipt and reservation records as a dispatch, with the simulator's output as the outcome. */
+export const recordSimulatedProviderOperation = async (
+  env: Env,
+  identity: AgentIdentity,
+  proposalId: string,
+  binding: RuntimeToolBinding,
+  output: Record<string, unknown>,
+): Promise<ActionExecutionResult> => {
+  const row = await env.DB.prepare(
+    `SELECT * FROM control_action_proposals WHERE id=? AND user_id=? AND workspace_id=? AND agent_id=?`,
+  )
+    .bind(proposalId, identity.scope.userId, identity.scope.workspaceId, identity.agentId)
+    .first<ControlActionProposalRow>();
+  if (!row || row.status !== "executing" || row.effect_target !== "simulation")
+    throw new Error("provider_action_not_executing");
+  const operation = providerOperationReference(binding);
+  if (!operation) throw new Error("provider_operation_unavailable");
+  const input = (JSON.parse(row.proposal_json) as { preview: unknown }).preview;
+  assertSchemaValue(operation.inputSchema, input, "Provider operation input");
+  const requestHash = await sha256Hex(runtimeStateCanonicalJson({ input, operation }));
+  const prior = await scopedReceipt(env, identity, row.id);
+  if (prior) {
+    if (prior.request_hash !== requestHash) throw new Error("provider_operation_conflict");
+    return resultFromReceipt(prior);
+  }
+  const review = await loadActionReview(env, identity, row);
+  if (
+    runtimeStateCanonicalJson(JSON.parse(review.binding_json).providerOperation) !==
+    runtimeStateCanonicalJson(operation)
+  )
+    throw new Error("provider_operation_changed");
+  const requestId = await sha256Hex(
+    runtimeStateCanonicalJson({
+      ...identity.scope,
+      agentId: identity.agentId,
+      proposalId: row.id,
+      operationId: operation.id,
+    }),
+  );
+  const now = new Date().toISOString();
+  try {
+    await env.DB.batch([
+      actionReviewTransition(env, identity, row, review, "provider_dispatch", now),
+      env.DB.prepare(`INSERT INTO control_provider_operations(id,user_id,workspace_id,agent_id,proposal_id,review_id,operation_id,operation_version,descriptor_json,request_hash,connection_record_id,vault_version,effect_target,status,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,'simulation','simulation','simulation','dispatching',?,?)`).bind(
+        requestId,
+        identity.scope.userId,
+        identity.scope.workspaceId,
+        identity.agentId,
+        row.id,
+        review.id,
+        operation.id,
+        operation.version,
+        runtimeStateCanonicalJson(operation),
+        requestHash,
+        now,
+        now,
+      ),
+      ...actionReservationStatements(env, {
+        identity,
+        proposalId: row.id,
+        receiptId: requestId,
+        scopeId: JSON.parse(review.binding_json).stateScopeId,
+        reservations: JSON.parse(review.binding_json).reservations ?? [],
+        now,
+      }),
+      env.DB.prepare(`UPDATE control_provider_operations SET status=?,result_json=?,updated_at=?
+        WHERE id=? AND user_id=? AND workspace_id=? AND agent_id=? AND status='dispatching'`).bind(
+        output.lifecycle === "rejected" ? "failed" : "succeeded",
+        runtimeStateCanonicalJson(output),
+        now,
+        requestId,
+        identity.scope.userId,
+        identity.scope.workspaceId,
+        identity.agentId,
+      ),
+    ]);
+  } catch {
+    const concurrent = await scopedReceipt(env, identity, row.id);
+    if (concurrent?.request_hash === requestHash) return resultFromReceipt(concurrent);
+    throw new Error("provider_operation_admission_conflict");
+  }
+  const receipt = await scopedReceipt(env, identity, row.id);
+  if (!receipt) throw new Error("provider_receipt_unavailable");
+  return resultFromReceipt(receipt);
+};
+
 export const reconcileProviderOperation = async (
   env: Env,
   identity: AgentIdentity,
@@ -385,6 +473,7 @@ export const reconcileProviderOperation = async (
   // Canonical outcomes survive projection failure and require no provider request.
   if (receipt.status === "succeeded" || receipt.status === "failed")
     return resultFromReceipt(receipt, true);
+  if (row.effect_target === "simulation") return unknown(row.id);
   if (env.OPERLOOM_CONNECTIONS_ENABLED !== "true") throw new Error("provider_operations_disabled");
   const operation = providerOperationDescriptor(env, binding);
   if (!operation || runtimeStateCanonicalJson(operation) !== receipt.descriptor_json)

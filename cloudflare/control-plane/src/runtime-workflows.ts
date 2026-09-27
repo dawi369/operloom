@@ -5,7 +5,6 @@ import {
 } from "./durable-workflow-runtime";
 import { captureRuntimeContext, contextIsRequired, bindRuntimeContext } from "./runtime-context";
 import { createRuntimeStatePort } from "./runtime-state";
-import { createSimulationActionPort } from "./runtime-simulation";
 import { createRuntimeModelPort } from "./runtime-models";
 import { withRuntimeDeadline } from "./runtime-deadline";
 import {
@@ -457,10 +456,6 @@ export const executeRuntimeWorkflowRequest = async (
       },
     },
   };
-  context.actions.simulate = createSimulationActionPort(env, identity, {
-    context,
-    toolIds: workflow.toolIds,
-  });
 
   let result: RuntimeResult;
   try {

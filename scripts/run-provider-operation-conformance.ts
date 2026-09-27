@@ -184,6 +184,12 @@ const main = async () => {
     );
     agentId = installed.agent.id;
     const client = clientFor();
+    const current = await client.admin.effectTarget(agentId);
+    const external = await client.admin.setEffectTarget(agentId, {
+      effectTarget: "external",
+      expectedRevision: current.runtimeRevision,
+    });
+    assert.equal(external.effectTarget, "external");
     const raw = async (path: string, body: Record<string, unknown> = {}) => {
       const response = await fetch(
         `${baseUrl}/v1/workspaces/${encodeURIComponent(workspaceId)}/agents/${encodeURIComponent(agentId)}${path}`,
@@ -309,8 +315,8 @@ const main = async () => {
       "held",
     );
     db.exec("DROP TRIGGER conformance_state_projection_failure");
-    assert.equal((await raw("/workbench/workflows/capacity.project", projectBody)).status, 200);
-    assert.equal((await raw("/workbench/workflows/capacity.project", projectBody)).status, 200);
+    for (let attempt = 0; attempt < 2; attempt += 1)
+      assert.equal((await raw("/workbench/workflows/capacity.project", projectBody)).status, 201);
     assert.equal(db.prepare("SELECT COUNT(*) n FROM control_action_projections").get()!.n, 1);
     assert.equal(
       db

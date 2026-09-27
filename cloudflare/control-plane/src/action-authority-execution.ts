@@ -8,7 +8,7 @@ import {
 import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import { parseJson } from "./http";
 import { prepareOperatorAlertStatement } from "./operator-alerts";
-import { createId, toJson, type AgentIdentity, type Env } from "./types";
+import { createId, effectTargetOf, toJson, type AgentIdentity, type Env } from "./types";
 import {
   actionEvidenceStatements,
   appendLedgerStatement,
@@ -22,7 +22,7 @@ import {
   sha256Hex,
   terminalStatuses,
 } from "./action-authority-core";
-import type { RuntimeIdentity } from "./action-authority-core";
+import type { ActionDispatchResult, RuntimeIdentity } from "./action-authority-core";
 import { actionReviewTransition, commitActionReviewBatch, loadActionReview } from "./action-review";
 import { reconcileProviderOperation, inspectProviderAction } from "./provider-operations";
 
@@ -66,20 +66,18 @@ export const createDurableActionPort = (
       throw Object.assign(new Error("Action binding is unavailable."), {
         code: "action_binding_unavailable",
       });
-    if (binding.action.target === "simulation")
-      throw Object.assign(new Error("Simulation bindings cannot create external proposals."), {
-        code: "action_target_mismatch",
-      });
     assertSchemaValue(
       binding.action.proposalSchema,
       proposal.preview,
       `${proposal.toolId} action proposal`,
     );
-    const descriptor = binding.action.connectionId
-      ? manifestConnections(runtimeIdentity.packId).find(
-          (candidate) => candidate.id === binding.action?.connectionId,
-        )
-      : undefined;
+    const effectTarget = effectTargetOf(identity);
+    const descriptor =
+      effectTarget === "external" && binding.action.connectionId
+        ? manifestConnections(runtimeIdentity.packId).find(
+            (candidate) => candidate.id === binding.action?.connectionId,
+          )
+        : undefined;
     const connection = descriptor
       ? await env.DB.prepare(
           `SELECT id FROM control_connections
@@ -103,9 +101,9 @@ export const createDurableActionPort = (
         `INSERT INTO control_action_proposals (
            id, user_id, workspace_id, agent_id, workflow_intent_id, run_id, tool_call_id,
            pack_id, pack_version, runtime_version, binding_version, tool_id, action_type,
-           connection_record_id, status, summary, idempotency_key, input_sha256, proposal_json,
-           created_at, updated_at
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'proposed', ?, ?, ?, ?, ?, ?)
+           connection_record_id, effect_target, status, summary, idempotency_key, input_sha256,
+           proposal_json, created_at, updated_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'proposed', ?, ?, ?, ?, ?, ?)
          ON CONFLICT(user_id, workspace_id, tool_id, idempotency_key) DO NOTHING`,
       ).bind(
         id,
@@ -122,6 +120,7 @@ export const createDurableActionPort = (
         proposal.toolId,
         proposal.type,
         connection?.id ?? null,
+        effectTarget,
         proposal.summary,
         proposal.idempotencyKey,
         inputSha256,
@@ -150,7 +149,7 @@ export const createDurableActionPort = (
     ]);
     if ((result[0]?.meta?.changes ?? 0) === 0) {
       const existing = await env.DB.prepare(
-        `SELECT id, status, agent_id, proposal_json, pack_id, pack_version, runtime_version, binding_version FROM control_action_proposals
+        `SELECT id, status, agent_id, effect_target, proposal_json, pack_id, pack_version, runtime_version, binding_version FROM control_action_proposals
          WHERE user_id = ? AND workspace_id = ? AND tool_id = ? AND idempotency_key = ? LIMIT 1`,
       )
         .bind(
@@ -163,6 +162,7 @@ export const createDurableActionPort = (
           id: string;
           status: string;
           agent_id: string;
+          effect_target: string;
           proposal_json: string;
           pack_id: string;
           pack_version: string;
@@ -172,6 +172,7 @@ export const createDurableActionPort = (
       if (!existing) throw new Error("action_proposal_conflict");
       if (
         existing.agent_id !== identity.agentId ||
+        existing.effect_target !== effectTarget ||
         existing.pack_id !== runtimeIdentity.packId ||
         existing.pack_version !== runtimeIdentity.packVersion ||
         existing.runtime_version !== runtimeIdentity.runtimeVersion ||
@@ -232,23 +233,27 @@ export const executeActionProposal = async (
       code: "action_conflict",
     });
 
-  let result: ActionExecutionResult;
+  let result: ActionDispatchResult;
   let dispatchTimer: ReturnType<typeof setTimeout> | undefined;
   try {
-    result = await Promise.race([
-      dispatchAction(env, identity, row, binding, proposal),
-      new Promise<never>((_, reject) => {
-        dispatchTimer = setTimeout(
-          () =>
-            reject(
-              Object.assign(new Error("Action outcome is unknown after timeout."), {
-                code: "action_timeout",
-              }),
-            ),
-          binding.action!.timeoutMs,
-        );
-      }),
-    ]);
+    // The simulator enforces the action timeout itself; its outcome is never ambiguous.
+    result =
+      row.effect_target === "simulation"
+        ? await dispatchAction(env, identity, row, binding, proposal)
+        : await Promise.race([
+            dispatchAction(env, identity, row, binding, proposal),
+            new Promise<never>((_, reject) => {
+              dispatchTimer = setTimeout(
+                () =>
+                  reject(
+                    Object.assign(new Error("Action outcome is unknown after timeout."), {
+                      code: "action_timeout",
+                    }),
+                  ),
+                binding.action!.timeoutMs,
+              );
+            }),
+          ]);
     if (!["executed", "failed", "outcome_unknown"].includes(result.status)) {
       throw new Error("Invalid action dispatch status.");
     }
@@ -262,11 +267,21 @@ export const executeActionProposal = async (
   } catch {
     // Dispatch was admitted. An exception does not prove that the provider
     // rejected the action, and adapter error messages may contain credentials.
-    result = {
-      proposalId: row.id,
-      status: "outcome_unknown",
-      summary: "The external action outcome could not be confirmed. Reconciliation is required.",
-    };
+    // A simulator without a provider receipt records nothing, so its failure is certain.
+    result =
+      row.effect_target === "simulation" && !binding.action?.providerOperation
+        ? {
+            proposalId: row.id,
+            status: "failed",
+            summary: "The simulated action could not be completed.",
+            errorCode: "simulation_failed",
+          }
+        : {
+            proposalId: row.id,
+            status: "outcome_unknown",
+            summary:
+              "The external action outcome could not be confirmed. Reconciliation is required.",
+          };
   } finally {
     if (dispatchTimer !== undefined) clearTimeout(dispatchTimer);
   }
@@ -288,7 +303,7 @@ export const executeActionProposal = async (
       result.externalReference ?? null,
       toJson(result.output ?? {}),
       result.status === "failed" || result.status === "outcome_unknown"
-        ? toJson({ code: result.status, summary: result.summary })
+        ? toJson({ code: result.errorCode ?? result.status, summary: result.summary })
         : "{}",
       result.status,
       finishedAt,
@@ -357,13 +372,17 @@ export const executeActionProposal = async (
     await env.DB.batch([
       env.DB.prepare(
         `UPDATE control_action_proposals SET status = 'outcome_unknown', error_json = ?,
-           version = version + 1, updated_at = ?
+           result_json = ?, version = version + 1, updated_at = ?
          WHERE id = ? AND user_id = ? AND workspace_id = ? AND status = 'executing'`,
       ).bind(
         toJson({
           code: "publication_revoked",
           summary: "Execution completed after cancellation; reconcile before retry.",
         }),
+        // A simulated outcome is recorded here so reconciliation needs no second simulation.
+        row.effect_target === "simulation" && result.status === "executed"
+          ? toJson(result.output ?? {})
+          : "{}",
         revokedAt,
         row.id,
         identity.scope.userId,
@@ -411,7 +430,8 @@ export const executeActionProposal = async (
       summary: "Execution completed after cancellation; reconcile before retry.",
     };
   }
-  return { ...result, proposalId: row.id };
+  const { errorCode: _errorCode, ...outcome } = result;
+  return { ...outcome, proposalId: row.id };
 };
 
 export const reconcileActionProposal = async (
@@ -432,17 +452,34 @@ export const reconcileActionProposal = async (
       code: "reconciliation_not_required",
     });
   const { binding } = resolveBinding(row);
-  if (!binding.action?.reconcile && !binding.action?.providerOperation)
+  // Simulated outcomes resolve from their record; nothing is dispatched or simulated again.
+  const simulatedRecord = row.effect_target === "simulation" && !binding.action?.providerOperation;
+  if (!simulatedRecord && !binding.action?.reconcile && !binding.action?.providerOperation)
     throw Object.assign(new Error("Action binding does not support reconciliation."), {
       code: "reconciliation_unavailable",
     });
   const proposal = parseJson(row.proposal_json) as ActionProposal;
-  const result = binding.action?.providerOperation
+  const recorded = parseJson(row.result_json) as Record<string, unknown>;
+  const result: ActionExecutionResult = binding.action?.providerOperation
     ? await reconcileProviderOperation(env, identity, row, binding)
-    : await binding.action!.reconcile!(
-        proposal,
-        executionContext(env, identity, row, manifestConnections(row.pack_id)),
-      );
+    : simulatedRecord
+      ? Object.keys(recorded).length
+        ? {
+            proposalId: row.id,
+            status: "reconciled",
+            summary: "The simulated action outcome was reconciled from its record.",
+            output: recorded,
+          }
+        : {
+            proposalId: row.id,
+            status: "reconciled",
+            summary: "No simulated outcome was recorded; nothing was executed.",
+            output: { dispatchStatus: "not_dispatched" },
+          }
+      : await binding.action!.reconcile!(
+          proposal,
+          executionContext(env, identity, row, manifestConnections(row.pack_id)),
+        );
   const timestamp = new Date().toISOString();
   if (binding.action?.providerOperation && result.output?.dispatchStatus === "not_dispatched")
     return result;

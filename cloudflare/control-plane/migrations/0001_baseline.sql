@@ -437,6 +437,7 @@ CREATE TABLE control_action_proposals (
   tool_id TEXT NOT NULL,
   action_type TEXT NOT NULL,
   connection_record_id TEXT,
+  effect_target TEXT NOT NULL DEFAULT 'external' CHECK(effect_target IN ('simulation','external')),
   status TEXT NOT NULL CHECK (status IN ('proposed', 'approval_requested', 'approved', 'executing', 'executed', 'failed', 'outcome_unknown', 'reconciled', 'cancelled', 'expired')),
   summary TEXT NOT NULL,
   idempotency_key TEXT NOT NULL,
@@ -3355,6 +3356,7 @@ WHEN NEW.id IS NOT OLD.id OR NEW.user_id IS NOT OLD.user_id OR NEW.workspace_id 
  OR NEW.pack_version IS NOT OLD.pack_version OR NEW.runtime_version IS NOT OLD.runtime_version
  OR NEW.binding_version IS NOT OLD.binding_version OR NEW.tool_id IS NOT OLD.tool_id
  OR NEW.action_type IS NOT OLD.action_type OR NEW.connection_record_id IS NOT OLD.connection_record_id
+ OR NEW.effect_target IS NOT OLD.effect_target
  OR NEW.summary IS NOT OLD.summary OR NEW.idempotency_key IS NOT OLD.idempotency_key
  OR NEW.input_sha256 IS NOT OLD.input_sha256
  OR (NEW.proposal_json IS NOT OLD.proposal_json AND NOT (
@@ -3396,6 +3398,7 @@ CREATE TABLE control_provider_operations (
   operation_id TEXT NOT NULL, operation_version TEXT NOT NULL,
   descriptor_json TEXT NOT NULL, request_hash TEXT NOT NULL,
   connection_record_id TEXT NOT NULL, vault_version TEXT NOT NULL,
+  effect_target TEXT NOT NULL DEFAULT 'external' CHECK(effect_target IN ('simulation','external')),
   status TEXT NOT NULL CHECK(status IN ('dispatching','succeeded','failed','outcome_unknown')),
   result_json TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL
@@ -3407,6 +3410,7 @@ WHEN NEW.id IS NOT OLD.id OR NEW.user_id IS NOT OLD.user_id OR NEW.workspace_id 
  OR NEW.operation_id IS NOT OLD.operation_id OR NEW.operation_version IS NOT OLD.operation_version
  OR NEW.descriptor_json IS NOT OLD.descriptor_json OR NEW.request_hash IS NOT OLD.request_hash
  OR NEW.connection_record_id IS NOT OLD.connection_record_id OR NEW.vault_version IS NOT OLD.vault_version
+ OR NEW.effect_target IS NOT OLD.effect_target
  OR NEW.created_at IS NOT OLD.created_at OR NEW.status='dispatching'
  OR (OLD.status IN ('succeeded','failed') AND NOT (
    NEW.status IS OLD.status AND NEW.updated_at IS OLD.updated_at
@@ -3416,6 +3420,9 @@ WHEN NEW.id IS NOT OLD.id OR NEW.user_id IS NOT OLD.user_id OR NEW.workspace_id 
      AND p.updated_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now','-' || COALESCE(policy.run_payload_retention_days,90) || ' days'))
  ))
 BEGIN SELECT RAISE(ABORT,'provider_operation_immutable'); END;
+CREATE TRIGGER provider_operation_effect_target BEFORE INSERT ON control_provider_operations
+WHEN NOT EXISTS (SELECT 1 FROM control_action_proposals p WHERE p.id=NEW.proposal_id AND p.effect_target=NEW.effect_target)
+BEGIN SELECT RAISE(ABORT,'provider_operation_effect_target_mismatch'); END;
 CREATE TRIGGER export_fence_control_provider_operations_insert BEFORE INSERT ON control_provider_operations
 WHEN EXISTS (SELECT 1 FROM control_workspace_write_fences f WHERE f.workspace_id=NEW.workspace_id
  AND f.status='active' AND f.lease_expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now'))

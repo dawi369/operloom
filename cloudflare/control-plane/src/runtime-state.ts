@@ -11,7 +11,6 @@ import {
 import { sha256Hex } from "../../../lib/workbench/control-plane-signing";
 import { durableAttemptGuard, type DurableAttemptAuthority } from "./durable-attempt-authority";
 import type { AgentIdentity, Env } from "./types";
-import { simulationCommitGuard } from "./runtime-simulation-authority";
 import { actionProjectionStatements } from "./action-resources";
 
 const identifier = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/;
@@ -114,12 +113,10 @@ export const createRuntimeStatePort = async (
     runId?: string;
     contextSnapshotId?: string;
     durableAttempt?: DurableAttemptAuthority;
-    simulationAuthority?: import("./runtime-simulation-authority").SimulationAuthority;
   },
 ): Promise<RuntimeStatePort> => {
   input = { ...input, durableAttempt: input.durableAttempt && { ...input.durableAttempt } };
   const attemptGuard = durableAttemptGuard(identity, input.runId, input.durableAttempt);
-  const simulationGuard = simulationCommitGuard(identity, input.simulationAuthority);
   validateRuntimeStateDefinitions(input.definitions);
   const scopeId = await runtimeStateScopeId(identity, input.packId, input.target);
   const scope = [identity.scope.userId, identity.scope.workspaceId, identity.agentId, scopeId];
@@ -288,12 +285,11 @@ export const createRuntimeStatePort = async (
         eventIds: commit.events?.map((event) => event.id) ?? [],
       };
       // Keep the authority branches separate: a long AND chain exceeds D1's
-      // expression-depth limit once durable and simulation checks are combined.
+      // expression-depth limit once durable checks are combined.
       const statements = [
         env.DB.prepare(`INSERT INTO control_state_commits
         (id, user_id, workspace_id, agent_id, scope_id, idempotency_key, request_hash, receipt_json, created_at, preconditions_met)
-        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN
-          (${simulationGuard.sql}) THEN CASE WHEN ${attemptGuard.sql} THEN CASE WHEN EXISTS (SELECT 1 FROM workspaces WHERE id = ? AND status = 'active')
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ${attemptGuard.sql} THEN CASE WHEN EXISTS (SELECT 1 FROM workspaces WHERE id = ? AND status = 'active')
           AND EXISTS (SELECT 1 FROM memberships WHERE user_id = ? AND workspace_id = ? AND status = 'active')
           AND EXISTS (SELECT 1 FROM users WHERE id = ? AND status = 'active')
           AND EXISTS (SELECT 1 FROM agents WHERE id = ? AND workspace_id = ? AND status = 'active' AND runtime_revision = ?)
@@ -320,14 +316,13 @@ export const createRuntimeStatePort = async (
               WHERE json_extract(source.value, '$.required') = 1 AND
                 (json_extract(source.value, '$.status') != 'fresh' OR json_extract(source.value, '$.expiresAt') <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now')))))
           AND (SELECT COUNT(*) FROM control_state_records WHERE scope_id = ?) + ? <= 10000
-          THEN 1 ELSE 0 END ELSE 0 END ELSE 0 END`).bind(
+          THEN 1 ELSE 0 END ELSE 0 END`).bind(
           id,
           ...scope,
           commit.idempotencyKey,
           hash,
           JSON.stringify(receipt),
           now,
-          ...simulationGuard.values,
           ...attemptGuard.values,
           identity.scope.workspaceId,
           identity.scope.userId,

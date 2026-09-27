@@ -43,10 +43,6 @@ import {
 } from "./durable-execution-store";
 import { exportCollections, loadCollection } from "./workspace-data-export-core";
 import { handleDurableDeploymentProbe } from "./durable-deployment-probe";
-import { createSimulationActionPort } from "./runtime-simulation";
-import { createDurableActionPort } from "./action-authority-execution";
-import { dispatchAction } from "./action-authority-core";
-import type { AgentExecutionContext, RuntimeSimulationCommit } from "@operloom/agent-sdk";
 import {
   acquireDeploymentFence,
   activateDeploymentFence,
@@ -1922,64 +1918,7 @@ const attemptAuthority = async (
     .configuration_hash,
 });
 
-const simulationFixture = async (shortEvidence = false) => {
-  if (shortEvidence) {
-    const original = controlPlane.context![0]!.resolve;
-    vi.spyOn(controlPlane.context![0]!, "resolve").mockImplementation(async (input) => {
-      const result = await original(input);
-      return result.status === "available"
-        ? { ...result, expiresAt: new Date(Date.now() + 1000).toISOString() }
-        : result;
-    });
-  }
-  const { env, db } = fixture();
-  const runId = await setupRun(env),
-    claim = await activeClaim(env, runId, { replaySafe: true, maxAttempts: 2 });
-  const durableAttempt = await attemptAuthority(env, runId, claim);
-  const signal = new AbortController().signal;
-  const evidence = await captureRuntimeContext(env, identity, {
-    runId,
-    runKind: "workflow",
-    target: "simulation",
-    input: { text: "Document evidence" },
-    signal,
-    durableAttempt,
-  });
-  const context = {
-    pack: { id: "document-review", version: "1.0.0", runtimeVersion: "1.0.0" },
-    run: { id: runId, kind: "workflow" },
-    signal,
-    context: evidence,
-  } as unknown as AgentExecutionContext;
-  const simulate = createSimulationActionPort(env, identity, {
-    context,
-    toolIds: ["document-review.record"],
-    durableAttempt,
-  });
-  const key = { namespace: "documents", kind: "review", key: "one" };
-  const plan: RuntimeSimulationCommit = {
-    toolId: "document-review.record",
-    type: "review",
-    summary: "Review a document",
-    idempotencyKey: "review-one",
-    preview: { documentId: "one", wordCount: 2 },
-    output: { documentId: "one", wordCount: 2 },
-    decisions: [{ id: "decision-one", data: { explanation: "Observed two words" } }],
-    state: {
-      reads: [{ ...key, version: 0 }],
-      writes: [
-        {
-          ...key,
-          schemaVersion: 1,
-          data: { contentHash: evidence!.snapshot.contentHash, wordCount: 2, status: "reviewed" },
-        },
-      ],
-    },
-  };
-  return { env, db, runId, claim, durableAttempt, context, simulate, plan, key };
-};
-
-describe("simulation action transactions", () => {
+describe("document review simulation workflow", () => {
   it("runs the package's durable preparation and simulation steps", async () => {
     const { env, db } = fixture();
     const runtime = resolvePackRuntime("document-review", "1.0.0");
@@ -2000,138 +1939,6 @@ describe("simulation action transactions", () => {
       }),
     ).resolves.toEqual({ runId: execution.run_id });
     expect(count(db, "control_state_entries")).toBe(2);
-  });
-
-  it("replays a committed effect after losing the step acknowledgement", async () => {
-    const { env, db, runId, claim, context, simulate, plan } = await simulationFixture();
-    const receipt = await simulate(plan);
-    expire(db, claim.stepId);
-    const next = await activeClaim(env, runId, { replaySafe: true, maxAttempts: 2 });
-    expect(next.attemptId).not.toBe(claim.attemptId);
-    const resumed = createSimulationActionPort(env, identity, {
-      context,
-      toolIds: ["document-review.record"],
-      durableAttempt: await attemptAuthority(env, runId, next),
-    });
-    expect(await resumed(plan)).toEqual(receipt);
-    expect(count(db, "control_state_records")).toBe(1);
-    expect(count(db, "control_state_entries")).toBe(2);
-    expect(count(db, "control_state_outbox")).toBe(1);
-  });
-
-  it("atomically retains state, decision, effect and delivery with exact replay", async () => {
-    const { env, db, simulate, plan, key, runId, durableAttempt } = await simulationFixture();
-    const external = vi
-      .spyOn(globalThis, "fetch")
-      .mockRejectedValue(new Error("Unexpected external dispatch"));
-    const first = await simulate(plan);
-    expect(await simulate(plan)).toEqual(first);
-    expect(first).toMatchObject({ target: "simulation", status: "committed", output: plan.output });
-    expect(count(db, "control_state_commits")).toBe(1);
-    expect(count(db, "control_state_records")).toBe(1);
-    expect(count(db, "control_state_entries")).toBe(2);
-    expect(count(db, "control_state_outbox")).toBe(1);
-    expect(external).not.toHaveBeenCalled();
-    const otherScope = await createRuntimeStatePort(env, identity, {
-      packId: "document-review",
-      target: "external",
-      runId,
-      durableAttempt,
-      definitions: controlPlane.state!,
-    });
-    expect(await otherScope.get(key)).toBeNull();
-    await expect(simulate({ ...plan, summary: "Changed intent" })).rejects.toMatchObject({
-      code: "idempotency_conflict",
-    });
-  });
-
-  it("rejects a competing version without partial state, evidence or delivery", async () => {
-    const { db, simulate, plan } = await simulationFixture();
-    const alternate = {
-      ...plan,
-      idempotencyKey: "competing",
-      decisions: [{ id: "decision-two", data: {} }],
-    };
-    const results = await Promise.allSettled([simulate(plan), simulate(alternate)]);
-    expect(results.filter((item) => item.status === "fulfilled")).toHaveLength(1);
-    expect(results.filter((item) => item.status === "rejected")).toHaveLength(1);
-    expect(count(db, "control_state_commits")).toBe(1);
-    expect(count(db, "control_state_entries")).toBe(2);
-    expect(count(db, "control_state_outbox")).toBe(1);
-  });
-
-  it.each(["role", "permission", "attempt", "tool kill switch", "stale evidence"])(
-    "rolls back when %s authority changes after validation",
-    async (change) => {
-      const { env, db, simulate, plan, claim, context } = await simulationFixture(
-        change === "stale evidence",
-      );
-      const batch = env.DB.batch.bind(env.DB);
-      vi.spyOn(env.DB, "batch").mockImplementationOnce((statements) => {
-        if (change === "role") db.exec("UPDATE memberships SET role='viewer'");
-        if (change === "permission") db.exec("UPDATE tool_permissions SET status='disabled'");
-        if (change === "attempt") expire(db, claim.stepId);
-        if (change === "tool kill switch")
-          db.exec(`INSERT INTO control_kill_switches
-          (id,user_id,workspace_id,scope_kind,scope_id,enabled,reason,created_by_user_id,created_at,updated_at)
-          VALUES ('kill','u','w','tool','document-review.record',1,'test','u','now','now')`);
-        if (change === "stale evidence")
-          db.function("strftime", { varargs: true }, () =>
-            new Date(
-              Date.parse(context.context!.snapshot.sources[0]!.expiresAt!) + 1,
-            ).toISOString(),
-          );
-        return batch(statements);
-      });
-      await expect(simulate(plan)).rejects.toMatchObject({ code: "state_conflict" });
-      for (const table of [
-        "control_state_commits",
-        "control_state_records",
-        "control_state_entries",
-        "control_state_outbox",
-      ])
-        expect(count(db, table)).toBe(0);
-    },
-  );
-
-  it("fails closed for absent evidence, undeclared tools and invalid output", async () => {
-    const { db, simulate, plan, context } = await simulationFixture();
-    await expect(simulate({ ...plan, toolId: "other" })).rejects.toMatchObject({
-      code: "action_target_mismatch",
-    });
-    await expect(simulate({ ...plan, output: { wordCount: -1 } })).rejects.toThrow();
-    context.context = undefined;
-    await expect(simulate(plan)).rejects.toMatchObject({ code: "context_blocked" });
-    expect(count(db, "control_state_commits")).toBe(0);
-  });
-
-  it("captures package and run authority instead of trusting mutable package context", async () => {
-    const { simulate, plan, context } = await simulationFixture();
-    Object.assign(context.pack, { id: "forged" });
-    Object.assign(context.run, { id: "another-run" });
-    expect(await simulate(plan)).toMatchObject({ target: "simulation", status: "committed" });
-  });
-
-  it("rejects simulation at both external proposal and dispatch boundaries", async () => {
-    const { env, plan } = await simulationFixture();
-    const port = createDurableActionPort(env, identity, {
-      packId: "document-review",
-      packVersion: "1.0.0",
-      runtimeVersion: "1.0.0",
-      bindingVersion: 1,
-      runId: "simulation",
-      workflowIntentId: "simulation",
-    });
-    await expect(port.propose(plan)).rejects.toMatchObject({ code: "action_target_mismatch" });
-    await expect(
-      dispatchAction(
-        env,
-        identity,
-        {} as Parameters<typeof dispatchAction>[2],
-        controlPlane.tools[0]!,
-        plan,
-      ),
-    ).rejects.toMatchObject({ code: "action_target_mismatch" });
   });
 });
 const allocation = { namespace: "capacity", kind: "pool", key: "one" };

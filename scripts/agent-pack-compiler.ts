@@ -293,8 +293,7 @@ export const validateLoadedModules = (
       if (tool.action) {
         if (
           tool.action.providerOperation &&
-          (tool.action.target !== "external" ||
-            tool.transport !== "cloudflare_inline" ||
+          (tool.transport !== "cloudflare_inline" ||
             !tool.action.connectionId ||
             tool.action.execute ||
             tool.action.reconcile ||
@@ -306,22 +305,11 @@ export const validateLoadedModules = (
             !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(tool.action.providerOperation.version))
         )
           throw new Error(
-            `${entry.package} provider operations require inline external bindings, a connection and approval, without package execution callbacks.`,
+            `${entry.package} provider operations require inline bindings, a connection and approval, without package execution callbacks.`,
           );
-        if (!["simulation", "external"].includes(tool.action.target ?? ""))
-          throw new Error(`${entry.package} action ${tool.id} must declare its target.`);
-        if (
-          tool.action.target === "simulation" &&
-          (tool.transport !== "cloudflare_inline" ||
-            tool.action.execute ||
-            tool.action.reconcile ||
-            tool.action.connectionId ||
-            tool.policy.requiresApproval ||
-            tool.executionModes.includes("execute"))
-        )
-          throw new Error(
-            `${entry.package} simulation actions require inline dry-run bindings without external executors, connections or implicit approval.`,
-          );
+        // Simulators run inline in the Worker for every transport, including runner bindings.
+        if (tool.action.simulate !== undefined && typeof tool.action.simulate !== "function")
+          throw new Error(`${entry.package} action ${tool.id} simulate must be a function.`);
         assertSchemaDefinition(
           tool.action.proposalSchema,
           `${entry.package} tool ${tool.id} proposal`,

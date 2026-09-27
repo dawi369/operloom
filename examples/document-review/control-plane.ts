@@ -4,19 +4,19 @@ import {
   type ControlPlaneRuntimeModule,
   type AgentExecutionContext,
   type RuntimeRecord,
-  type RuntimeSimulationCommit,
+  type RuntimeStateCommit,
 } from "@operloom/agent-sdk/control-plane";
 
+type ReviewPlan = RuntimeStateCommit & { output: RuntimeRecord };
+
+/** The review effect is internal state, so it is recorded directly in the agent's pinned scope. */
 const prepareReviewSimulation = async (
   input: RuntimeRecord,
-  context: Pick<AgentExecutionContext, "state" | "context" | "run"> & {
-    actions: Pick<AgentExecutionContext["actions"], "simulate">;
-  },
-) => {
+  context: Pick<AgentExecutionContext, "state" | "context" | "run">,
+): Promise<ReviewPlan> => {
   const state = context.state;
   const evidence = context.context;
-  if (!state || !evidence || !context.actions.simulate)
-    throw new Error("Simulation and evidence are required");
+  if (!state || !evidence) throw new Error("Typed state and evidence are required");
   evidence.assertReady();
   const key = { namespace: "documents", kind: "review", key: String(input.documentId) };
   const previous = await state.get(key);
@@ -24,53 +24,57 @@ const prepareReviewSimulation = async (
     evidence.snapshot.sources.find((source) => source.id === "document")?.data?.text ?? "",
   );
   const wordCount = text.split(/\s+/).filter(Boolean).length;
+  const effectId = `${context.run.id}.simulation-effect`;
+  const target = evidence.snapshot.target;
   return {
-    toolId: "document-review.record",
-    type: "record-review",
-    summary: "Simulate a document review record.",
     idempotencyKey: `${context.run.id}.simulation`,
-    preview: { documentId: key.key, wordCount },
-    state: {
-      reads: [{ ...key, version: previous?.version ?? 0 }],
-      writes: [
-        {
-          ...key,
-          schemaVersion: 1,
-          data: { contentHash: evidence.snapshot.contentHash, wordCount, status: "reviewed" },
-        },
-      ],
-    },
-    decisions: [
+    reads: [{ ...key, version: previous?.version ?? 0 }],
+    writes: [
+      {
+        ...key,
+        schemaVersion: 1,
+        data: { contentHash: evidence.snapshot.contentHash, wordCount, status: "reviewed" },
+      },
+    ],
+    entries: [
       {
         id: `${context.run.id}.simulation-decision`,
+        type: "decision",
         data: {
           outcome: "simulated",
           snapshotId: evidence.snapshot.id,
-          explanation: "Apply a deterministic document review to isolated simulation state.",
+          explanation: "Apply a deterministic document review to the agent's state scope.",
+        },
+      },
+      {
+        id: effectId,
+        type: "effect",
+        data: {
+          workflow: "document-review.simulate",
+          target,
+          documentId: key.key,
+          wordCount,
+          runId: context.run.id,
+          snapshotId: evidence.snapshot.id,
         },
       },
     ],
-    output: { documentId: key.key, wordCount },
-  } satisfies RuntimeSimulationCommit;
+    output: { documentId: key.key, wordCount, target, effectId },
+  };
 };
 const commitReviewSimulation = async (
-  plan: RuntimeSimulationCommit,
+  plan: ReviewPlan,
   context: Parameters<typeof prepareReviewSimulation>[1],
 ) => {
-  if (!context.actions.simulate || !context.context)
-    throw new Error("Simulation and evidence are required");
+  if (!context.state || !context.context) throw new Error("Typed state and evidence are required");
   context.context.assertReady();
-  if (plan.state.writes[0]?.data.contentHash !== context.context.snapshot.contentHash)
-    throw Object.assign(new Error("Document evidence changed before simulation"), {
+  if (plan.writes[0]?.data.contentHash !== context.context.snapshot.contentHash)
+    throw Object.assign(new Error("Document evidence changed before recording the review"), {
       code: "context_changed",
     });
-  const committed = await context.actions.simulate(plan);
-  return {
-    ...committed.output,
-    target: committed.target,
-    effectId: committed.effectId,
-    receiptId: committed.receipt.id,
-  };
+  const { output, ...commit } = plan;
+  const receipt = await context.state.commit(commit);
+  return { ...output, receiptId: receipt.id };
 };
 export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
   Omit<ControlPlaneRuntimeModule, "apiVersion" | "kind">
@@ -91,7 +95,7 @@ export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
   tools: [
     {
       id: "document-review.record",
-      description: "Commit an isolated simulated review.",
+      description: "Record a document review in the agent's typed state scope.",
       inputSchema: { type: "object" },
       outputSchema: { type: "object" },
       executionModes: ["dry_run"],
@@ -107,29 +111,15 @@ export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
         policyEditable: true,
         mutationRisk: "read_only",
       },
-      action: {
-        target: "simulation",
-        idempotency: "required",
-        timeoutMs: 15000,
-        proposalSchema: {
-          type: "object",
-          required: ["documentId", "wordCount"],
-          additionalProperties: false,
-          properties: {
-            documentId: { type: "string" },
-            wordCount: { type: "integer", minimum: 0 },
-          },
+      execute: () => ({
+        ok: false,
+        error: {
+          code: "workflow_required",
+          message: "Use the document-review.simulate workflow.",
+          redacted: true,
         },
-        resultSchema: {
-          type: "object",
-          required: ["documentId", "wordCount"],
-          additionalProperties: false,
-          properties: {
-            documentId: { type: "string" },
-            wordCount: { type: "integer", minimum: 0 },
-          },
-        },
-      },
+        summary: "Reviews are recorded by the document-review.simulate workflow.",
+      }),
     },
   ],
   health: [],
@@ -509,7 +499,8 @@ export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
     {
       type: "document-review.simulate",
       label: "Simulate review",
-      description: "Commit a review, decision and simulated effect atomically.",
+      description:
+        "Commit a review, decision and effect record atomically in the agent's state scope.",
       inputSchema: {
         type: "object",
         required: ["documentId", "text"],
@@ -532,7 +523,7 @@ export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
         },
         { name: "text", label: "Text", description: "Document text", kind: "text" },
       ],
-      toolIds: ["document-review.record"],
+      toolIds: [],
       cancellation: { adapter: "none", physicalAbort: "unsupported" },
       conformanceInput: { documentId: "simulation", text: "A simulated document review." },
       async execute(input, context) {
@@ -560,7 +551,7 @@ export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
               maxAttempts: 2,
               outputSchema: {
                 type: "object",
-                required: ["state", "decisions", "output", "idempotencyKey"],
+                required: ["idempotencyKey", "reads", "writes", "entries", "output"],
               },
             },
             (context) => prepareReviewSimulation(input, context),
@@ -575,7 +566,7 @@ export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
               maxAttempts: 2,
               outputSchema: { type: "object", required: ["target", "effectId", "receiptId"] },
             },
-            (context) => commitReviewSimulation(prepared as RuntimeSimulationCommit, context),
+            (context) => commitReviewSimulation(prepared as ReviewPlan, context),
           );
         },
       },

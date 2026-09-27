@@ -99,9 +99,6 @@ export type ActionPort = {
     } | null;
     projection: { commitId: string; createdAt: string } | null;
   }>;
-  simulate?(
-    input: import("./simulation.js").RuntimeSimulationCommit,
-  ): Promise<import("./simulation.js").RuntimeSimulationReceipt>;
   propose(input: ActionProposal): Promise<{ proposalId: string; status: "proposed" }>;
   execute(proposalId: string): Promise<ActionExecutionResult>;
   reconcile?(proposalId: string): Promise<ActionExecutionResult>;
@@ -180,46 +177,40 @@ export type RuntimeToolBinding = {
     policyEditable: boolean;
     mutationRisk: "read_only" | "mutation_capable";
   };
-  action?:
-    | ({
-        target: "external";
-        connectionId?: string;
-        proposalSchema: JsonSchema;
-        resultSchema: JsonSchema;
-        idempotency: "required";
-        approval: "required" | "policy_controlled";
-        timeoutMs: number;
-      } & (
-        | {
-            /** Platform-reviewed provider operation. Input is the approved proposal preview. */
-            providerOperation: { id: string; version: string };
-            execute?: never;
-            reconcile?: never;
-          }
-        | {
-            providerOperation?: never;
-            execute: (
-              proposal: ActionProposal,
-              context: AgentExecutionContext,
-            ) => Promise<ActionExecutionResult> | ActionExecutionResult;
-            reconcile?: (
-              proposal: ActionProposal,
-              context: AgentExecutionContext,
-            ) => Promise<ActionExecutionResult> | ActionExecutionResult;
-          }
-      ))
+  action?: {
+    connectionId?: string;
+    proposalSchema: JsonSchema;
+    resultSchema: JsonSchema;
+    idempotency: "required";
+    approval: "required" | "policy_controlled";
+    timeoutMs: number;
+    /**
+     * Runs instead of the provider, connection or runner when the agent's effect
+     * target is simulation. Output must match resultSchema.
+     */
+    simulate?: (
+      proposal: ActionProposal,
+      context: import("./simulation.js").RuntimeSimulationContext,
+    ) => Promise<RuntimeRecord> | RuntimeRecord;
+  } & (
     | {
-        target: "simulation";
-        proposalSchema: JsonSchema;
-        resultSchema: JsonSchema;
-        idempotency: "required";
-        timeoutMs: number;
-        connectionId?: never;
-        approval?: never;
+        /** Platform-reviewed provider operation. Input is the approved proposal preview. */
+        providerOperation: { id: string; version: string };
         execute?: never;
         reconcile?: never;
+      }
+    | {
         providerOperation?: never;
-      };
+        execute: (
+          proposal: ActionProposal,
+          context: AgentExecutionContext,
+        ) => Promise<ActionExecutionResult> | ActionExecutionResult;
+        reconcile?: (
+          proposal: ActionProposal,
+          context: AgentExecutionContext,
+        ) => Promise<ActionExecutionResult> | ActionExecutionResult;
+      }
+  );
   execute?: (
     input: RuntimeRecord,
     context: AgentExecutionContext,

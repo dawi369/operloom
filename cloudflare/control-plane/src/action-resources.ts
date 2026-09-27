@@ -98,23 +98,23 @@ export const actionProjectionStatements = (
   const projection = input.commit.projection;
   if (projection === undefined) return [];
   if (
-    input.target !== "external" ||
     !projection ||
     typeof projection.proposalId !== "string" ||
     projection.proposalId.length > 200 ||
     !projection.proposalId.length
   )
-    return fail("Only external typed state can project a named provider action");
+    return fail("Projection requires the proposal id of a named provider action");
   const { identity } = input;
   // INSERT ... VALUES with a scalar lookup deliberately yields NULL on a failed
   // predicate. The NOT NULL constraint aborts the batch, rather than silently
-  // inserting zero rows and allowing state writes to continue.
+  // inserting zero rows and allowing state writes to continue. The proposal's
+  // pinned effect target must match the committing state scope.
   return [
     env.DB.prepare(`INSERT INTO control_action_projections
     (id,user_id,workspace_id,agent_id,proposal_id,provider_receipt_id,commit_id,created_at)
     VALUES (?,?,?,?,?,(SELECT o.id FROM control_provider_operations o JOIN control_action_proposals p ON p.id=o.proposal_id
       JOIN memberships m ON m.user_id=o.user_id AND m.workspace_id=o.workspace_id AND m.status='active' AND m.role IN ('owner','admin')
-      WHERE p.id=? AND p.pack_id=? AND o.user_id=? AND o.workspace_id=? AND o.agent_id=? AND o.status IN ('succeeded','failed') AND json_extract(o.result_json,'$.payloadPrunedAt') IS NULL
+      WHERE p.id=? AND p.pack_id=? AND p.effect_target=? AND o.effect_target=p.effect_target AND o.user_id=? AND o.workspace_id=? AND o.agent_id=? AND o.status IN ('succeeded','failed') AND json_extract(o.result_json,'$.payloadPrunedAt') IS NULL
       AND NOT EXISTS (SELECT 1 FROM control_action_reservations c
         LEFT JOIN control_state_records r ON r.scope_id=c.scope_id AND r.namespace=c.namespace AND r.kind=c.kind AND r.record_key=c.record_key
         LEFT JOIN json_each(?) w ON json_extract(w.value,'$.namespace')=c.namespace AND json_extract(w.value,'$.kind')=c.kind AND json_extract(w.value,'$.key')=c.record_key
@@ -129,6 +129,7 @@ export const actionProjectionStatements = (
       projection.proposalId,
       projection.proposalId,
       input.packId,
+      input.target,
       identity.scope.userId,
       identity.scope.workspaceId,
       identity.agentId,

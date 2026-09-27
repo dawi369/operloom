@@ -332,14 +332,6 @@ export const bindRuntimeContext = (
     tools = context.tools,
     managed = context.managedState;
   context.actions = {
-    ...(actions.simulate
-      ? {
-          async simulate(input: import("@operloom/agent-sdk").RuntimeSimulationCommit) {
-            evidence.assertReady();
-            return actions.simulate!(input);
-          },
-        }
-      : {}),
     async propose(input) {
       evidence.assertReady();
       return actions.propose(input);

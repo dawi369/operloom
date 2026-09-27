@@ -38,7 +38,6 @@ export const controlPlane = defineControlPlaneModule({
         mutationRisk: "mutation_capable",
       },
       action: {
-        target: "external",
         connectionId: "capacity.service",
         proposalSchema: {
           type: "object",
@@ -51,6 +50,11 @@ export const controlPlane = defineControlPlaneModule({
         approval: "required",
         timeoutMs: 4000,
         providerOperation: { id: "capacity.allocate", version: "1" },
+        simulate: (proposal) => ({
+          requestId: `simulation:${proposal.idempotencyKey}`,
+          resourceId: `sim-${proposal.idempotencyKey}`,
+          lifecycle: "active",
+        }),
       },
     },
   ],

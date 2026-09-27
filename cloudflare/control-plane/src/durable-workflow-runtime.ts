@@ -13,7 +13,6 @@ import {
 import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import { sha256Hex } from "../../../lib/workbench/control-plane-signing";
 import { createRuntimeStatePort } from "./runtime-state";
-import { createSimulationActionPort } from "./runtime-simulation";
 import { captureRuntimeContext, contextIsRequired } from "./runtime-context";
 import { createRuntimeModelPort } from "./runtime-models";
 import { executeRuntimeToolBinding } from "./runtime-tool-execution";
@@ -278,11 +277,6 @@ export const runDurableWorkflow = async (
                 },
               },
             };
-            context.actions.simulate = createSimulationActionPort(env, identity, {
-              context,
-              toolIds: workflow.toolIds,
-              durableAttempt,
-            });
             if (contextIsRequired(runtime)) {
               context.context = await captureRuntimeContext(env, identity, {
                 runId,

@@ -1,6 +1,6 @@
 import { assertSchemaValue, type RuntimeToolBinding } from "@operloom/agent-sdk/control-plane";
 import { requireConnectionProvider } from "./connection-providers";
-import type { Env } from "./types";
+import type { EffectTarget, Env } from "./types";
 
 const inputSchema = {
   type: "object",
@@ -33,27 +33,43 @@ const operations = [
   },
 ] as const;
 
-export const providerOperationDescriptor = (
-  env: Env,
-  binding: RuntimeToolBinding,
-  providerId?: string,
-) => {
-  const reference = binding.action?.providerOperation;
-  if (!reference) return null;
+/** Binding and registry validation only; simulated operations need no provider configuration. */
+export const providerOperationReference = (binding: RuntimeToolBinding) => {
+  const action = binding.action;
+  const reference = action?.providerOperation;
+  if (!action || !reference) return null;
   if (
-    binding.action?.target !== "external" ||
     binding.transport !== "cloudflare_inline" ||
-    !binding.action.connectionId ||
-    binding.action.execute ||
-    binding.action.reconcile ||
-    binding.action.approval !== "required" ||
+    !action.connectionId ||
+    action.execute ||
+    action.reconcile ||
+    action.approval !== "required" ||
     !binding.policy.requiresApproval
   )
     throw new Error("provider_operation_binding_invalid");
   const operation = operations.find(
     (item) => item.id === reference.id && item.version === reference.version,
   );
-  if (!operation || (providerId !== undefined && providerId !== operation.providerId))
+  if (!operation) throw new Error("provider_operation_unavailable");
+  return {
+    ...operation,
+    method: "POST" as const,
+    credentialClass: "api_key" as const,
+    inputSchema,
+    outputSchema,
+    timeoutMs: Math.min(5000, action.timeoutMs),
+    maxResponseBytes: 65536,
+  };
+};
+
+export const providerOperationDescriptor = (
+  env: Env,
+  binding: RuntimeToolBinding,
+  providerId?: string,
+) => {
+  const operation = providerOperationReference(binding);
+  if (!operation) return null;
+  if (providerId !== undefined && providerId !== operation.providerId)
     throw new Error("provider_operation_unavailable");
   let provider;
   try {
@@ -71,20 +87,21 @@ export const providerOperationDescriptor = (
     !url.pathname.endsWith("/allocations")
   )
     throw new Error("provider_operation_endpoint_invalid");
-  return {
-    ...operation,
-    url: url.toString(),
-    method: "POST" as const,
-    credentialClass: "api_key" as const,
-    inputSchema,
-    outputSchema,
-    timeoutMs: Math.min(5000, binding.action.timeoutMs),
-    maxResponseBytes: 65536,
-  };
+  return { ...operation, url: url.toString() };
 };
 export type ProviderOperationDescriptor = NonNullable<
   ReturnType<typeof providerOperationDescriptor>
 >;
+
+export const providerOperationFor = (
+  env: Env,
+  binding: RuntimeToolBinding,
+  target: EffectTarget,
+  providerId?: string,
+) =>
+  target === "simulation"
+    ? providerOperationReference(binding)
+    : providerOperationDescriptor(env, binding, providerId);
 
 export const providerOperationOutput = (
   operation: ProviderOperationDescriptor,

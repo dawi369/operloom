@@ -480,6 +480,7 @@ export type ControlActionProposalRow = {
   tool_id: string;
   action_type: string;
   connection_record_id: string | null;
+  effect_target: EffectTarget;
   status: ControlActionProposalStatus;
   summary: string;
   idempotency_key: string;

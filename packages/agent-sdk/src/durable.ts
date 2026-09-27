@@ -4,7 +4,7 @@ import type { JsonSchema, AgentExecutionContext, RuntimeRecord } from "./runtime
 export type RuntimeDurableStepContext = Pick<
   AgentExecutionContext,
   "scope" | "pack" | "run" | "signal" | "state" | "context" | "models" | "tools"
-> & { actions: Pick<AgentExecutionContext["actions"], "simulate"> };
+>;
 
 export type RuntimeDurableStep = {
   key: string;

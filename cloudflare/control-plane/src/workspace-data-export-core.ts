@@ -137,7 +137,7 @@ export const exportCollections: readonly ExportCollection[] = [
   tenantCollection("control_action_projections"),
   tenantCollection(
     "control_provider_operations",
-    "id,user_id,workspace_id,agent_id,proposal_id,review_id,operation_id,operation_version,request_hash,status,result_json,created_at,updated_at",
+    "id,user_id,workspace_id,agent_id,proposal_id,review_id,operation_id,operation_version,request_hash,effect_target,status,result_json,created_at,updated_at",
   ),
   tenantCollection("control_kill_switches"),
   tenantCollection(

@@ -4,6 +4,7 @@ import {
   type ActionProposal,
   type AgentPackConnectionDescriptor,
   type AgentExecutionContext,
+  type RuntimeRecord,
   type RuntimeToolBinding,
   type RuntimeResult,
 } from "@operloom/agent-sdk/control-plane";
@@ -11,8 +12,9 @@ import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
 import { createBrokeredConnectionPort, issueFlyConnectionCapability } from "./connection-broker";
 import { mutationsEnabled } from "./feature-gates";
-import { dispatchProviderOperation } from "./provider-operations";
-import { providerOperationDescriptor } from "./provider-operation-registry";
+import { dispatchProviderOperation, recordSimulatedProviderOperation } from "./provider-operations";
+import { providerOperationFor } from "./provider-operation-registry";
+import { createRuntimeStatePort } from "./runtime-state";
 import { isRecord, parseDataJson } from "./http";
 import { selectMembership } from "./authz-store";
 import { evaluateToolPolicy, recordToolPolicyDecision } from "./tool-policy";
@@ -70,7 +72,7 @@ export const sha256Hex = async (value: unknown) => {
 
 export const proposalColumns = `id, user_id, workspace_id, agent_id, workflow_intent_id, run_id,
   tool_call_id, pack_id, pack_version, runtime_version, binding_version, tool_id, action_type,
-  connection_record_id, status, summary, idempotency_key, input_sha256, proposal_json,
+  connection_record_id, effect_target, status, summary, idempotency_key, input_sha256, proposal_json,
   policy_decision_id, approval_request_id, external_reference, result_json, error_json,
   version, created_at, updated_at, terminal_at`;
 
@@ -203,7 +205,7 @@ export const resolveBinding = (row: ControlActionProposalRow) => {
   const binding = runtime.controlPlane.tools.find((tool) => tool.id === row.tool_id) as
     | RuntimeToolBinding
     | undefined;
-  if (!binding?.action || binding.action.target === "simulation") {
+  if (!binding?.action) {
     throw Object.assign(new Error("The proposal action binding is unavailable."), {
       code: "action_binding_unavailable",
     });
@@ -221,7 +223,9 @@ export const mutationPreflight = async (
   identity: AgentIdentity,
   row: ControlActionProposalRow,
 ) => {
-  if (!mutationsEnabled(env))
+  // Simulated effects never leave the platform, so connection and mutation posture do not apply.
+  const external = row.effect_target === "external";
+  if (external && !mutationsEnabled(env))
     throw Object.assign(new Error("External mutation is disabled."), { code: "mutation_disabled" });
   const policy = await env.DB.prepare(
     `SELECT confirmed_at FROM control_retention_policies
@@ -273,7 +277,7 @@ export const mutationPreflight = async (
       code: "kill_switch_active",
       data: { scopeKind: blocked.scope_kind, scopeId: blocked.scope_id },
     });
-  if (row.connection_record_id) {
+  if (external && row.connection_record_id) {
     const connection = await env.DB.prepare(
       `SELECT status FROM control_connections WHERE id = ? AND user_id = ? AND workspace_id = ? LIMIT 1`,
     )
@@ -285,14 +289,14 @@ export const mutationPreflight = async (
       });
   }
   const { binding } = resolveBinding(row);
-  const providerOperation = providerOperationDescriptor(env, binding);
+  const providerOperation = providerOperationFor(env, binding, row.effect_target);
   if (providerOperation)
     assertSchemaValue(
       providerOperation.inputSchema,
       parseDataJson(row.proposal_json).preview,
       "Provider operation input",
     );
-  if (binding.action?.connectionId && !row.connection_record_id) {
+  if (external && binding.action?.connectionId && !row.connection_record_id) {
     throw Object.assign(new Error("The required connection is not authorized."), {
       code: "connection_not_authorized",
     });
@@ -366,17 +370,88 @@ export const executionContext = (
   events: { async append() {} },
 });
 
+export type ActionDispatchResult = ActionExecutionResult & { errorCode?: string };
+
+/** Runs the package simulator with read-only simulation-scope state and no connection, runner or network. */
+const simulateAction = async (
+  env: Env,
+  identity: AgentIdentity,
+  row: ControlActionProposalRow,
+  binding: RuntimeToolBinding,
+  proposal: ActionProposal,
+): Promise<ActionDispatchResult> => {
+  const action = binding.action!;
+  if (!action.simulate)
+    return {
+      proposalId: row.id,
+      status: "failed",
+      summary: "This action has no simulator; switch the agent to external to run it.",
+      errorCode: "simulation_unavailable",
+    };
+  const { runtime } = resolveBinding(row);
+  const controller = new AbortController();
+  const state = await createRuntimeStatePort(env, identity, {
+    packId: row.pack_id,
+    target: row.effect_target,
+    definitions: runtime.controlPlane.state ?? [],
+    signal: controller.signal,
+  });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let output: RuntimeRecord;
+  try {
+    const simulated: unknown = await Promise.race([
+      Promise.resolve().then(() =>
+        action.simulate!(structuredClone(proposal), {
+          scope: { ...identity.scope, agentId: identity.agentId },
+          pack: { id: row.pack_id, version: row.pack_version, runtimeVersion: row.runtime_version },
+          run: { id: row.run_id },
+          signal: controller.signal,
+          state: { get: (key) => state.get(key), list: (query) => state.list(query) },
+        }),
+      ),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("simulation_timeout")), action.timeoutMs);
+      }),
+    ]);
+    if (!isRecord(simulated)) throw new Error("simulation_result_invalid");
+    output = structuredClone(simulated);
+    assertSchemaValue(action.resultSchema, output, `${row.tool_id} simulated result`);
+  } catch {
+    return {
+      proposalId: row.id,
+      status: "failed",
+      summary: "The action simulator did not return a valid result.",
+      errorCode: "simulation_failed",
+    };
+  } finally {
+    clearTimeout(timer);
+    controller.abort();
+  }
+  if (action.providerOperation)
+    return recordSimulatedProviderOperation(env, identity, row.id, binding, output);
+  const reference = output.resourceId ?? output.externalReference;
+  return {
+    proposalId: row.id,
+    status: "executed",
+    summary: "Simulated action executed.",
+    externalReference: typeof reference === "string" ? reference : undefined,
+    output,
+  };
+};
+
 export const dispatchAction = async (
   env: Env,
   identity: AgentIdentity,
   row: ControlActionProposalRow,
   binding: RuntimeToolBinding,
   proposal: ActionProposal,
-): Promise<ActionExecutionResult> => {
-  if (!binding.action || binding.action.target === "simulation")
-    throw Object.assign(new Error("Simulation cannot dispatch an external action."), {
-      code: "action_target_mismatch",
+): Promise<ActionDispatchResult> => {
+  if (!binding.action)
+    throw Object.assign(new Error("The proposal action binding is unavailable."), {
+      code: "action_binding_unavailable",
     });
+  if (row.effect_target === "simulation")
+    return simulateAction(env, identity, row, binding, proposal);
   if (binding.transport === "cloudflare_inline") {
     if (binding.action.providerOperation)
       return dispatchProviderOperation(env, identity, row.id, binding);

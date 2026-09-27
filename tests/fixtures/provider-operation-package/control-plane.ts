@@ -52,7 +52,6 @@ export const controlPlane = defineControlPlaneModule({
       mutationRisk: "mutation_capable" as const,
     },
     action: {
-      target: "external" as const,
       connectionId,
       proposalSchema,
       resultSchema: { type: "object", required: ["requestId", "resourceId", "lifecycle"] },
@@ -60,6 +59,11 @@ export const controlPlane = defineControlPlaneModule({
       approval: "required" as const,
       timeoutMs: 5000,
       providerOperation: { id, version: "1" },
+      simulate: (proposal: { idempotencyKey: string }) => ({
+        requestId: `simulation:${proposal.idempotencyKey}`,
+        resourceId: `sim-${proposal.idempotencyKey}`,
+        lifecycle: "active",
+      }),
     },
   })),
   workflows: [

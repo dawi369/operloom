@@ -452,7 +452,7 @@ const main = async () => {
       type: "effect",
     });
     const reviewEffects = simulatedEffects.entries.filter(
-      (entry) => entry.data.toolId === "document-review.record",
+      (entry) => entry.data.workflow === "document-review.simulate",
     );
     if (
       reviewEffects.length !== 2 ||

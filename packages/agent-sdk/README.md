@@ -2,13 +2,13 @@
 
 Build-time contracts for trusted Operloom Agent Packs and Runtime Modules.
 
-Experimental v2 `actions.simulate` commits a complete proposal, exact read
-versions, state writes, decisions and validated result into a server-selected
-simulation scope with atomic effect/delivery receipts. It is available in workflow
-and durable-step contexts when enabled. Simulation bindings declare
-`action.target: "simulation"` and contain no external executor or credentials.
-Persist the plan before a durable commit; retry its original content after an
-acknowledgement loss. See [simulation contracts](../../docs/runtime-simulation.md).
+Actions have one path: `actions.propose(...)`, approval per policy, then
+`actions.execute(proposalId)`. An action binding may declare
+`simulate(proposal, context)`. When the agent's effect target is simulation the
+platform calls it instead of the provider operation, connection or runner, with
+read-only simulation-scope state, and records the validated result with the same
+approvals, receipts and projection rules. Without a simulator, a simulated agent's
+action fails with `simulation_unavailable`.
 
 The package contains no workbench database, authentication, deployment, or
 credential implementation. Runtime code receives scoped capabilities from the
@@ -218,12 +218,11 @@ External `ActionProposal` values may supply `preconditions` with declared typed
 state read versions and `expiresAt` for an earlier deadline. Platform reviews
 are valid for at most fifteen minutes and bind complete proposal/runtime/policy/
 credential evidence. Changed content or state requires a new proposal and
-approval. Simulation plans use their own `state.reads`; these external review
-fields are excluded from `RuntimeSimulationCommit`.
+approval.
 
 ## Provider operations (experimental)
 
-A Runtime Module v2 inline external action can declare
+A Runtime Module v2 inline action can declare
 `providerOperation: { id: "capacity.allocate", version: "1" }` with a declared
 `connectionId`, required approval, and proposal/result schemas. It supplies no
 `action.execute` or `action.reconcile` callback. The approved preview is the

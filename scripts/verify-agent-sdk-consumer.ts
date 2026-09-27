@@ -143,7 +143,7 @@ void [defineWorkbenchConfig, defineAgentPack, defineControlPlaneModule, defineRu
 
 import type { RuntimeToolBinding } from "@operloom/agent-sdk/control-plane";
 const providerAction: NonNullable<RuntimeToolBinding["action"]> = {
-  target: "external", connectionId: "capacity.service", proposalSchema: { type: "object" },
+  connectionId: "capacity.service", proposalSchema: { type: "object" },
   resultSchema: { type: "object" }, idempotency: "required", approval: "required", timeoutMs: 4000,
   providerOperation: { id: "capacity.allocate", version: "1" },
 };

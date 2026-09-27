@@ -82,3 +82,8 @@ fresh evidence still matches the original document and retains the original stat
 version precondition. Decisions link both snapshot IDs. Changed evidence blocks
 the operation; retrying a logical step never silently replaces its original
 capture. Use the headless client's context list to inspect the full revision history.
+
+`document-review.simulate` records a review, a decision and an `effect` entry in
+one typed-state commit. The effect is internal state, not an external action, so it
+calls `context.state.commit` directly and lands in the agent's pinned effect-target
+scope. Its report returns that `target`, the `effectId` and the commit `receiptId`.

@@ -35,3 +35,7 @@ the baseline schema.
   (`GET/PUT /agents/{id}/effect-target`, owner/admin, revision-fenced and
   audited). Every run pins its target; packages no longer declare
   `stateTarget`. Agents start in simulation.
+- Actions have one path. Bindings may declare `simulate(proposal, context)`;
+  agents in simulation run it instead of the provider, connection or runner,
+  with identical results, approvals, receipts and projections. `actions.simulate`
+  and simulation-only bindings are removed.

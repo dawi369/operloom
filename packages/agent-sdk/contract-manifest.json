@@ -24,7 +24,7 @@
     },
     {
       "path": "dist/durable.d.ts",
-      "sha256": "7197390e40c43bcf00f96843c0e15dd8cca2e299f587bb3bcbf4f7b069da06fd"
+      "sha256": "b7d5f8f3f3a9675bcffc98b66783ef774f5a42f5905f7b78e0c1b2eab4e1591f"
     },
     {
       "path": "dist/index.d.ts",
@@ -44,7 +44,7 @@
     },
     {
       "path": "dist/runtime.d.ts",
-      "sha256": "d3b9a3f632e1939659d356af7ba403098095feb5e72241e2c43b7a13490a185b"
+      "sha256": "35066bb05eda2659d483815cc7b9afb3836c2c76b9a16512cf69579d718df27f"
     },
     {
       "path": "dist/schema.d.ts",
@@ -52,7 +52,7 @@
     },
     {
       "path": "dist/simulation.d.ts",
-      "sha256": "ade00f9f23fa7ab028d101566548db8cd53c1f497bf7858f60503ef8a170da06"
+      "sha256": "c7c5b27d01f262a1ff026d8f67498a567e5b73e0d2e65b0bceea36be67d1d5d6"
     },
     {
       "path": "dist/state-migrations.d.ts",

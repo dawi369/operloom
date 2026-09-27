@@ -1,14 +1,13 @@
 import type { ActionProposal, RuntimeStateRead } from "@operloom/agent-sdk";
 import { resolveBinding, sha256Hex } from "./action-authority-core";
 import { runtimeStateCanonicalJson, runtimeStateScopeId } from "./runtime-state";
-import { providerOperationDescriptor } from "./provider-operation-registry";
+import { providerOperationFor } from "./provider-operation-registry";
 import { validateActionReservations } from "./action-resources";
 import {
   createId,
   type AgentIdentity,
   type ControlActionProposalRow,
   type D1PreparedStatement,
-  type EffectTarget,
   type Env,
   type ToolPermissionRow,
 } from "./types";
@@ -18,7 +17,7 @@ const fail = (code: string, message: string): never => {
 };
 type ReviewBinding = {
   reservations?: ActionProposal["reservations"];
-  providerOperation?: ReturnType<typeof providerOperationDescriptor>;
+  providerOperation?: ReturnType<typeof providerOperationFor>;
   userId: string;
   workspaceId: string;
   agentId: string;
@@ -58,7 +57,7 @@ export type ActionReview = {
 };
 const runtimeHash = async (env: Env, row: ControlActionProposalRow) => {
   const { binding, runtime } = resolveBinding(row);
-  const operation = providerOperationDescriptor(env, binding);
+  const operation = providerOperationFor(env, binding, row.effect_target);
   return sha256Hex(
     JSON.parse(
       JSON.stringify(
@@ -149,10 +148,10 @@ export const createActionReview = async (
   const proposal = JSON.parse(row.proposal_json) as ActionProposal;
   const reads = validateActionPreconditions(proposal, row);
   const agent = await env.DB.prepare(
-    "SELECT runtime_revision,effect_target,data_json FROM agents WHERE id=? AND workspace_id=? AND status='active'",
+    "SELECT runtime_revision,data_json FROM agents WHERE id=? AND workspace_id=? AND status='active'",
   )
     .bind(identity.agentId, identity.scope.workspaceId)
-    .first<{ runtime_revision: number; effect_target: EffectTarget; data_json: string }>();
+    .first<{ runtime_revision: number; data_json: string }>();
   if (!agent || !input.permission)
     return fail("action_review_conflict", "Current agent and tool policy are required");
   const connection = row.connection_record_id
@@ -175,9 +174,10 @@ export const createActionReview = async (
     : null;
   if (row.connection_record_id && !connection)
     return fail("connection_not_authorized", "The action connection is unavailable");
-  const providerOperation = providerOperationDescriptor(
+  const providerOperation = providerOperationFor(
     env,
     resolveBinding(row).binding,
+    row.effect_target,
     connection?.provider_id,
   );
   const expiresAt = new Date(
@@ -203,7 +203,7 @@ export const createActionReview = async (
     approvalId: input.approvalId,
     runId: input.runId,
     intentId: input.intentId,
-    stateScopeId: await runtimeStateScopeId(identity, row.pack_id, agent.effect_target),
+    stateScopeId: await runtimeStateScopeId(identity, row.pack_id, row.effect_target),
     reads,
     permission: {
       id: input.permission.id,
@@ -242,7 +242,7 @@ const authority = `
   JOIN workspaces w ON w.id=p.workspace_id AND w.status='active'
   JOIN users u ON u.id=p.user_id AND u.status='active'
   JOIN memberships m ON m.user_id=p.user_id AND m.workspace_id=p.workspace_id AND m.status='active' AND m.role IN ('owner','admin')
-  JOIN agents a ON a.id=p.agent_id AND a.workspace_id=p.workspace_id AND a.status='active'
+  JOIN agents a ON a.id=p.agent_id AND a.workspace_id=p.workspace_id AND a.status='active' AND a.effect_target=p.effect_target
   JOIN tool_permissions t ON t.user_id=p.user_id AND t.workspace_id=p.workspace_id AND t.agent_id=p.agent_id AND t.tool_id=p.tool_id
   CROSS JOIN b
   WHERE p.id=? AND p.status=? AND p.version=?

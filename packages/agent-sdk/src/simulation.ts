@@ -1,19 +1,12 @@
-import type { ActionProposal, RuntimeRecord } from "./runtime.js";
-import type { RuntimeStateCommit, RuntimeStateReceipt } from "./state.js";
+import type { RuntimeScope } from "./runtime.js";
+import type { RuntimeStatePort } from "./state.js";
 
-/** A complete proposed state transition. Repeat the exact plan after response loss. */
-export type RuntimeSimulationCommit = Omit<
-  ActionProposal,
-  "preconditions" | "expiresAt" | "reservations"
-> & {
-  state: Pick<RuntimeStateCommit, "reads" | "writes">;
-  decisions: readonly { id: string; data: RuntimeRecord }[];
-  output: RuntimeRecord;
-};
-export type RuntimeSimulationReceipt = {
-  target: "simulation";
-  status: "committed";
-  effectId: string;
-  receipt: RuntimeStateReceipt;
-  output: RuntimeRecord;
+/** Read-only inputs for an action simulator; it cannot reach connections, runners or the network. */
+export type RuntimeSimulationContext = {
+  scope: Readonly<RuntimeScope>;
+  pack: Readonly<{ id: string; version: string; runtimeVersion: string }>;
+  run: Readonly<{ id: string }>;
+  signal: AbortSignal;
+  /** Simulation-scope typed state. */
+  state?: Pick<RuntimeStatePort, "get" | "list">;
 };

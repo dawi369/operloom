@@ -169,7 +169,6 @@ const controlPlaneDefinition: Omit<ControlPlaneRuntimeModule, "apiVersion" | "ki
       },
       policy: mutationPolicy,
       action: {
-        target: "external",
         connectionId: "operator.external-account",
         proposalSchema: {
           type: "object",
@@ -189,6 +188,13 @@ const controlPlaneDefinition: Omit<ControlPlaneRuntimeModule, "apiVersion" | "ki
         idempotency: "required",
         approval: "required",
         timeoutMs: 7_000,
+        simulate(proposal) {
+          return {
+            status: "executed",
+            idempotencyKey: proposal.idempotencyKey,
+            externalReference: `simulation:${proposal.idempotencyKey}`,
+          };
+        },
         execute(proposal) {
           if (proposal.preview.outcome === "unknown") {
             return {

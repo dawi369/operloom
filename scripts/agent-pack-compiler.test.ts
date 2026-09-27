@@ -36,7 +36,6 @@ describe("agent pack compiler", () => {
     const { execute: _execute, reconcile: _reconcile, ...contract } = tool.action!;
     const action = {
       ...contract,
-      target: "external" as const,
       providerOperation: { id: "capacity.allocate", version: "1" },
     };
     const candidate = {
@@ -70,27 +69,31 @@ describe("agent pack compiler", () => {
         },
       } as typeof source;
       expect(() => validateLoadedModules([invalid])).toThrow(
-        "provider operations require inline external bindings",
+        "provider operations require inline bindings",
       );
     }
   });
 
-  it("requires explicit action targets and forbids external authority in simulation bindings", async () => {
-    const [source] = await loadAgentModules(process.cwd());
-    if (!source) throw new Error("Fixture package missing");
-    const tool = source.controlPlane.tools[0]!;
-    for (const action of [
-      { ...tool.action, target: undefined },
-      { ...tool.action, execute: async () => ({}) },
-      { ...tool.action, reconcile: async () => ({}) },
-      { ...tool.action, connectionId: "external" },
-    ]) {
-      const candidate = {
-        ...source,
-        controlPlane: { ...source.controlPlane, tools: [{ ...tool, action }] },
-      } as unknown as typeof source;
-      expect(() => validateLoadedModules([candidate])).toThrow(/target|simulation actions/);
-    }
+  it("accepts simulators on inline and runner bindings and rejects non-function simulators", async () => {
+    const modules = await loadAgentModules(process.cwd());
+    const source = modules.find((item) => item.manifest.id === "complex-operator")!;
+    const tool = source.controlPlane.tools.find((item) => item.id === "operator.action.execute")!;
+    expect(tool.transport).toBe("fly");
+    expect(typeof tool.action?.simulate).toBe("function");
+    expect(() => validateLoadedModules([source])).not.toThrow();
+    const provider = modules.find((item) => item.manifest.id === "provider-operation-fixture")!;
+    expect(provider.controlPlane.tools.every((item) => item.action?.simulate)).toBe(true);
+    expect(() => validateLoadedModules([provider])).not.toThrow();
+    const invalid = {
+      ...source,
+      controlPlane: {
+        ...source.controlPlane,
+        tools: source.controlPlane.tools.map((item) =>
+          item.id === tool.id ? { ...item, action: { ...item.action, simulate: {} } } : item,
+        ),
+      },
+    } as unknown as typeof source;
+    expect(() => validateLoadedModules([invalid])).toThrow("simulate must be a function");
   });
 
   it("validates durable declarations", async () => {
