@@ -1,23 +1,25 @@
 # Fly Tool Runners
 
-Fly is the preferred heavy execution plane for operloom.
+The signed Node.js runner (`runner/server.ts`) is Operloom's heavy execution
+plane. Deployment is covered in [Fly runner deployment](deployment-fly.md).
 
 ## Role
 
-Fly services should run work that does not belong in Cloudflare Workers:
+The runner executes work that does not belong in Cloudflare Workers:
 
 - CLI tools.
 - OSS packages and git submodules.
 - Python tools.
 - Browser automation.
-- LangGraph workflow workers.
 - Long-running jobs.
 - Native dependencies.
 - Private network services.
 
-Cloudflare coordinates; Fly executes.
+Cloudflare coordinates; the runner executes.
 
-Fly does not own the user-facing stream. Tool runners and LangGraph services report progress to Cloudflare through callbacks or scoped status writes. Cloudflare then streams status and results to the frontend.
+The runner does not own the user-facing stream. It reports results to
+Cloudflare through signed callbacks, and Cloudflare streams status and results
+to the frontend.
 
 ## Tool Call Boundary
 
@@ -52,20 +54,18 @@ The Fly service must:
 
 ## Mediated State Access
 
-Fly services should not use broad D1/R2 credentials. The initial implementation uses mediated Cloudflare APIs for app-state reads and writes.
-
-Preferred access pattern:
+Runner tools do not hold D1/R2 credentials. They read and write application
+state only through mediated Cloudflare APIs:
 
 ```txt
-Fly/LangGraph workflow
-  -> scoped Cloudflare data API
+runner tool
+  -> scoped Cloudflare API
   -> policy/auth/redaction/audit checks
   -> D1/R2/DO-backed state
 ```
 
-Future optimization: scoped direct D1/R2 access may be considered only after a measured performance or reliability problem. It must use the same scoped data-client interface and produce the same audit events. It is not part of the initial implementation.
-
-See `docs/db-contracts.md` for the durable entity contracts and repository-style operation groups Fly/LangGraph should call through the mediated data client.
+Direct scoped D1/R2 access would need a measured performance or reliability
+problem first, the same scoped interface and the same audit events.
 
 ## Sandbox Lifecycle And Network Policy
 
@@ -91,17 +91,11 @@ match the signed sandbox egress policy. This slice does not create persistent
 sandboxes, volumes, browser automation, artifact stores, or a broader network
 policy service.
 
-## LangGraph On Fly
-
-LangGraph can run on Fly as a workflow service for complex graph-shaped work. In that model, Cloudflare creates a typed workflow intent, policy approves it, and Fly executes the LangGraph workflow. Final outputs must return to canonical state: decision records, audit events, artifacts, ledgers, and managed state.
-
-LangGraph workflows may need to read and write context. The initial implementation should do that through a scoped data client backed by mediated Cloudflare APIs, not through global database access.
-
 ## Deployment Modes
 
-- Current hosted mode: distinct acceptance and production Fly apps each run the
-  gateway, LangGraph runtime, and signed executor endpoints.
-- Future execution mode: one or more target-scoped Fly services may split tool
-  runners and LangGraph workers behind the same signed boundary.
+- Current hosted mode: each target runs one signed runner app (see
+  `config/environments/<target>.json`).
+- Future mode: target-scoped runner services may split by tool class behind
+  the same signed boundary.
 
 Do not store important durable state on a Fly filesystem unless the storage strategy explicitly says so.

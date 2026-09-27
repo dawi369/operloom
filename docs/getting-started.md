@@ -24,7 +24,8 @@ pnpm operloom dev
 ```
 
 Open [localhost:3000](http://localhost:3000) and send Operloom a message.
-The supervisor starts the web, Worker, runner, and LangGraph services together.
+The supervisor starts the web console, Worker, signed runner and a one-minute
+trigger scheduler together.
 Stop it with Ctrl-C. Use `pnpm operloom doctor` to check running services.
 
 ## Run a repository report

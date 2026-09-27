@@ -24,6 +24,10 @@
   their managed-state renderers.
 - The agent-system conformance journey opts its agent into `external` and
   asserts that a pack kill switch blocks new runs and cancels pending proposals.
+- Docs describe the v2 topology (Worker `/v1`, console as a `/v1` client, signed
+  runner on Fly) instead of LangGraph and the signed Next facade, and drop removed
+  feature flags and hosted-evidence scripts. `pnpm docs:check` now rejects any
+  documented `pnpm` script that does not exist.
 
 ## 2.0.0
 

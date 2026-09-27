@@ -9,10 +9,9 @@ The manifest's untrusted classification cannot be overridden by document content
 
 ## Run locally
 
-Enable `OPERLOOM_PUBLIC_API_ENABLED`, `OPERLOOM_TYPED_STATE_ENABLED`,
-`OPERLOOM_CONTEXT_ENABLED`, `OPERLOOM_STRUCTURED_MODELS_ENABLED` and
-`OPERLOOM_USAGE_LIMITS_ENABLED` in the local Worker. This repository registers the
-example as conformance-only, so also enable `OPERLOOM_CONFORMANCE_MODE` locally.
+This repository registers the example as conformance-only, so enable
+`OPERLOOM_CONFORMANCE_MODE` in the local Worker. Typed state, context,
+structured models and budgets need no flags.
 Use the local authentication setup in [the headless quickstart](../../docs/headless-runtime.md).
 
 With an authenticated `createRuntimeClient` instance:
