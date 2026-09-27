@@ -1,3 +1,7 @@
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+
 import { describe, expect, it } from "vitest";
 import { startManagedProcess } from "./managed-process";
 
@@ -104,5 +108,46 @@ describe.skipIf(process.platform === "win32")("managed development processes", (
     const result = await managed.completion;
     expect(result.reason).toContain("MiB RSS");
     expect(alive(managed.child.pid!)).toBe(false);
+  });
+
+  const withFakePs = async (failures: number, run: () => Promise<void>) => {
+    const directory = mkdtempSync(resolve(tmpdir(), "operloom-ps-"));
+    const counter = resolve(directory, "count");
+    writeFileSync(counter, "0");
+    writeFileSync(
+      resolve(directory, "ps"),
+      `#!/bin/sh\nn=$(cat "${counter}"); echo $((n + 1)) > "${counter}"\n[ "$n" -lt ${failures} ] && exit 1\nexec /bin/ps "$@"\n`,
+    );
+    chmodSync(resolve(directory, "ps"), 0o755);
+    const path = process.env.PATH;
+    process.env.PATH = `${directory}:${path}`;
+    try {
+      await run();
+    } finally {
+      process.env.PATH = path;
+      rmSync(directory, { recursive: true, force: true });
+    }
+  };
+
+  it("keeps monitoring through a transient ps failure", async () => {
+    await withFakePs(2, async () => {
+      const managed = startManagedProcess(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+        stdio: "ignore",
+        maxRssMb: 1,
+      });
+      const result = await managed.completion;
+      expect(result.reason).toContain("MiB RSS");
+    });
+  });
+
+  it("fails closed when ps keeps failing", async () => {
+    await withFakePs(Number.MAX_SAFE_INTEGER, async () => {
+      const managed = startManagedProcess(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+        stdio: "ignore",
+      });
+      const result = await managed.completion;
+      expect(result.reason).toContain("resource monitor failed");
+      expect(alive(managed.child.pid!)).toBe(false);
+    });
   });
 });

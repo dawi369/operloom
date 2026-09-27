@@ -41,6 +41,7 @@ export const startManagedProcess = (command: string, args: string[], options: Op
   let peakRssMb = 0;
   let stopping = false;
   let checking = false;
+  let monitorFailures = 0;
   let timer: ReturnType<typeof setInterval> | undefined;
   let forceTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -109,9 +110,12 @@ export const startManagedProcess = (command: string, args: string[], options: Op
         checking = false;
         if (stopping) return;
         if (error) {
-          stop(`${label}: resource monitor failed; stopping the service`);
+          // A loaded host can make one ps poll time out; only a persistent failure is fatal.
+          if (++monitorFailures >= 5)
+            stop(`${label}: resource monitor failed; stopping the service`);
           return;
         }
+        monitorFailures = 0;
         const group = stdout.split("\n").flatMap((line) => {
           const [pgid, rss] = line.trim().split(/\s+/).map(Number);
           return pgid === child.pid && Number.isFinite(rss) ? [rss!] : [];
