@@ -92,6 +92,16 @@ secrets. It deploys the disabled feature stage with `workers_dev=false` and no
 cron triggers, creating the secret attachment point without public ingress.
 The final Cloudflare, Fly, and web deploy phases require same-commit secret
 configuration evidence.
+Bootstrap refuses a database with the durable execution schema already installed;
+it cannot be used to bypass the final deployment compatibility gate.
+
+The final Cloudflare deployment now builds a standalone artifact and uses its
+durable-handler compatibility gate. Apply migration 0030 first. New durable
+admissions pause during inspection/activation; existing runs continue. D1 rejects
+stale Worker admissions after the new generation activates. A failed
+or uncertain upload retains the fence. Keep the reported artifact and use its
+`--resume` or verified `--release` command rather than bypassing the guard with a
+raw deployment. See [deployment compatibility](durable-execution.md#deployment-compatibility-gate).
 
 Remote migration is a separate approval phase and requires a same-commit,
 AES-256-GCM encrypted D1 export. The 32-byte base64 encryption key stays in the

@@ -116,6 +116,7 @@ export const captureExportSnapshot = async (
             messageCount: frozen.messageCount,
             contentSha256: frozen.contentSha256,
             messages: frozen.messages ?? [],
+            turnReceipts: frozen.turnReceipts ?? [],
           },
         });
       }

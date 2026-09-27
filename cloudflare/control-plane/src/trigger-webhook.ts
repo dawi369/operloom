@@ -1,4 +1,5 @@
 import { buildPackWorkflowRequest } from "../../../lib/agent-runtime/registry";
+import { runtimeStateCanonicalJson } from "./runtime-state";
 import { sha256Hex } from "../../../lib/workbench/control-plane-signing";
 import { isRecord, json, parseDataJson, parseJson } from "./http";
 import { processPendingTriggerDispatches } from "./trigger-execution";
@@ -90,6 +91,8 @@ export const handleTriggerWebhookIngress = async (
        WHERE EXISTS (
          SELECT 1 FROM control_triggers
          WHERE id = ? AND public_id = ? AND status = 'enabled' AND kind = 'webhook'
+           AND (json_extract(execution_json,'$.runtime') IS NOT 'durable' OR
+             (SELECT COUNT(*) FROM control_trigger_dispatches d WHERE d.trigger_id=control_triggers.id AND d.status='pending') < 100)
        )`,
     ).bind(
       dispatchId,
@@ -134,6 +137,19 @@ export const handleTriggerWebhookIngress = async (
     .first<ControlTriggerDispatchRow>();
   if (!dispatch)
     return json({ ok: false, error: "Trigger dispatch was not accepted" }, { status: 409 });
+  if (
+    parseDataJson(trigger.execution_json).runtime === "durable" &&
+    runtimeStateCanonicalJson(parseDataJson(dispatch.payload_json)) !==
+      runtimeStateCanonicalJson(normalizedPayload)
+  )
+    return json(
+      {
+        ok: false,
+        error: "Dispatch key already identifies different content",
+        code: "trigger_dispatch_conflict",
+      },
+      { status: 409 },
+    );
   if (created && ctx) {
     ctx.waitUntil(
       processPendingTriggerDispatches(env, {

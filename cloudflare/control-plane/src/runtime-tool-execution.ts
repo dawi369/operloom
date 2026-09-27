@@ -1,4 +1,8 @@
 import {
+  requireDurableAttemptAuthority,
+  type DurableAttemptAuthority,
+} from "./durable-attempt-authority";
+import {
   assertSchemaValue,
   type AgentExecutionContext,
   type RuntimeResult,
@@ -12,6 +16,14 @@ import {
   type ToolRunnerSandboxContract,
 } from "./tool-runner";
 import type { AgentIdentity, Env } from "./types";
+import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
+import { bindRuntimeContext, captureRuntimeContext, contextIsRequired } from "./runtime-context";
+import {
+  reserveRuntimeUsage,
+  settleRuntimeUsage,
+  runtimeUsageCapabilitiesEnabled,
+  type RuntimeUsageReservation,
+} from "./runtime-usage";
 
 export type RuntimeToolExecutionIdentity = {
   runId: string;
@@ -21,6 +33,7 @@ export type RuntimeToolExecutionIdentity = {
   runtimeVersion: string;
   bindingVersion: number;
   policyDecisionId?: string;
+  durableAttempt?: DurableAttemptAuthority;
   traceId?: string | null;
   callbackUrl?: string;
   source: "agent-pack" | "model" | "admin";
@@ -87,8 +100,65 @@ export const executeRuntimeToolBinding = async (input: {
   execution: RuntimeToolExecutionIdentity;
 }): Promise<RuntimeResult> => {
   const { binding, execution } = input;
+  let reservation: RuntimeUsageReservation | undefined;
   try {
+    const runtime = resolvePackRuntime(input.context.pack.id, input.context.pack.version);
+    if (
+      runtime.runnable &&
+      !runtimeUsageCapabilitiesEnabled(input.env, runtime.controlPlane.requirements.capabilities)
+    )
+      throw Object.assign(new Error("Required model or usage capability is disabled."), {
+        code: "runtime_capability_disabled",
+      });
+    if (execution.durableAttempt && input.env.WORKBENCH_USAGE_LIMITS_ENABLED !== "true")
+      throw Object.assign(new Error("Durable tools require resource admission"), {
+        code: "runtime_capability_disabled",
+      });
     assertSchemaValue(binding.inputSchema, input.toolInput, `${binding.id} input`);
+    if (
+      !input.context.context &&
+      contextIsRequired(resolvePackRuntime(input.context.pack.id, input.context.pack.version))
+    ) {
+      const evidence = await captureRuntimeContext(input.env, input.identity, {
+        runId: execution.runId,
+        durableAttempt: execution.durableAttempt,
+        runKind: "workflow",
+        input: input.toolInput,
+        target: "simulation",
+        signal: AbortSignal.any([input.context.signal, AbortSignal.timeout(binding.timeoutMs)]),
+      });
+      if (!evidence)
+        throw Object.assign(new Error("Required tool context is unavailable."), {
+          code: "context_blocked",
+        });
+      bindRuntimeContext(input.context, evidence);
+    }
+    input.context.context?.assertReady();
+    if (input.env.WORKBENCH_USAGE_LIMITS_ENABLED === "true") {
+      const claim = await reserveRuntimeUsage(input.env, input.identity, {
+        runId: execution.runId,
+        durableAttempt: execution.durableAttempt,
+        runKind: "workflow",
+        packId: input.context.pack.id,
+        kind: "tool",
+        operationKey: execution.toolCallId,
+        payload: {
+          toolId: binding.id,
+          input: input.toolInput,
+          adapterVersion: binding.adapterVersion,
+        },
+        contextSnapshotId: input.context.context?.snapshot.id,
+        maxRuntimeMs: binding.timeoutMs,
+      });
+      if (!claim.fresh)
+        throw Object.assign(
+          new Error(
+            "This tool operation has already been admitted; inspect its outcome before retrying.",
+          ),
+          { code: "tool_already_dispatched" },
+        );
+      reservation = claim.reservation;
+    }
     let result: RuntimeResult;
     if (binding.transport === "cloudflare_inline") {
       if (!binding.execute) {
@@ -147,8 +217,39 @@ export const executeRuntimeToolBinding = async (input: {
       );
     }
     if (result.ok) assertSchemaValue(binding.outputSchema, result.output, `${binding.id} output`);
+    if (reservation) {
+      await settleRuntimeUsage(input.env, reservation, {
+        status: result.ok ? "settled" : "unknown",
+        ...(result.ok ? {} : { errorCode: result.error.code }),
+      });
+      reservation = undefined;
+    }
+    if (execution.durableAttempt)
+      await requireDurableAttemptAuthority(
+        input.env,
+        input.identity,
+        execution.runId,
+        execution.durableAttempt,
+      );
     return result;
   } catch (error) {
+    if (reservation) {
+      try {
+        await settleRuntimeUsage(input.env, reservation, {
+          status: "unknown",
+          errorCode: "tool_outcome_unknown",
+        });
+      } catch {
+        return runtimeToolFailure(
+          Object.assign(
+            new Error(
+              "Tool outcome could not be recorded. Reserved usage is retained; do not automatically redispatch.",
+            ),
+            { code: "tool_outcome_unknown" },
+          ),
+        );
+      }
+    }
     return runtimeToolFailure(error);
   }
 };

@@ -376,7 +376,7 @@ export const createAllowedChatRunBoundary = async (
       identity.scope.workspaceId,
       identity.agentId,
       "running",
-      toJson(input.metadata ?? {}),
+      toJson({ ...input.metadata, agentRevision: identity.agentRevision ?? 0 }),
       timestamp,
       timestamp,
     ),
@@ -403,6 +403,7 @@ export const createAgentChatRunStartMirror = async (
     sessionId: string;
     threadId: string;
     requestId?: string;
+    commandId?: string;
     agentMetadata: unknown;
     model: string;
     runtimeConfig: unknown;
@@ -571,6 +572,8 @@ export const createAgentChatRunStartMirror = async (
         model: input.model,
         runtimeConfig: input.runtimeConfig,
         behavior: input.behavior,
+        commandId: input.commandId,
+        agentRevision: identity.agentRevision ?? 0,
       }),
       timestamp,
       timestamp,

@@ -2,6 +2,14 @@
 
 Build-time contracts for trusted Operloom Agent Packs and Runtime Modules.
 
+Experimental v2 `actions.simulate` commits a complete proposal, exact read
+versions, state writes, decisions and validated result into a server-selected
+simulation scope with atomic effect/delivery receipts. It is available in workflow
+and durable-step contexts when enabled. Simulation bindings declare
+`action.target: "simulation"` and contain no external executor or credentials.
+Persist the plan before a durable commit; retry its original content after an
+acknowledgement loss. See [simulation contracts](../../docs/runtime-simulation.md).
+
 The package contains no workbench database, authentication, deployment, or
 credential implementation. Runtime code receives scoped capabilities from the
 workbench and cannot select tenant identity or bypass policy.
@@ -22,6 +30,35 @@ consumers do not execute repository TypeScript source.
 
 The SDK is a trusted build-time contract and is initially unpublished. It does
 not support remote installation or unreviewed executable uploads.
+
+## Runtime Module v2 (experimental)
+
+`defineControlPlaneModuleV2` opts a control-plane module into explicit backend
+version and capability requirements. v1 modules retain their existing contract
+through an adapter. `requireRuntimeState(context)` supplies declared, scoped
+record reads, indexed lists and atomic optimistic commits when the deployment
+enables `state.atomic.v2`. Every write requires an explicit read version; receipts
+bind the idempotency key to the complete payload. Packages never receive SQL.
+
+`context.snapshots.v2` binds manifest context sources to versioned, bounded
+resolvers with canonical scope and read-only state. Chat and workflows capture
+schema-checked evidence; required unavailable or stale sources block work.
+Handlers inspect `context.context.snapshot`; typed commits recheck expiry atomically.
+
+`models.structured.v2` and `usage.reservations.v2` expose the experimental
+`context.models.structured({ idempotencyKey, prompt, outputSchema, maxOutputTokens })`
+workflow port. The backend selects the model, reserves workspace/run capacity and
+persists validated public output and usage. Exact successful replay returns the
+stored result; ambiguous calls retain their charge and are never automatically
+resubmitted. Provider credentials and endpoints are not package inputs.
+
+V2 request handlers remain compatible. An experimental optional `durable` binding
+adds named `flow.step` callbacks and `flow.sleep` through the gated native Workflows
+adapter. Step callbacks receive scoped ports; orchestration must be deterministic
+and perform no I/O outside steps. The full `runtime.workflow.durable.v2` capability
+is not yet advertised: hosted restart, handler retention, approval waits and engine
+deletion remain acceptance requirements. See `docs/durable-execution.md` in the
+source repository.
 
 ## Package shape
 
@@ -150,3 +187,50 @@ pnpm conformance:agent-system
 pnpm verify:fast
 pnpm test:e2e
 ```
+
+## Reviewed state migrations (experimental)
+
+V2 modules declare `stateMigrations` and require `state.migrations.v2`. Declare
+both source and destination schemas. Plans support bounded top-level `set`,
+`default`, `remove`, and collision-checked `rename` operations; packages receive
+no SQL or database migration privilege. Admin API commands pin the plan, fence
+incompatible writers, rebuild indexes in bounded transactional batches, and
+retain replay receipts. Enablement shares the backend typed-state feature flag.
+
+Durable step contexts capture fresh evidence for each logical step, including the
+first step after a wait. Retries reuse that step's original immutable snapshot;
+expired required evidence blocks execution. Optional snapshot `captureKey`,
+`revision` and `stepId` fields identify these captures while retaining compatibility
+with historical snapshots. Record snapshot IDs with decisions and compare refreshed
+evidence against observations saved by earlier steps before applying domain effects.
+
+Experimental durable workflows can call `flow.approval({ key, version, summary,
+payload, timeoutMs })` between steps. Keys identify immutable review checkpoints;
+changing the payload or version during replay fails closed. Payloads are bounded
+to 32 KiB, expiry to seven days and the enclosing run deadline. The returned
+receipt contains `id`, `requestHash`, `decidedAt` and `decidedByUserId`; link it to
+your recorded decision. A review checkpoint grants no tool or external-action
+permission. Refresh evidence and recheck state versions before committing.
+The runtime persists the decision and resumes through an authenticated native
+event; packages never interpret event payloads as approval authority.
+
+External `ActionProposal` values may supply `preconditions` with declared typed
+state read versions and `expiresAt` for an earlier deadline. Platform reviews
+are valid for at most fifteen minutes and bind complete proposal/runtime/policy/
+credential evidence. Changed content or state requires a new proposal and
+approval. Simulation plans use their own `state.reads`; these external review
+fields are excluded from `RuntimeSimulationCommit`.
+
+## Provider operations (experimental)
+
+A Runtime Module v2 inline external action can declare
+`providerOperation: { id: "capacity.allocate", version: "1" }` with a declared
+`connectionId`, required approval, and proposal/result schemas. It supplies no
+`action.execute` or `action.reconcile` callback. The approved preview is the
+operation input; the platform chooses the request identity and credential. V1
+callback actions remain supported. The backend flag
+`WORKBENCH_PROVIDER_OPERATIONS_ENABLED` defaults to false. Registry installation
+is a reviewed platform change; packages cannot register signing handlers.
+
+The initial capacity-service contracts and remaining acceptance gates are in
+[provider operations](../../docs/provider-operation-contract.md).

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sdkVersion": "1.0.1",
+  "sdkVersion": "1.1.0",
   "files": [
     {
       "path": "dist/compatibility.d.ts",
@@ -11,28 +11,56 @@
       "sha256": "792cbb85418c94b167060389d14b24d2c124ddec781f3785bc0ab72d5dc6662f"
     },
     {
+      "path": "dist/context.d.ts",
+      "sha256": "c393d409df7365be9f46bcdddad5b097678c7f6949bfcc425247b3c0bc76160c"
+    },
+    {
       "path": "dist/control-plane.d.ts",
-      "sha256": "8eb200949865053db09d167a8b9fc9c2ad346b0d1e4492aa160de2c685aa290a"
+      "sha256": "befb7d0b6c1fd32df3efb16e2089987fd9cb158a390a0be0529e4521ee20985b"
+    },
+    {
+      "path": "dist/durable.d.ts",
+      "sha256": "7197390e40c43bcf00f96843c0e15dd8cca2e299f587bb3bcbf4f7b069da06fd"
     },
     {
       "path": "dist/index.d.ts",
-      "sha256": "ab93a12970c5b7e41440d0def0fe7b7b83e32181442580adc4c872e2e4163881"
+      "sha256": "69d4cc4d8f1103e2a1d54933253d9155cca2258e67814eb55f47b3d066384db9"
     },
     {
       "path": "dist/manifest.d.ts",
       "sha256": "51faa9ba93a6685534f27c9ad04dddcbef36ef51f2d37c161e3b5c431ff4006e"
     },
     {
+      "path": "dist/models.d.ts",
+      "sha256": "8731e7ef7444d56cf6333e58f0ae4f6a4da25f0aa49389ede04222bd87b0485c"
+    },
+    {
       "path": "dist/runner.d.ts",
       "sha256": "5590123aa5f7bb8b4a2b025996c19cb0bce94f4b28a5fadcaa0394c7ce92110d"
     },
     {
+      "path": "dist/runtime-v2.d.ts",
+      "sha256": "4b4730368db79a896c3b567b06e799081b7400d0c8bf044083788cc11fc33698"
+    },
+    {
       "path": "dist/runtime.d.ts",
-      "sha256": "0e706b5686978707ad4d4ffb46d64509ab47577db2e6cf59c77c543a7089ab0e"
+      "sha256": "6a6d4a5cd63eef4aec40c85cd0ae9fd2c5e2d1e3e72a422164ce664c561a0445"
     },
     {
       "path": "dist/schema.d.ts",
       "sha256": "bb65d208be440c55ef3a6f37231b781f37bff5ae51935fe35d0471a4afac16d8"
+    },
+    {
+      "path": "dist/simulation.d.ts",
+      "sha256": "c28dc089b235455157e61ea21219b32596e31e87143776fb8f7d12d63f0851ec"
+    },
+    {
+      "path": "dist/state-migrations.d.ts",
+      "sha256": "dcd0d47a5934bd83feb95e8ca5c9bbcc077a885c7fa82778cc73b1f5b0042785"
+    },
+    {
+      "path": "dist/state.d.ts",
+      "sha256": "b67fd29604acd3daafdf1bd68ea2e134690893d36cdd350085abe7f35c04d93c"
     },
     {
       "path": "dist/web.d.ts",
@@ -45,6 +73,10 @@
     {
       "path": "schemas/runtime-module-v1.schema.json",
       "sha256": "04256191afa8cff75aca5a9600a54a477c8764770a27f64f9e3a0ce976ba6d9b"
+    },
+    {
+      "path": "schemas/runtime-module-v2.schema.json",
+      "sha256": "706d9c17f0ec89758ecfaa85a899a762d49c100dbec72100f5c0d33c22268a6e"
     }
   ]
 }

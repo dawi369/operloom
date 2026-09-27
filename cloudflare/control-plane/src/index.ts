@@ -1,4 +1,16 @@
+export { OperloomDurableWorkflow } from "./durable-workflow";
+import { handleDurableDeploymentProbe } from "./durable-deployment-probe";
+import { recoverDurableExecutions } from "./durable-recovery";
+import { deliverDurableApprovalWakes } from "./durable-approval-delivery";
+import { handleGetContextSnapshot, handleListContextSnapshots } from "./runtime-context";
+import { handleRuntimeBudgets } from "./runtime-usage";
+import { handleAgentPackageUpgrade, handleAgentPackageSnapshots } from "./agent-package-upgrades";
+import { expireChatCommands, handleGetChatCommand } from "./chat-command-admission";
+import { agentRevisionConflict } from "./agent-execution-revisions";
 import * as Sentry from "@sentry/cloudflare";
+import { deliverRuntimeStateEvents } from "./runtime-state-outbox";
+import { expireActionReviews } from "./action-review-expiry";
+import { sweepProviderOperationPayloads } from "./provider-operation-retention";
 import {
   scrubSentryBreadcrumb,
   scrubSentryEvent,
@@ -92,11 +104,22 @@ import {
   handleUpdateWorkspaceMember,
 } from "./workspace-members";
 import { resolveAgentIdentity } from "./authz";
-import { internalErrorResponse, json, requireControlPlaneAuth } from "./http";
+import {
+  internalErrorResponse,
+  json,
+  requireControlPlaneAuth,
+  type ControlPlaneAuthContext,
+} from "./http";
+import { handlePublicApi } from "./public-api";
+import { handleCreatePublicThread, handlePublicThreadOperation } from "./public-chat";
 import type { Env, WorkerExecutionContext, WorkerScheduledController } from "./types";
 import { WorkbenchThreadChatAgent } from "./thread-chat-agent";
 import { WorkbenchSessionAgent } from "./session-agent";
 import { handleGetManagedState, handleListManagedState } from "./managed-state";
+import {
+  handleRuntimeStateOperation,
+  handleRuntimeStateMigrationOperation,
+} from "./runtime-state-api";
 import { runTriggerSchedulerTick } from "./trigger-scheduler";
 import { agentControlPlaneRegistry } from "../../../generated/agent-runtime/control-plane";
 import {
@@ -161,8 +184,17 @@ const isCloudflareAgentSdkPath = (pathname: string) => {
   return pathname.startsWith("/agents/") || pathname.startsWith("/agents_");
 };
 
-const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionContext) => {
+const handleRequest = async (
+  request: Request,
+  env: Env,
+  ctx: WorkerExecutionContext,
+  publicAuth?: ControlPlaneAuthContext,
+): Promise<Response> => {
   const url = new URL(request.url);
+  if (url.pathname === "/__operloom/durable-deployment-probe")
+    return handleDurableDeploymentProbe(request, env);
+  if (url.pathname.startsWith("/v1/"))
+    return handlePublicApi(request, env, (command, auth) => handleRequest(command, env, ctx, auth));
 
   if (request.method === "GET" && url.pathname === "/health/live") {
     return json({
@@ -170,6 +202,7 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
       service: "operloom-control-plane",
       version: compiledWorkbenchVersion,
       release: env.WORKBENCH_RELEASE_SHA ?? "development",
+      deploymentId: env.WORKBENCH_DEPLOYMENT_ID ?? null,
     });
   }
 
@@ -250,7 +283,9 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
     );
   }
 
-  const authResult = await requireControlPlaneAuth(request, env);
+  const authResult = publicAuth
+    ? { ok: true as const, context: publicAuth }
+    : await requireControlPlaneAuth(request, env);
   if (!authResult.ok) return authResult.response;
 
   if (request.method === "GET" && url.pathname === "/health/facade") {
@@ -493,12 +528,17 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
 
   const approveToolApprovalMatch = url.pathname.match(/^\/tools\/approvals\/([^/]+)\/approve$/);
   if (request.method === "POST" && approveToolApprovalMatch?.[1]) {
-    return handleApproveToolApproval(
+    const response = await handleApproveToolApproval(
       request,
       env,
       identity,
       decodeURIComponent(approveToolApprovalMatch[1]),
     );
+    if (response.ok)
+      ctx.waitUntil(
+        deliverDurableApprovalWakes(env, decodeURIComponent(approveToolApprovalMatch[1])),
+      );
+    return response;
   }
 
   const denyToolApprovalMatch = url.pathname.match(/^\/tools\/approvals\/([^/]+)\/deny$/);
@@ -523,6 +563,10 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
   if (request.method === "GET" && url.pathname === "/chat/runtime-summary") {
     return handleChatRuntimeSummary(env, identity);
   }
+
+  const commandMatch = url.pathname.match(/^\/chat\/commands\/([^/]+)$/);
+  if (request.method === "GET" && commandMatch)
+    return handleGetChatCommand(env, identity, decodeURIComponent(commandMatch[1]!));
 
   if (request.method === "GET" && url.pathname === "/chat/session") {
     return handleChatSession(request, env, identity);
@@ -574,6 +618,25 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
     );
   }
 
+  if (request.method === "POST" && url.pathname === "/chat/threads")
+    return handleCreatePublicThread(env, identity);
+  const publicThreadOperation = url.pathname.match(
+    /^\/chat\/threads\/([^/]+)\/(turns|messages|cancel)$/,
+  );
+  if (
+    publicThreadOperation &&
+    ((request.method === "GET" && publicThreadOperation[2] === "messages") ||
+      (request.method === "POST" && publicThreadOperation[2] !== "messages"))
+  ) {
+    return handlePublicThreadOperation(
+      request,
+      env,
+      identity,
+      decodeURIComponent(publicThreadOperation[1]!),
+      publicThreadOperation[2] as "turns" | "messages" | "cancel",
+    );
+  }
+
   if (request.method === "GET" && url.pathname === "/chat/threads") {
     return handleListChatThreads(env, identity, url);
   }
@@ -609,6 +672,39 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
 
   if (request.method === "GET" && url.pathname === "/workbench/history/artifacts") {
     return listArtifactHistory(env, identity, url);
+  }
+
+  const stateResource = url.pathname.match(/^\/workbench\/state\/(records|entries|deliveries)$/);
+  if (request.method === "GET" && url.pathname === "/workbench/state/migrations")
+    return handleRuntimeStateMigrationOperation(request, env, identity);
+  const stateMigration = url.pathname.match(
+    /^\/workbench\/state\/migrations\/([^/]+)(?:\/(advance|repair))?$/,
+  );
+  if (request.method === "POST" && stateMigration)
+    return handleRuntimeStateMigrationOperation(
+      request,
+      env,
+      identity,
+      decodeURIComponent(stateMigration[1]!),
+      (stateMigration[2] ?? "start") as "start" | "advance" | "repair",
+    );
+  if (request.method === "GET" && stateResource) {
+    return handleRuntimeStateOperation(
+      request,
+      env,
+      identity,
+      stateResource[1] as "records" | "entries" | "deliveries",
+    );
+  }
+  const stateRetry = url.pathname.match(/^\/workbench\/state\/deliveries\/([^/]+)\/retry$/);
+  if (request.method === "POST" && stateRetry) {
+    return handleRuntimeStateOperation(
+      request,
+      env,
+      identity,
+      "deliveries",
+      decodeURIComponent(stateRetry[1]!),
+    );
   }
 
   if (request.method === "POST" && url.pathname === "/workbench/artifacts") {
@@ -715,6 +811,23 @@ const handleRequest = async (request: Request, env: Env, ctx: WorkerExecutionCon
     );
   }
 
+  if (request.method === "POST" && url.pathname === "/workbench/package-upgrades")
+    return handleAgentPackageUpgrade(request, env, identity);
+  if (request.method === "GET" && url.pathname === "/workbench/package-snapshots")
+    return handleAgentPackageSnapshots(request, env, identity);
+
+  const contextSnapshot = url.pathname.match(/^\/workbench\/context-snapshots\/([^/]+)$/);
+  if (request.method === "GET" && url.pathname === "/workbench/context-snapshots")
+    return handleListContextSnapshots(request, env, identity);
+  if (
+    (request.method === "GET" || request.method === "PUT") &&
+    url.pathname === "/workbench/budgets"
+  )
+    return handleRuntimeBudgets(request, env, identity);
+  if (request.method === "GET" && url.pathname === "/workbench/usage")
+    return handleRuntimeBudgets(request, env, identity);
+  if (request.method === "GET" && contextSnapshot)
+    return handleGetContextSnapshot(env, identity, decodeURIComponent(contextSnapshot[1]!));
   if (request.method === "GET" && url.pathname === "/agents") {
     return handleListAgents(env, identity);
   }
@@ -809,6 +922,8 @@ export default Sentry.withSentry<Env>(
       try {
         return await handleRequest(request, env, ctx);
       } catch (error) {
+        const conflict = agentRevisionConflict(error);
+        if (conflict) return json({ ok: false, ...conflict }, { status: 409 });
         if (error instanceof Error && error.message.includes("workspace_export_in_progress")) {
           return json(
             {
@@ -844,6 +959,14 @@ export default Sentry.withSentry<Env>(
           expireConnectionOAuthStates(env, new Date(controller.scheduledTime)),
           deliverPendingOperatorAlerts(env, { now: new Date(controller.scheduledTime) }),
           sweepNotificationDeliveries(env, new Date(controller.scheduledTime)),
+          deliverRuntimeStateEvents(env),
+          expireChatCommands(env, new Date(controller.scheduledTime)),
+          recoverDurableExecutions(env).then((summary) => {
+            if (summary.selected) console.info("durable.recovery", summary);
+          }),
+          deliverDurableApprovalWakes(env),
+          expireActionReviews(env),
+          sweepProviderOperationPayloads(env),
         ]),
       );
     },

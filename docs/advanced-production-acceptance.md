@@ -1,5 +1,51 @@
 # Advanced Production Acceptance (experimental)
 
+## Runtime delivery gates
+
+The [runtime roadmap](implementation-roadmap.md) is the current approved delivery
+sequence. Its API/state additions remain experimental. Repository checks and
+local Worker conformance are not evidence for hosted authentication, durable
+Workflows, approved provider mutations, a 24-hour soak or restore rehearsal.
+Track these separately in [delivery evidence](runtime-delivery-status.md).
+
+Simulation acceptance must prove atomic state/decision/effect/outbox commits,
+exact replay after acknowledgement loss, changed-payload conflicts, concurrent
+read-version conflicts, current tool policy and kill switches, and required
+evidence expiry at commit. Exercise the package through request and native durable
+execution, then export/quarantine/recover/delete its actual simulated effects.
+Verify both external dispatch rejection and external state isolation. The
+simulation flag stays disabled in hosted environments until that target's gate passes.
+
+Scoped-context hosted acceptance must exercise required missing/stale evidence,
+optional unavailable sources, resolver deadline/cancellation, authority revocation
+during collection, immutable replay, atomic expiry rejection and lifecycle recovery.
+The deterministic document-review no-op must record its evidence without model
+usage. Model/budget hosted acceptance must exercise real provider output/schema
+validation, response loss, missing/partial usage, concurrent admissions by two
+members, child-run limits, quota exhaustion, cancellation and revocation. Verify
+that settlement events and receipts agree, unknown usage remains charged, no-op
+decisions remain usable at zero quota, and exported/recovered usage is unchanged.
+Measure admission latency and throughput at declared bounds; synthetic fixture
+tokens are not provider-cost evidence. Local coverage does not establish hosted
+structured-model or budget acceptance.
+
+Native-engine lifecycle acceptance must cover creation response loss, creation
+racing with quarantine, partial/missing-instance deletion results, a failed final
+D1 cleanup and operator retry. Verify native absence independently before accepting
+the nonidentifying deletion receipt. Unknown or historical dispatches require
+reviewed reconciliation; ordinary purge retries must preserve that fence. A
+recreated workspace must receive new engine identities, even for reused submission
+keys. Local emulator evidence does not replace the hosted drill.
+
+Durable review acceptance must also terminate the Worker while a review is
+pending, approve after restart through the public API and verify one consumption
+and one linked decision. Exercise changed content, expiry, denial, cancellation,
+approver revocation, kill switches and wake-response loss. A native event is only
+a wake signal; it must never grant execution without the canonical approved
+record. Confirm resumed state writes still enforce evidence and read versions.
+The local standalone artifact passes approval-pause restart; hosted acceptance
+remains required.
+
 Document status: requirements for operators enabling experimental production
 authority and automation. These are separate from the stable developer-workbench
 1.0 contract in [Release readiness](release-readiness.md). Passing repository
@@ -120,3 +166,33 @@ Deterministic release screenshots are regenerated with
 `docs/assets/release/`. Hosted rows remain pending until the protected
 `Hosted release evidence` workflow produces one full-SHA acceptance manifest
 and the elapsed 24-hour evidence described in `environment-separation.md`.
+
+### Bound external-action review drills
+
+Before promotion, prove changed payload/runtime/policy/credential/state rejection,
+expiry before approval and between approval and dispatch, concurrent request and
+approval admission, denial, all kill switches, membership revocation, and no
+re-dispatch after response loss. Export and recover immutable review evidence,
+then purge it. Test historical approvals without a binding: cancel/deny and
+create a fresh proposal; never silently attach authority to an old approval.
+Provider response ambiguity and projection repair need their own hosted drills.
+
+### Named provider-operation drills
+
+Before enabling `WORKBENCH_PROVIDER_OPERATIONS_ENABLED`, prove both bearer and
+HMAC capacity-service operations through the native Worker and a disposable
+hosted service. Assert the exact signed body/destination and one provider effect
+under duplicate requests, lost responses, cancellation and process termination.
+Reconcile by GET; inject a failed D1 action projection and repair it from the
+provider receipt with zero additional mutations. Exercise all kill switches,
+membership/credential changes, redaction, schema/size failures, terminal retention,
+export and workspace purge. Validate resource lifecycle independently of dispatch
+acceptance. SQLite tests and a mocked HTTP transport alone do not pass this gate.
+
+Local `pnpm conformance:provider-operations` now exercises the registered package
+against an independently verifying HTTP fixture through the native Worker and
+validated Fetch client. It covers duplicate approval, lost response, projection
+repair, redacted export, quarantine/recovery and populated deletion. Atomic
+no-dispatch recovery races remain SQLite tests. Hosted process termination,
+disposable external resources and production credential custody still require
+separate evidence before enabling the feature.

@@ -1,3 +1,13 @@
+import { admitDurableExecution } from "./durable-execution-store";
+import {
+  durableWorkflowDefinitionHash,
+  startDurableWorkflowEngine,
+} from "./durable-workflow-runtime";
+import { captureRuntimeContext, contextIsRequired, bindRuntimeContext } from "./runtime-context";
+import { createRuntimeStatePort } from "./runtime-state";
+import { createSimulationActionPort } from "./runtime-simulation";
+import { createRuntimeModelPort } from "./runtime-models";
+import { runtimeUsageCapabilitiesEnabled } from "./runtime-usage";
 import { withRuntimeDeadline } from "./runtime-deadline";
 import {
   assertSchemaValue,
@@ -27,6 +37,7 @@ import { createDurableActionPort } from "./action-authority";
 import {
   claimDemoDailyUsage,
   demoPackAllowed,
+  demoModeEnabled,
   requireDemoConcurrencyAvailable,
   requireDemoModelBudget,
 } from "./demo-policy";
@@ -86,6 +97,39 @@ export const listRuntimeWorkflows = async (env: Env, identity: AgentIdentity) =>
       workflows: [],
     });
   }
+  if (
+    runtime.controlPlane.requirements.capabilities.some((capability) =>
+      ["state.atomic.v2", "state.migrations.v2"].includes(capability),
+    ) &&
+    env.WORKBENCH_TYPED_STATE_ENABLED !== "true"
+  ) {
+    return json({
+      ok: true,
+      packId: pack.id,
+      packVersion: pack.version,
+      runnable: false,
+      reason: "runtime_capability_disabled",
+      workflows: [],
+    });
+  }
+  if (contextIsRequired(runtime) && env.WORKBENCH_CONTEXT_ENABLED !== "true")
+    return json({
+      ok: true,
+      packId: pack.id,
+      packVersion: pack.version,
+      runnable: false,
+      reason: "runtime_capability_disabled",
+      workflows: [],
+    });
+  if (!runtimeUsageCapabilitiesEnabled(env, runtime.controlPlane.requirements.capabilities))
+    return json({
+      ok: true,
+      packId: pack.id,
+      packVersion: pack.version,
+      runnable: false,
+      reason: "runtime_capability_disabled",
+      workflows: [],
+    });
   const userInvocable = new Set(
     pack.workflows.filter((workflow) => workflow.userInvocable).map((workflow) => workflow.type),
   );
@@ -120,6 +164,8 @@ export const executeRuntimeWorkflowRequest = async (
   const binding = packWorkflowBindings[workflowType];
   if (!binding) return runtimeError("workflow_not_found", "Workflow not found.", 404);
   const agent = await selectAgent(env, identity.agentId, identity.scope.workspaceId);
+  // Pin the same row used to resolve executable code, including scheduler requests.
+  identity = { ...identity, agentRevision: agent?.runtime_revision ?? 0 };
   const pack = resolveAgentBehaviorConfig(agent).pack;
   if (!pack || pack.id !== binding.requiredPackId) {
     return runtimeError(
@@ -135,25 +181,64 @@ export const executeRuntimeWorkflowRequest = async (
   if (!runtime.runnable) {
     return runtimeError(
       runtime.reason,
-      "This agent snapshot can chat, but its workflows require a compatible runtime upgrade.",
+      "message" in runtime
+        ? (runtime.message ?? "Runtime requirements are incompatible.")
+        : "This agent snapshot can chat, but its workflows require a compatible runtime upgrade.",
       409,
     );
   }
+  if (
+    runtime.controlPlane.apiVersion === 2 &&
+    runtime.controlPlane.requirements.capabilities.some((capability) =>
+      ["state.atomic.v2", "state.migrations.v2"].includes(capability),
+    ) &&
+    env.WORKBENCH_TYPED_STATE_ENABLED !== "true"
+  ) {
+    return runtimeError(
+      "runtime_capability_disabled",
+      "Typed state is disabled on this deployment.",
+      503,
+    );
+  }
+  if (contextIsRequired(runtime) && env.WORKBENCH_CONTEXT_ENABLED !== "true")
+    return runtimeError(
+      "runtime_capability_disabled",
+      "Scoped context is disabled on this deployment.",
+      503,
+    );
+  if (!runtimeUsageCapabilitiesEnabled(env, runtime.controlPlane.requirements.capabilities))
+    return runtimeError(
+      "runtime_capability_disabled",
+      "Required model or usage capability is disabled.",
+      503,
+    );
   const workflow = runtime.controlPlane.workflows.find(
     (candidate) => candidate.type === workflowType,
   ) as RuntimeWorkflowBinding | undefined;
-  if (!workflow?.execute) {
+  if (!workflow || (!workflow.execute && !workflow.durable)) {
     return runtimeError(
       "workflow_binding_unavailable",
       "Workflow implementation is unavailable.",
       409,
     );
   }
+  if (
+    runtime.controlPlane.tools.some(
+      (tool) => workflow.toolIds.includes(tool.id) && tool.action?.target === "simulation",
+    ) &&
+    (env.WORKBENCH_SIMULATIONS_ENABLED !== "true" || env.WORKBENCH_TYPED_STATE_ENABLED !== "true")
+  )
+    return runtimeError(
+      "runtime_capability_disabled",
+      "Simulation actions are disabled on this deployment.",
+      503,
+    );
   const body = parseJson(await request.text());
   if (!isRecord(body)) return runtimeError("invalid_input", "Body must be an object.");
   if (body.executionMode !== undefined && body.executionMode !== "dry_run") {
     return runtimeError("unsupported_execution_mode", "Only dry_run is supported.");
   }
+  const execution = isRecord(body.input) ? body.execution : undefined;
   const rawInput = isRecord(body.input) ? body.input : body;
   const input = workflow.normalizeInput ? workflow.normalizeInput(rawInput) : rawInput;
   try {
@@ -164,6 +249,94 @@ export const executeRuntimeWorkflowRequest = async (
       error instanceof Error ? error.message : "Workflow input is invalid.",
     );
   }
+  if (execution === "durable") {
+    if (
+      !workflow.durable ||
+      env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED !== "true" ||
+      !env.DURABLE_WORKFLOWS
+    )
+      return runtimeError(
+        "runtime_capability_disabled",
+        "Durable workflows are disabled or unavailable.",
+        503,
+      );
+    if (demoModeEnabled(env) || (invocation.source === "trigger" && !invocation.triggerSnapshot))
+      return runtimeError(
+        "durable_source_unsupported",
+        "Durable admission requires a supported source and canonical trigger snapshot.",
+        409,
+      );
+    const submissionKey =
+      invocation.source === "trigger"
+        ? `trigger:${invocation.dispatchId}`
+        : request.headers.get("idempotency-key");
+    if (!submissionKey)
+      return runtimeError(
+        "idempotency_key_required",
+        "Durable submissions require an Idempotency-Key header.",
+      );
+    try {
+      const admitted = await admitDurableExecution(
+        env,
+        identity,
+        {
+          submissionKey,
+          workflowType,
+          workflowVersion: workflow.durable.version,
+          definitionHash: await durableWorkflowDefinitionHash(runtime, workflow),
+          packId: pack.id,
+          packVersion: pack.version,
+          runtimeVersion: runtime.runtimeVersion,
+          input,
+          maxSteps: workflow.durable.maxSteps,
+          maxDurationMs: workflow.durable.maxDurationMs,
+          maxActiveRuns: pack.resourceLimits.maxConcurrentRuns,
+        },
+        invocation.source === "trigger" ? invocation : undefined,
+      );
+      await startDurableWorkflowEngine(env, admitted.execution).catch(() => undefined);
+      const canonicalRun = await env.DB.prepare(
+        "SELECT status FROM control_runs WHERE id=? AND user_id=? AND workspace_id=? AND agent_id=?",
+      )
+        .bind(
+          admitted.execution.run_id,
+          identity.scope.userId,
+          identity.scope.workspaceId,
+          identity.agentId,
+        )
+        .first<{ status: string }>();
+      return json(
+        {
+          ok: true,
+          accepted: admitted.accepted,
+          run: {
+            id: admitted.execution.run_id,
+            workflowIntentId: admitted.execution.workflow_intent_id,
+            workflowType,
+            engine: "cloudflare-workflows",
+            status: canonicalRun?.status ?? "queued",
+          },
+        },
+        { status: 202 },
+      );
+    } catch (error) {
+      return runtimeError(
+        error && typeof error === "object" && "code" in error
+          ? String(error.code)
+          : "durable_admission_failed",
+        "Durable submission could not be accepted.",
+        409,
+      );
+    }
+  }
+  if (execution !== undefined && execution !== "request")
+    return runtimeError("unsupported_execution", "Execution must be request or durable.");
+  if (!workflow.execute)
+    return runtimeError(
+      "workflow_binding_unavailable",
+      "This workflow requires durable execution.",
+      409,
+    );
   const budgetResponse = await requireDemoModelBudget(env);
   if (budgetResponse) return budgetResponse;
   for (const toolId of workflow.toolIds) {
@@ -306,6 +479,16 @@ export const executeRuntimeWorkflowRequest = async (
       workflowIntentId: started.workflowIntentId,
     }),
     tools: { invoke: invokeTool },
+    state:
+      runtime.controlPlane.apiVersion === 2 && env.WORKBENCH_TYPED_STATE_ENABLED === "true"
+        ? await createRuntimeStatePort(env, identity, {
+            packId: pack.id,
+            target: workflow.stateTarget ?? "simulation",
+            definitions: runtime.controlPlane.state ?? [],
+            signal: controller.signal,
+            runId: started.runId,
+          })
+        : undefined,
     managedState: {
       async upsert(state) {
         controller.signal.throwIfAborted();
@@ -342,13 +525,45 @@ export const executeRuntimeWorkflowRequest = async (
       },
     },
   };
+  context.actions.simulate = createSimulationActionPort(env, identity, {
+    context,
+    toolIds: workflow.toolIds,
+  });
 
   let result: RuntimeResult;
   try {
     result = toolResult(
-      await withRuntimeDeadline(controller, pack.resourceLimits.maxRunSeconds * 1_000, () =>
-        workflow.execute!(input, context),
-      ),
+      await withRuntimeDeadline(controller, pack.resourceLimits.maxRunSeconds * 1_000, async () => {
+        if (contextIsRequired(runtime)) {
+          const evidence = await captureRuntimeContext(env, identity, {
+            runId: started.runId,
+            runKind: "workflow",
+            input,
+            target: workflow.stateTarget ?? "simulation",
+            signal: controller.signal,
+          });
+          if (evidence) {
+            bindRuntimeContext(context, evidence);
+            evidence.assertReady();
+            if (context.state)
+              context.state = await createRuntimeStatePort(env, identity, {
+                packId: pack.id,
+                target: workflow.stateTarget ?? "simulation",
+                definitions: runtime.controlPlane.state ?? [],
+                signal: controller.signal,
+                runId: started.runId,
+                contextSnapshotId: evidence.snapshot.id,
+              });
+          }
+        }
+        if (runtime.controlPlane.requirements.capabilities.includes("models.structured.v2"))
+          context.models = createRuntimeModelPort(env, identity, {
+            runId: started.runId,
+            signal: controller.signal,
+            context: context.context,
+          });
+        return workflow.execute!(input, context);
+      }),
     );
     if (result.ok)
       assertSchemaValue(workflow.outputSchema, result.output, `${workflowType} output`);
@@ -376,10 +591,16 @@ export const executeRuntimeWorkflowRequest = async (
     sizeBytes: JSON.stringify(artifact.data).length,
     data: artifact.data,
   }));
+  const blocked =
+    !result.ok &&
+    ["context_blocked", "budget_not_configured", "resource_admission_denied"].includes(
+      result.error.code,
+    );
   const finished = await finishPackWorkflowRun(env, identity, {
     ...started,
     workflowType,
     ok: result.ok,
+    blocked,
     summary: result.summary,
     artifacts: result.ok ? artifacts : undefined,
     data: {
@@ -404,7 +625,7 @@ export const executeRuntimeWorkflowRequest = async (
       run: {
         id: started.runId,
         workflowIntentId: started.workflowIntentId,
-        status: result.ok ? "completed" : "failed",
+        status: result.ok ? "completed" : blocked ? "blocked" : "failed",
         engine: workflow.engine,
         workflowType,
         runtimeVersion: runtime.runtimeVersion,
@@ -420,8 +641,10 @@ export const executeRuntimeWorkflowRequest = async (
             },
           }
         : {}),
-      ...(result.ok ? { report: result.output } : { error: result.error.message }),
+      ...(result.ok
+        ? { report: result.output }
+        : { error: result.error.message, code: result.error.code }),
     },
-    { status: result.ok ? 201 : 502 },
+    { status: result.ok ? 201 : blocked ? 409 : 502 },
   );
 };

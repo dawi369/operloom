@@ -45,15 +45,22 @@ const execute = <Row>(persistTo: string, command: string): Row[] => {
 };
 
 const findSqliteDatabase = (root: string) => {
-  const entry = readdirSync(root, { recursive: true, withFileTypes: true }).find(
-    (item) => item.isFile() && item.name.endsWith(".sqlite"),
-  );
-  if (!entry) throw new Error("Wrangler local D1 database file was not found.");
-  return join(entry.parentPath, entry.name);
+  const databases = readdirSync(root, { recursive: true, withFileTypes: true })
+    .filter((item) => item.isFile() && item.name.endsWith(".sqlite"))
+    .map((entry) => join(entry.parentPath, entry.name))
+    .filter(
+      (path) =>
+        sqliteJson(
+          path,
+          "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('d1_migrations','control_artifacts')",
+        ).length === 2,
+    );
+  if (databases.length !== 1) throw new Error("Expected exactly one canonical local D1 database.");
+  return databases[0]!;
 };
 
 const sqliteJson = <Row>(databasePath: string, query: string): Row[] => {
-  const output = execFileSync("sqlite3", ["-json", databasePath, query], {
+  const output = execFileSync("sqlite3", ["-readonly", "-json", databasePath, query], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });

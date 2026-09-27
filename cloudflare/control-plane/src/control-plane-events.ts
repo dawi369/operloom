@@ -187,6 +187,8 @@ export const handleLatestControlPlaneEvents = async (
 export const handleControlPlaneEvents = async (env: Env, identity: AgentIdentity, url: URL) => {
   const limit = readLimit(url);
   const after = readControlEventReplayAfter(url);
+  if (after && (await eventCursor(env, identity, after)) === null)
+    return { ok: true, events: [], resetRequired: true, reason: "cursor_expired" };
   const events = after
     ? await listEventsAfter(env, identity, after, limit)
     : await listLatestEvents(env, identity, limit);
@@ -206,7 +208,22 @@ export const handleControlPlaneEventStream = async (
   const url = new URL(request.url);
   const after = readControlEventReplayAfter(url, request.headers);
 
+  const afterCursor = after ? await eventCursor(env, identity, after) : undefined;
+  if (after && afterCursor === null)
+    return new Response(
+      encodeSse("reset", { reason: "cursor_expired", action: "fetch_canonical_state" }),
+      {
+        headers: {
+          "content-type": "text/event-stream; charset=utf-8",
+          "cache-control": "no-store",
+        },
+      },
+    );
+  let cancelled = false;
   const stream = new ReadableStream<Uint8Array>({
+    cancel() {
+      cancelled = true;
+    },
     async start(controller) {
       let cursor = after
         ? ((await eventCursor(env, identity, after)) ?? (await latestEventCursor(env, identity)))
@@ -215,7 +232,7 @@ export const handleControlPlaneEventStream = async (
       const startedAt = Date.now();
 
       try {
-        while (Date.now() - startedAt < streamWindowMs) {
+        while (!cancelled && !request.signal.aborted && Date.now() - startedAt < streamWindowMs) {
           const events = await listEventsAfterCursor(env, identity, cursor, streamBatchLimit);
 
           if (events.length > 0) {
@@ -240,9 +257,10 @@ export const handleControlPlaneEventStream = async (
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown event stream failure";
-        controller.enqueue(encoder.encode(encodeSse("control-plane-error", { error: message })));
+        if (!cancelled)
+          controller.enqueue(encoder.encode(encodeSse("control-plane-error", { error: message })));
       } finally {
-        controller.close();
+        if (!cancelled) controller.close();
       }
     },
   });

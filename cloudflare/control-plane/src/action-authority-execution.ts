@@ -23,17 +23,26 @@ import {
   terminalStatuses,
 } from "./action-authority-core";
 import type { RuntimeIdentity } from "./action-authority-core";
+import { actionReviewTransition, commitActionReviewBatch, loadActionReview } from "./action-review";
+import { reconcileProviderOperation, inspectProviderAction } from "./provider-operations";
 
 export const createDurableActionPort = (
   env: Env,
   identity: AgentIdentity,
   runtimeIdentity: RuntimeIdentity,
 ): ActionPort => ({
+  inspect: (proposalId) => inspectProviderAction(env, identity, runtimeIdentity.packId, proposalId),
   async propose(proposal) {
+    proposal = structuredClone(proposal);
     if (
+      !proposal ||
+      typeof proposal.summary !== "string" ||
+      typeof proposal.idempotencyKey !== "string" ||
       proposal.summary.trim().length === 0 ||
       proposal.summary.length > 240 ||
-      proposal.idempotencyKey.length > 200
+      proposal.idempotencyKey.length < 1 ||
+      proposal.idempotencyKey.length > 200 ||
+      new TextEncoder().encode(toJson(proposal)).byteLength > 64 * 1024
     ) {
       throw Object.assign(new Error("Action proposal is invalid."), {
         code: "action_proposal_invalid",
@@ -56,6 +65,10 @@ export const createDurableActionPort = (
     if (!binding?.action)
       throw Object.assign(new Error("Action binding is unavailable."), {
         code: "action_binding_unavailable",
+      });
+    if (binding.action.target === "simulation")
+      throw Object.assign(new Error("Simulation bindings cannot create external proposals."), {
+        code: "action_target_mismatch",
       });
     assertSchemaValue(
       binding.action.proposalSchema,
@@ -137,7 +150,7 @@ export const createDurableActionPort = (
     ]);
     if ((result[0]?.meta?.changes ?? 0) === 0) {
       const existing = await env.DB.prepare(
-        `SELECT id, status FROM control_action_proposals
+        `SELECT id, status, agent_id, proposal_json, pack_id, pack_version, runtime_version, binding_version FROM control_action_proposals
          WHERE user_id = ? AND workspace_id = ? AND tool_id = ? AND idempotency_key = ? LIMIT 1`,
       )
         .bind(
@@ -146,8 +159,29 @@ export const createDurableActionPort = (
           proposal.toolId,
           proposal.idempotencyKey,
         )
-        .first<{ id: string; status: string }>();
+        .first<{
+          id: string;
+          status: string;
+          agent_id: string;
+          proposal_json: string;
+          pack_id: string;
+          pack_version: string;
+          runtime_version: string;
+          binding_version: number;
+        }>();
       if (!existing) throw new Error("action_proposal_conflict");
+      if (
+        existing.agent_id !== identity.agentId ||
+        existing.pack_id !== runtimeIdentity.packId ||
+        existing.pack_version !== runtimeIdentity.packVersion ||
+        existing.runtime_version !== runtimeIdentity.runtimeVersion ||
+        existing.binding_version !== runtimeIdentity.bindingVersion ||
+        (await sha256Hex(JSON.parse(existing.proposal_json))) !== (await sha256Hex(proposal))
+      )
+        throw Object.assign(
+          new Error("Action key already identifies different content or scope."),
+          { code: "idempotency_conflict" },
+        );
       return { proposalId: existing.id, status: "proposed" };
     }
     return { proposalId: id, status: "proposed" };
@@ -178,6 +212,7 @@ export const executeActionProposal = async (
     throw Object.assign(new Error(policy.result.reason), { code: policy.result.code });
   }
   const { binding } = resolveBinding(row);
+  const review = await loadActionReview(env, identity, row);
   const proposal = parseJson(row.proposal_json) as ActionProposal;
   assertSchemaValue(
     binding.action!.proposalSchema,
@@ -185,32 +220,25 @@ export const executeActionProposal = async (
     `${row.tool_id} action proposal`,
   );
   const timestamp = new Date().toISOString();
-  const claimed = await env.DB.batch([
+  const claimed = await commitActionReviewBatch(env, [
+    actionReviewTransition(env, identity, row, review, "executing", timestamp),
     env.DB.prepare(
       `UPDATE control_action_proposals SET status = 'executing', version = version + 1, updated_at = ?
        WHERE id = ? AND user_id = ? AND workspace_id = ? AND status = 'approved' AND version = ?`,
     ).bind(timestamp, row.id, identity.scope.userId, identity.scope.workspaceId, row.version),
-    appendLedgerStatement(env, identity, {
-      proposalId: row.id,
-      status: "executing",
-      requiredStatus: "executing",
-      requiredUpdatedAt: timestamp,
-      summary: "Action execution started.",
-      requestSha256: row.input_sha256,
-      timestamp,
-    }),
   ]);
-  if ((claimed[0]?.meta?.changes ?? 0) === 0)
+  if ((claimed[1]?.meta?.changes ?? 0) === 0)
     throw Object.assign(new Error("Action proposal is already being handled."), {
       code: "action_conflict",
     });
 
   let result: ActionExecutionResult;
+  let dispatchTimer: ReturnType<typeof setTimeout> | undefined;
   try {
     result = await Promise.race([
       dispatchAction(env, identity, row, binding, proposal),
-      new Promise<never>((_, reject) =>
-        setTimeout(
+      new Promise<never>((_, reject) => {
+        dispatchTimer = setTimeout(
           () =>
             reject(
               Object.assign(new Error("Action outcome is unknown after timeout."), {
@@ -218,25 +246,29 @@ export const executeActionProposal = async (
               }),
             ),
           binding.action!.timeoutMs,
-        ),
-      ),
+        );
+      }),
     ]);
-    if (result.status !== "failed") {
+    if (!["executed", "failed", "outcome_unknown"].includes(result.status)) {
+      throw new Error("Invalid action dispatch status.");
+    }
+    if (result.status === "executed") {
       assertSchemaValue(
         binding.action!.resultSchema,
         result.output ?? {},
         `${row.tool_id} action result`,
       );
     }
-  } catch (error) {
+  } catch {
+    // Dispatch was admitted. An exception does not prove that the provider
+    // rejected the action, and adapter error messages may contain credentials.
     result = {
       proposalId: row.id,
-      status:
-        error && typeof error === "object" && "code" in error && error.code === "action_timeout"
-          ? "outcome_unknown"
-          : "failed",
-      summary: error instanceof Error ? error.message : "Action execution failed.",
+      status: "outcome_unknown",
+      summary: "The external action outcome could not be confirmed. Reconciliation is required.",
     };
+  } finally {
+    if (dispatchTimer !== undefined) clearTimeout(dispatchTimer);
   }
   const finishedAt = new Date().toISOString();
   const responseSha256 = await sha256Hex(
@@ -310,6 +342,17 @@ export const executeActionProposal = async (
       : []),
   ]);
   if ((published[0]?.meta?.changes ?? 0) === 0) {
+    const current = binding.action?.providerOperation
+      ? await selectProposal(env, identity, row.id)
+      : null;
+    if (current?.status === "reconciled")
+      return {
+        proposalId: row.id,
+        status: "reconciled",
+        summary: "The action was reconciled while dispatch was in progress.",
+        externalReference: current.external_reference ?? undefined,
+        output: parseJson(current.result_json) as Record<string, unknown>,
+      };
     const revokedAt = new Date().toISOString();
     await env.DB.batch([
       env.DB.prepare(
@@ -379,21 +422,30 @@ export const reconcileActionProposal = async (
   const row = await selectProposal(env, identity, proposalId);
   if (!row)
     throw Object.assign(new Error("Action proposal not found."), { code: "action_not_found" });
-  if (row.status !== "outcome_unknown")
+  if (row.status === "reconciled" && resolveBinding(row).binding.action?.providerOperation)
+    return reconcileProviderOperation(env, identity, row, resolveBinding(row).binding);
+  if (
+    row.status !== "outcome_unknown" &&
+    !(row.status === "executing" && resolveBinding(row).binding.action?.providerOperation)
+  )
     throw Object.assign(new Error("Only unknown outcomes can be reconciled."), {
       code: "reconciliation_not_required",
     });
   const { binding } = resolveBinding(row);
-  if (!binding.action?.reconcile)
+  if (!binding.action?.reconcile && !binding.action?.providerOperation)
     throw Object.assign(new Error("Action binding does not support reconciliation."), {
       code: "reconciliation_unavailable",
     });
   const proposal = parseJson(row.proposal_json) as ActionProposal;
-  const result = await binding.action.reconcile(
-    proposal,
-    executionContext(env, identity, row, manifestConnections(row.pack_id)),
-  );
+  const result = binding.action?.providerOperation
+    ? await reconcileProviderOperation(env, identity, row, binding)
+    : await binding.action!.reconcile!(
+        proposal,
+        executionContext(env, identity, row, manifestConnections(row.pack_id)),
+      );
   const timestamp = new Date().toISOString();
+  if (binding.action?.providerOperation && result.output?.dispatchStatus === "not_dispatched")
+    return result;
   if (result.status !== "reconciled" && result.status !== "executed") {
     await env.DB.batch([
       appendLedgerStatement(env, identity, {
@@ -420,7 +472,7 @@ export const reconcileActionProposal = async (
     env.DB.prepare(
       `UPDATE control_action_proposals SET status = 'reconciled', external_reference = ?, result_json = ?,
          error_json = '{}', version = version + 1, terminal_at = ?, updated_at = ?
-       WHERE id = ? AND user_id = ? AND workspace_id = ? AND status = 'outcome_unknown'`,
+       WHERE id = ? AND user_id = ? AND workspace_id = ? AND status IN ('outcome_unknown','executing')`,
     ).bind(
       result.externalReference ?? null,
       toJson(result.output ?? {}),
@@ -430,6 +482,35 @@ export const reconcileActionProposal = async (
       identity.scope.userId,
       identity.scope.workspaceId,
     ),
+    ...(binding.action?.providerOperation
+      ? [
+          env.DB.prepare(`UPDATE control_runs SET status='completed',completed_at=?,last_event_at=?,updated_at=?,
+        data_json=json_set(data_json,'$.summary',?,'$.actionProposalId',?)
+        WHERE id=? AND user_id=? AND workspace_id=? AND status IN ('running','failed')
+        AND EXISTS (SELECT 1 FROM control_action_proposals WHERE id=? AND status='reconciled' AND updated_at=?)`).bind(
+            timestamp,
+            timestamp,
+            timestamp,
+            result.summary,
+            row.id,
+            row.run_id,
+            identity.scope.userId,
+            identity.scope.workspaceId,
+            row.id,
+            timestamp,
+          ),
+          env.DB.prepare(`UPDATE control_workflow_intents SET status='completed',updated_at=?
+        WHERE id=? AND user_id=? AND workspace_id=? AND status IN ('running','failed')
+        AND EXISTS (SELECT 1 FROM control_action_proposals WHERE id=? AND status='reconciled' AND updated_at=?)`).bind(
+            timestamp,
+            row.workflow_intent_id,
+            identity.scope.userId,
+            identity.scope.workspaceId,
+            row.id,
+            timestamp,
+          ),
+        ]
+      : []),
     appendLedgerStatement(env, identity, {
       proposalId: row.id,
       status: "reconciled",

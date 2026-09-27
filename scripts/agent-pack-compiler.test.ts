@@ -29,14 +29,153 @@ afterEach(() => {
 });
 
 describe("agent pack compiler", () => {
+  it("requires explicit v2 typed-state capability for workflow state targets", async () => {
+    const source = (await loadAgentModules(process.cwd())).find(
+      (item) => item.manifest.id === "document-review",
+    )!;
+    for (const stateTarget of ["external", "simulation"] as const) {
+      const candidate = {
+        ...source,
+        controlPlane: {
+          ...source.controlPlane,
+          workflows: source.controlPlane.workflows.map((workflow) => ({
+            ...workflow,
+            stateTarget,
+          })),
+        },
+      };
+      expect(() => validateLoadedModules([candidate])).not.toThrow();
+      expect(() =>
+        validateLoadedModules([
+          {
+            ...candidate,
+            controlPlane: {
+              ...candidate.controlPlane,
+              requirements: {
+                minimumBackendVersion: "1.0.0",
+                capabilities: [
+                  "runtime.module.v2",
+                  "context.snapshots.v2",
+                  "state.migrations.v2",
+                  "models.structured.v2",
+                  "usage.reservations.v2",
+                ],
+              },
+            },
+          } as typeof source,
+        ]),
+      ).toThrow("stateTarget requires v2 typed state");
+    }
+  });
+  it("accepts declarative v2 provider bindings and rejects callback or transport authority", async () => {
+    const modules = await loadAgentModules(process.cwd());
+    const source = modules.find((item) => item.manifest.id === "complex-operator")!;
+    const tool = source.controlPlane.tools.find((item) => item.id === "operator.action.execute")!;
+    const { execute: _execute, reconcile: _reconcile, ...contract } = tool.action!;
+    const action = {
+      ...contract,
+      target: "external" as const,
+      providerOperation: { id: "capacity.allocate", version: "1" },
+    };
+    const candidate = {
+      ...source,
+      runner: {
+        ...source.runner,
+        tools: source.runner.tools.filter((item) => item.id !== tool.id),
+      },
+      controlPlane: {
+        ...source.controlPlane,
+        apiVersion: 2 as const,
+        requirements: { minimumBackendVersion: "1.0.0", capabilities: ["runtime.module.v2"] },
+        tools: source.controlPlane.tools.map((item) =>
+          item.id === tool.id ? { ...item, transport: "cloudflare_inline" as const, action } : item,
+        ),
+      },
+    } as typeof source;
+    expect(() => validateLoadedModules([candidate])).not.toThrow();
+    expect(() =>
+      validateLoadedModules([
+        {
+          ...candidate,
+          controlPlane: { ...candidate.controlPlane, apiVersion: 1 },
+        } as typeof source,
+      ]),
+    ).toThrow("provider operations require v2");
+    for (const change of [
+      { action: { ...action, execute: () => ({}) } },
+      { action: { ...action, reconcile: () => ({}) } },
+      { action: { ...action, connectionId: undefined } },
+      { action: { ...action, providerOperation: { id: undefined, version: "1" } } },
+      { transport: "fly" },
+    ]) {
+      const invalid = {
+        ...candidate,
+        controlPlane: {
+          ...candidate.controlPlane,
+          tools: candidate.controlPlane.tools.map((item) =>
+            item.id === tool.id ? { ...item, ...change } : item,
+          ),
+        },
+      } as typeof source;
+      expect(() => validateLoadedModules([invalid])).toThrow("provider operations require v2");
+    }
+  });
+
+  it("requires explicit v2 action targets and forbids external authority in simulation bindings", async () => {
+    const [source] = await loadAgentModules(process.cwd());
+    if (!source) throw new Error("Fixture package missing");
+    const tool = source.controlPlane.tools[0]!;
+    for (const action of [
+      { ...tool.action, target: undefined },
+      { ...tool.action, execute: async () => ({}) },
+      { ...tool.action, reconcile: async () => ({}) },
+      { ...tool.action, connectionId: "external" },
+    ]) {
+      const candidate = {
+        ...source,
+        controlPlane: { ...source.controlPlane, tools: [{ ...tool, action }] },
+      } as unknown as typeof source;
+      expect(() => validateLoadedModules([candidate])).toThrow(/target|simulation actions/);
+    }
+    const v1 = { ...source, controlPlane: { ...source.controlPlane, apiVersion: 1 as const } };
+    expect(() => validateLoadedModules([v1])).toThrow("simulation actions require v2");
+  });
+
+  it("validates durable declarations without changing request-mode v1 bindings", async () => {
+    const [source] = await loadAgentModules(process.cwd());
+    if (!source) throw new Error("Fixture package missing");
+    const workflow = source.controlPlane.workflows.find((item) => item.durable)!;
+    expect(workflow.durable).toBeDefined();
+    for (const change of [{ version: "" }, { maxSteps: 0 }, { maxDurationMs: 604800001 }]) {
+      const candidate = {
+        ...source,
+        controlPlane: {
+          ...source.controlPlane,
+          workflows: source.controlPlane.workflows.map((item) =>
+            item === workflow ? { ...item, durable: { ...item.durable!, ...change } } : item,
+          ),
+        },
+      };
+      expect(() => validateLoadedModules([candidate])).toThrow("invalid v2 durable binding");
+    }
+    const v1 = {
+      ...source,
+      manifest: { ...source.manifest, tools: [] },
+      controlPlane: { ...source.controlPlane, tools: [], apiVersion: 1 as const },
+    };
+    expect(() => validateLoadedModules([v1])).toThrow("invalid v2 durable binding");
+  });
+
   it("loads the configured modules and verifies complete bindings", async () => {
     const modules = await loadAgentModules(process.cwd());
     expect(modules.map((item) => item.manifest.id)).toEqual([
+      "document-review",
       "operloom",
       "repo-analyst",
       "baby-polymancer",
       "baby-swordfish",
       "complex-operator",
+      "provider-operation-fixture",
     ]);
     expect(
       modules.every((item) => item.controlPlane.runtimeVersion === item.web.runtimeVersion),

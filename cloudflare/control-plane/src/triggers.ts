@@ -1,11 +1,14 @@
 import { loadLocalAgentPacks } from "../../../agent-packs";
+import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
 import { sha256Hex } from "../../../lib/workbench/control-plane-signing";
 import {
   buildPackWorkflowRequest,
   packWorkflowBindings,
+  resolvePackRuntime,
   type PackWorkflowType,
 } from "../../../lib/agent-runtime/registry";
 import { resolveAgentBehaviorConfig } from "./agent-records";
+import { runtimeStateCanonicalJson } from "./runtime-state";
 import { selectAgent, selectMembership } from "./authz-store";
 import { isRecord, json, parseDataJson, parseJson } from "./http";
 import { requireActiveMembership, requireAdminMembership } from "./membership-policy";
@@ -137,7 +140,13 @@ export const resolveCheckedInTrigger = async (
   const agent = await selectAgent(env, identity.agentId, identity.scope.workspaceId);
   if (!agent || agent.status !== "active") return null;
   const behavior = resolveAgentBehaviorConfig(agent);
-  const pack = packs.find((candidate) => candidate.id === packId);
+  const conformance =
+    env.WORKBENCH_E2E_MODE === "true" || env.WORKBENCH_CONFORMANCE_MODE === "true";
+  const pack =
+    packs.find((candidate) => candidate.id === packId) ??
+    (conformance
+      ? agentManifestRegistry[packId as keyof typeof agentManifestRegistry]?.module
+      : undefined);
   if (!pack || behavior.pack?.id !== pack.id || behavior.pack.version !== pack.version) return null;
   const trigger = pack.triggers.find((candidate) => candidate.id === packTriggerId);
   if (!trigger) return null;
@@ -240,6 +249,29 @@ export const handleCreateTrigger = async (request: Request, env: Env, identity: 
   const declared = await resolveCheckedInTrigger(env, identity, packId, packTriggerId);
   if (!declared)
     return json({ ok: false, error: "Active pack trigger not found" }, { status: 404 });
+  const execution = parsed.body.execution ?? "request";
+  if (execution !== "request" && execution !== "durable")
+    return json({ ok: false, error: "Execution must be request or durable" }, { status: 400 });
+  if (execution === "durable") {
+    const runtime = resolvePackRuntime(declared.pack.id, declared.pack.version);
+    if (
+      env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED !== "true" ||
+      !env.DURABLE_WORKFLOWS ||
+      !runtime.runnable ||
+      runtime.controlPlane.apiVersion !== 2 ||
+      !runtime.controlPlane.workflows.find(
+        (workflow) => workflow.type === declared.trigger.workflowType,
+      )?.durable
+    )
+      return json(
+        {
+          ok: false,
+          error: "Durable workflow is unavailable",
+          code: "runtime_capability_disabled",
+        },
+        { status: 503 },
+      );
+  }
   const requestedStatus = parsed.body.status ?? "paused";
   if (requestedStatus !== "paused" && requestedStatus !== "enabled") {
     return json({ ok: false, error: "New triggers must be paused or enabled" }, { status: 400 });
@@ -280,7 +312,11 @@ export const handleCreateTrigger = async (request: Request, env: Env, identity: 
       declared.trigger.kind,
       declared.trigger.workflowType,
       requestedStatus,
-      toJson({ mode: "dry_run", policy: "trigger-readonly-v0" }),
+      toJson({
+        mode: "dry_run",
+        policy: "trigger-readonly-v0",
+        ...(execution === "durable" ? { runtime: "durable" } : {}),
+      }),
       toJson(declared.config),
       toJson(input),
       declared.pack.resourceLimits.maxConcurrentRuns,
@@ -319,6 +355,15 @@ export const handleCreateTrigger = async (request: Request, env: Env, identity: 
         packTriggerId,
       )
       .first<ControlTriggerRow>();
+    if (existing && (parseDataJson(existing.execution_json).runtime ?? "request") !== execution)
+      return json(
+        {
+          ok: false,
+          error: "Existing trigger uses a different execution mode",
+          code: "trigger_execution_conflict",
+        },
+        { status: 409 },
+      );
     return json({ ok: true, created: false, trigger: existing ? mapTrigger(existing) : undefined });
   }
   const created = await findTrigger(env, identity, id);
@@ -580,6 +625,8 @@ export const handleCreateTriggerDispatch = async (
         WHERE EXISTS (
           SELECT 1 FROM control_triggers
           WHERE id = ? AND user_id = ? AND workspace_id = ? AND agent_id = ? AND status = 'enabled'
+            AND (json_extract(execution_json,'$.runtime') IS NOT 'durable' OR
+              (SELECT COUNT(*) FROM control_trigger_dispatches d WHERE d.trigger_id=control_triggers.id AND d.status='pending') < 100)
         )`,
     ).bind(
       id,
@@ -630,6 +677,20 @@ export const handleCreateTriggerDispatch = async (
     .first<ControlTriggerDispatchRow>();
   if (!dispatch)
     return json({ ok: false, error: "Trigger dispatch was not accepted" }, { status: 409 });
+  if (
+    parseDataJson(trigger.execution_json).runtime === "durable" &&
+    (runtimeStateCanonicalJson(parseDataJson(dispatch.payload_json)) !==
+      runtimeStateCanonicalJson(payload) ||
+      dispatch.scheduled_for !== (scheduledFor ?? null))
+  )
+    return json(
+      {
+        ok: false,
+        error: "Dispatch key already identifies different content",
+        code: "trigger_dispatch_conflict",
+      },
+      { status: 409 },
+    );
   if (created && ctx) {
     const leaseOwner = `manual:${identity.scope.userId}:${crypto.randomUUID()}`;
     ctx.waitUntil(
@@ -661,6 +722,20 @@ export const handleReplayTriggerDispatch = async (
     .bind(identity.scope.userId, identity.scope.workspaceId, identity.agentId, dispatchId)
     .first<ControlTriggerDispatchRow>();
   if (!dispatch) return json({ ok: false, error: "Trigger dispatch not found" }, { status: 404 });
+  const durableLink = await env.DB.prepare(
+    "SELECT run_id FROM control_durable_trigger_links WHERE dispatch_id=? AND user_id=? AND workspace_id=? AND agent_id=?",
+  )
+    .bind(dispatchId, identity.scope.userId, identity.scope.workspaceId, identity.agentId)
+    .first();
+  if (durableLink)
+    return json(
+      {
+        ok: false,
+        error: "Inspect the durable run; replay cannot create another run for this event.",
+        code: "durable_dispatch_already_admitted",
+      },
+      { status: 409 },
+    );
   if (dispatch.status !== "failed" && dispatch.status !== "cancelled") {
     return json(
       { ok: false, error: "Only failed or cancelled trigger dispatches can be replayed" },

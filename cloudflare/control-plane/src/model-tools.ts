@@ -1,3 +1,5 @@
+import { bindRuntimeContext } from "./runtime-context";
+import type { RuntimeContextPort } from "@operloom/agent-sdk";
 import { jsonSchema, tool, type ToolSet } from "ai";
 import {
   type AgentExecutionContext,
@@ -29,6 +31,7 @@ import { createDurableActionPort } from "./action-authority";
 
 type ResolveModelToolsInput = {
   chatRunId: string | null;
+  context?: RuntimeContextPort;
   threadId: string;
   traceId: string;
 };
@@ -116,6 +119,7 @@ const buildRuntimeModelTool = (input: {
     description: input.binding.description,
     inputSchema: jsonSchema<RuntimeRecord>(input.binding.inputSchema),
     execute: async (toolInput) => {
+      input.request.context?.assertReady();
       const callPolicy = await evaluateToolPolicy(input.env, input.identity, {
         membership: input.membership,
         toolName: input.binding.id,
@@ -249,6 +253,7 @@ const buildRuntimeModelTool = (input: {
         },
       };
 
+      if (input.request.context) bindRuntimeContext(context, input.request.context);
       try {
         const result = await executeRuntimeToolBinding({
           env: input.env,

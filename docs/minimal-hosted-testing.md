@@ -39,6 +39,11 @@ is `503`. Landing, authentication, health, and retained history remain readable.
 Crossed 50%, 75%, and 90% model thresholds are recorded once per month and
 emitted to provider logs.
 
+LangSmith tracing is off for the public demo. Its hosted trace retention is
+longer than the demo's seven-day data promise, so real demo conversations must
+not be forwarded there without a separate deletion policy. Local synthetic
+evaluations can opt in to LangSmith through the server-side environment.
+
 ## Deployment order
 
 1. Run `pnpm verify`, `pnpm build`, and `pnpm verify:docker` sequentially.

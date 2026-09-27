@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, normalize, relative } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 import { describe, expect, it } from "vitest";
 
@@ -195,7 +196,10 @@ describe("runtime extension architecture", () => {
       /if \(url\.pathname === "\/internal\/lifecycle-unfreeze"\)([\s\S]*?)if \(this\.lifecycleFence\(\)/,
     )?.[1];
     expect(lifecycleRoute).toBeDefined();
-    expect(lifecycleRoute).toContain("await this.persistMessages([])");
+    expect(lifecycleRoute).toContain(
+      "await this.persistMessages([], [], { _deleteStaleRows: true })",
+    );
+    expect(lifecycleRoute).toContain("this.turnReceipts().purge()");
     expect(lifecycleRoute).not.toContain("saveMessages");
   });
 
@@ -218,11 +222,27 @@ describe("runtime extension architecture", () => {
     const omittedTables = [...(omissionBlock ?? "").matchAll(/"([^"]+)"/g)].map(
       (match) => match[1],
     );
-    const workspaceScopedTables = [
-      ...schema.matchAll(/CREATE TABLE ([a-z0-9_]+) \(([\s\S]*?)\n\);/g),
-    ]
-      .filter((match) => /\bworkspace_id\s+TEXT\b/.test(match[2] ?? ""))
-      .map((match) => match[1]);
+    // Inspect the resulting schema, including forward table rebuilds and renamed tables.
+    // Parsing CREATE statements alone incorrectly includes temporary migration tables.
+    const database = new DatabaseSync(":memory:");
+    let workspaceScopedTables: string[];
+    let finalTriggers: Set<string>;
+    try {
+      database.exec(schema);
+      workspaceScopedTables = database
+        .prepare("SELECT name,sql FROM sqlite_master WHERE type='table'")
+        .all()
+        .filter((row) => /\bworkspace_id\s+TEXT\b/.test(String(row.sql)))
+        .map((row) => String(row.name));
+      finalTriggers = new Set(
+        database
+          .prepare("SELECT name FROM sqlite_master WHERE type='trigger'")
+          .all()
+          .map((row) => String(row.name)),
+      );
+    } finally {
+      database.close();
+    }
     const coveredTables = new Set([...exportedTables, ...omittedTables]);
     expect(
       workspaceScopedTables.filter((table) => !coveredTables.has(table)),
@@ -236,6 +256,9 @@ describe("runtime extension architecture", () => {
       for (const action of actions) {
         expect(migrations, `${table} ${action}`).toContain(
           `CREATE TRIGGER export_fence_${table}_${action}`,
+        );
+        expect(finalTriggers, `${table} ${action} must survive migrations`).toContain(
+          `export_fence_${table}_${action}`,
         );
       }
     }

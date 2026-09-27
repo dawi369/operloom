@@ -1,4 +1,5 @@
 import { selectWorkspace } from "./authz-store";
+import { purgeDurableEngines } from "./durable-engine-lifecycle";
 import { revokeWorkspaceConnections } from "./connection-broker";
 import { retainedDataEnabled } from "./feature-gates";
 import { revokeWorkspaceDevices } from "./notification-delivery";
@@ -22,6 +23,19 @@ import {
 import type { ExportSnapshotCursor } from "./workspace-data-export";
 
 export const purgeWorkspace = async (env: Env, identity: AgentIdentity, job: ControlDataJobRow) => {
+  const jobAuthoritySql = `SELECT 1 FROM control_data_jobs WHERE id=? AND workspace_id=?
+    AND kind='purge' AND status='running' AND lease_owner IS ?
+    AND (lease_owner IS NULL OR lease_expires_at>strftime('%Y-%m-%dT%H:%M:%fZ','now'))`;
+  const jobAuthorityValues = [job.id, identity.scope.workspaceId, job.lease_owner ?? null];
+  const requireJobAuthority = async () => {
+    if (
+      !(await env.DB.prepare(jobAuthoritySql)
+        .bind(...jobAuthorityValues)
+        .first())
+    )
+      throw new Error("workspace_purge_authority_revoked");
+  };
+  await requireJobAuthority();
   const workspace = await selectWorkspace(env, identity.scope.workspaceId);
   if (
     !workspace ||
@@ -58,9 +72,14 @@ export const purgeWorkspace = async (env: Env, identity: AgentIdentity, job: Con
     const timestamp = new Date().toISOString();
     const result = await env.DB.prepare(
       `UPDATE control_data_jobs SET cursor_json = ?, updated_at = ?
-       WHERE id = ? AND status = 'running'`,
+       WHERE id = ? AND status = 'running' AND lease_owner IS ?`,
     )
-      .bind(toJson({ ...purgeCursor, phase, phaseUpdatedAt: timestamp }), timestamp, job.id)
+      .bind(
+        toJson({ ...purgeCursor, phase, phaseUpdatedAt: timestamp }),
+        timestamp,
+        job.id,
+        job.lease_owner ?? null,
+      )
       .run();
     if (((result as { meta?: { changes?: number } }).meta?.changes ?? 0) === 0) {
       throw new Error("workspace_purge_authority_revoked");
@@ -79,9 +98,14 @@ export const purgeWorkspace = async (env: Env, identity: AgentIdentity, job: Con
     const timestamp = new Date().toISOString();
     await env.DB.prepare(
       `UPDATE control_data_jobs SET cursor_json = ?, updated_at = ?
-       WHERE id = ? AND status = 'running'`,
+       WHERE id = ? AND status = 'running' AND lease_owner IS ?`,
     )
-      .bind(toJson({ ...purgeCursor, e2eFailuresRemaining: remaining - 1 }), timestamp, job.id)
+      .bind(
+        toJson({ ...purgeCursor, e2eFailuresRemaining: remaining - 1 }),
+        timestamp,
+        job.id,
+        job.lease_owner ?? null,
+      )
       .run();
     throw new Error(`e2e_purge_${phase}_failure`);
   };
@@ -125,6 +149,11 @@ export const purgeWorkspace = async (env: Env, identity: AgentIdentity, job: Con
     await checkpoint("objects_deleted");
   }
 
+  // Run even for historical jobs that already reached objects_deleted.
+  // Native deletion receipts survive a partial batch or process interruption.
+  await requireJobAuthority();
+  if (!(await purgeDurableEngines(env, identity.scope.workspaceId))) return false;
+
   const tables = [
     "control_notification_deliveries",
     "control_notification_preferences",
@@ -133,11 +162,24 @@ export const purgeWorkspace = async (env: Env, identity: AgentIdentity, job: Con
     "control_connection_oauth_states",
     "control_connections",
     "control_action_ledger",
+    "control_action_reservations",
+    "control_action_projections",
+    "control_action_reviews",
+    "control_provider_operations",
     "control_action_proposals",
     "control_kill_switches",
     "control_operator_alerts",
     "control_trigger_dispatches",
     "control_triggers",
+    "control_state_outbox",
+    "control_state_migration_steps",
+    "control_state_migration_repairs",
+    "control_state_migrations",
+    "control_state_schema_heads",
+    "control_state_entries",
+    "control_state_commits",
+    "control_state_indexes",
+    "control_state_records",
     "control_managed_state",
     "control_decisions",
     "control_artifacts",
@@ -150,6 +192,20 @@ export const purgeWorkspace = async (env: Env, identity: AgentIdentity, job: Con
     "control_plane_events",
     "runtime_spans",
     "runtime_traces",
+    "control_chat_commands",
+    "control_context_snapshots",
+    "control_resource_reservations",
+    "control_durable_step_outcomes",
+    "control_durable_step_attempts",
+    "control_durable_steps",
+    "control_durable_engine_dispatches",
+    "control_durable_approvals",
+    "control_durable_trigger_links",
+    "control_durable_executions",
+    "control_budget_changes",
+    "control_budget_policies",
+    "control_agent_snapshots",
+    "control_agent_upgrades",
     "chat_runs",
     "chat_policy_decisions",
     "chat_intents",
@@ -169,6 +225,13 @@ export const purgeWorkspace = async (env: Env, identity: AgentIdentity, job: Con
     new TextEncoder().encode(`${identity.scope.workspaceId}:${completedAt}`),
   );
   await env.DB.batch([
+    // completed_at is NOT NULL: losing the job lease rolls back the whole batch.
+    env.DB.prepare(
+      `INSERT INTO control_deletion_receipts (receipt_sha256, completed_at)
+       VALUES (?, CASE WHEN EXISTS (${jobAuthoritySql}) AND EXISTS (
+         SELECT 1 FROM workspaces WHERE id=? AND status='purging'
+       ) THEN ? ELSE NULL END)`,
+    ).bind(receipt, ...jobAuthorityValues, identity.scope.workspaceId, completedAt),
     ...tables.map((table) =>
       env.DB.prepare(`DELETE FROM ${table} WHERE workspace_id = ?`).bind(
         identity.scope.workspaceId,
@@ -178,12 +241,6 @@ export const purgeWorkspace = async (env: Env, identity: AgentIdentity, job: Con
     env.DB.prepare("DELETE FROM active_workspace_preferences WHERE workspace_id = ?").bind(
       identity.scope.workspaceId,
     ),
-    env.DB.prepare(
-      `INSERT INTO control_deletion_receipts (receipt_sha256, completed_at)
-       SELECT ?, ? WHERE EXISTS (
-         SELECT 1 FROM workspaces WHERE id = ? AND status = 'purging'
-       )`,
-    ).bind(receipt, completedAt, identity.scope.workspaceId),
     env.DB.prepare(`DELETE FROM control_data_jobs WHERE workspace_id = ?`).bind(
       identity.scope.workspaceId,
     ),
@@ -315,12 +372,27 @@ export const processDataLifecycleJobs = async (
       agentId: "lifecycle",
     };
     try {
-      const claimed = { ...row, status: "running" as const, attempt_count: row.attempt_count + 1 };
+      const claimed = {
+        ...row,
+        status: "running" as const,
+        attempt_count: row.attempt_count + 1,
+        lease_owner: owner,
+        lease_expires_at: new Date(Date.parse(now) + 15 * 60 * 1000).toISOString(),
+      };
       if (row.kind === "export") await runExportJob(env, identity, claimed);
-      else await purgeWorkspace(env, identity, claimed);
+      else if ((await purgeWorkspace(env, identity, claimed)) === false) {
+        // A successful bounded page is progress, not a failed automatic attempt.
+        await env.DB.prepare(
+          `UPDATE control_data_jobs SET status='queued',attempt_count=attempt_count-1,
+            lease_owner=NULL,lease_expires_at=NULL,updated_at=?
+           WHERE id=? AND status='running' AND lease_owner=?`,
+        )
+          .bind(new Date().toISOString(), row.id, owner)
+          .run();
+        continue;
+      }
       completed += 1;
     } catch (error) {
-      failed += 1;
       const timestamp = new Date().toISOString();
       const retryable = row.attempt_count + 1 < 3;
       const errorCode =
@@ -330,10 +402,10 @@ export const processDataLifecycleJobs = async (
               .replace(/[^a-zA-Z0-9_.-]/g, "_")
               .slice(0, 96)
           : "data_job_failed";
-      await env.DB.prepare(
+      const failure = await env.DB.prepare(
         `UPDATE control_data_jobs SET status = ?, error_json = ?, lease_owner = NULL,
            lease_expires_at = NULL, last_error_code = ?, last_failed_at = ?, updated_at = ?
-         WHERE id = ? AND status = 'running'`,
+         WHERE id = ? AND status = 'running' AND lease_owner = ?`,
       )
         .bind(
           retryable ? "queued" : "failed",
@@ -342,8 +414,11 @@ export const processDataLifecycleJobs = async (
           timestamp,
           timestamp,
           row.id,
+          owner,
         )
         .run();
+      if (((failure as { meta?: { changes?: number } }).meta?.changes ?? 0) === 0) continue;
+      failed += 1;
       if (!retryable) {
         if (row.kind === "export") {
           await releaseExportFence(env, row).catch(() => undefined);

@@ -1,0 +1,40 @@
+{
+  "name": "@operloom/pack-document-review",
+  "version": "1.0.0",
+  "private": true,
+  "files": [
+    "dist",
+    "prompt.xml"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/manifest.d.ts",
+      "default": "./dist/manifest.js"
+    },
+    "./manifest": {
+      "types": "./dist/manifest.d.ts",
+      "default": "./dist/manifest.js"
+    },
+    "./control-plane": {
+      "types": "./dist/control-plane.d.ts",
+      "default": "./dist/control-plane.js"
+    },
+    "./runner": {
+      "types": "./dist/runner.d.ts",
+      "default": "./dist/runner.js"
+    },
+    "./web": {
+      "types": "./dist/web.d.ts",
+      "default": "./dist/web.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "prepack": "pnpm clean && pnpm build"
+  },
+  "dependencies": {
+    "@operloom/agent-sdk": "workspace:^"
+  }
+}

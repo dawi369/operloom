@@ -33,7 +33,7 @@ describe("runtime tool execution", () => {
         },
       },
       toolInput: {},
-      context: {} as never,
+      context: { pack: { id: "fixture", version: "1.0.0" } } as never,
       execution: {
         runId: "run-1",
         workflowIntentId: "intent-1",

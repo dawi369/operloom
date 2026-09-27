@@ -69,7 +69,7 @@ export const renderEnvironmentConfig = (
     vars: {
       LANGGRAPH_UPSTREAM_URL: manifest.fly.origin,
       LANGGRAPH_ASSISTANT_ID: "agent",
-      OPENROUTER_MODEL: "deepseek/deepseek-v4-flash",
+      OPENROUTER_MODEL: "openai/gpt-6-luna",
       OPENROUTER_SITE_URL: manifest.web.origin,
       OPENROUTER_APP_NAME: `operloom-${target}-cloudflare-chat`,
       WORKBENCH_CALLBACK_URL: `${manifest.cloudflare.origin}/workbench/run-callbacks`,
@@ -81,6 +81,13 @@ export const renderEnvironmentConfig = (
       WORKBENCH_CONNECTIONS_ENABLED: String(features.connections),
       WORKBENCH_MUTATIONS_ENABLED: String(features.mutations),
       WORKBENCH_PUSH_ENABLED: "false",
+      WORKBENCH_PACKAGE_UPGRADES_ENABLED: "false",
+      WORKBENCH_CONTEXT_ENABLED: "false",
+      WORKBENCH_STRUCTURED_MODELS_ENABLED: "false",
+      WORKBENCH_USAGE_LIMITS_ENABLED: "false",
+      WORKBENCH_DURABLE_WORKFLOWS_ENABLED: "false",
+      WORKBENCH_SIMULATIONS_ENABLED: "false",
+      WORKBENCH_PROVIDER_OPERATIONS_ENABLED: "false",
       WORKBENCH_VAULT_BACKEND: manifest.vaultBackend,
       ...(isDemo
         ? {
@@ -133,6 +140,13 @@ export const renderEnvironmentConfig = (
             ],
           },
         }),
+    workflows: [
+      {
+        binding: "DURABLE_WORKFLOWS",
+        name: `${manifest.cloudflare.workerName}-durable`,
+        class_name: "OperloomDurableWorkflow",
+      },
+    ],
     durable_objects: {
       bindings: [
         { name: "WorkbenchThreadChatAgent", class_name: "WorkbenchThreadChatAgent" },
@@ -163,7 +177,7 @@ dockerfile = "../../../Dockerfile.langgraph"
 LANGGRAPH_PORT = "2024"
 LANGGRAPH_UPSTREAM_URL = "http://127.0.0.1:2024"
 OPENROUTER_APP_NAME = "operloom-${target}-runner"
-OPENROUTER_MODEL = "deepseek/deepseek-v4-flash"
+OPENROUTER_MODEL = "openai/gpt-6-luna"
 OPENROUTER_SITE_URL = "${manifest.fly.origin}"
 WORKBENCH_CONFORMANCE_MODE = "${manifest.conformanceMode}"
 WORKBENCH_CALLBACK_ORIGIN = "${manifest.cloudflare.origin}"

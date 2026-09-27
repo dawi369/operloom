@@ -4,6 +4,11 @@ export default defineWorkbenchConfig({
   runtimeApiVersion: 1,
   workbenchVersion: "1.0.0",
   modules: [
+    {
+      package: "@operloom/pack-document-review",
+      source: "./examples/document-review",
+      conformanceOnly: true,
+    },
     { package: "@operloom/pack-operloom", source: "./agent-packs/operloom" },
     {
       package: "@operloom/pack-repo-analyst",
@@ -20,6 +25,11 @@ export default defineWorkbenchConfig({
     {
       package: "@operloom/pack-complex-operator",
       source: "./examples/complex-operator",
+      conformanceOnly: true,
+    },
+    {
+      package: "@operloom/provider-operation-fixture",
+      source: "./tests/fixtures/provider-operation-package",
       conformanceOnly: true,
     },
   ],

@@ -8,8 +8,10 @@
 import { ChatOpenRouter } from "@langchain/openrouter";
 import { MessagesAnnotation, StateGraph } from "@langchain/langgraph";
 
+const modelName = process.env.OPENROUTER_MODEL?.trim() || "openai/gpt-6-luna";
 const model = new ChatOpenRouter({
-  model: process.env.OPENROUTER_MODEL?.trim() || "openai/gpt-5.2",
+  model: modelName,
+  ...(modelName === "openai/gpt-6-luna" ? { modelKwargs: { reasoning: { effort: "none" } } } : {}),
   siteUrl: process.env.OPENROUTER_SITE_URL,
   siteName: process.env.OPENROUTER_APP_NAME,
 });

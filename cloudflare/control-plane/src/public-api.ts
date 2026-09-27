@@ -1,0 +1,129 @@
+import {
+  matchesPublicApiRoute,
+  publicApiOpenApi,
+} from "../../../packages/workbench-client/src/public-api";
+import { compiledWorkbenchVersion } from "../../../generated/agent-runtime/platform";
+import { WorkbenchAuthError } from "../../../lib/workbench/agent-identity-types";
+import { withCors } from "./cors";
+import { json, type ControlPlaneAuthContext } from "./http";
+import { authenticatePublicApi, publicApiCommandRequest } from "./public-api-auth";
+import type { Env } from "./types";
+import { agentRevisionConflict } from "./agent-execution-revisions";
+import { findPublicActionContract } from "../../../packages/workbench-client/src/public-action-contracts";
+
+export const handlePublicApi = async (
+  request: Request,
+  env: Env,
+  dispatch: (command: Request, auth: ControlPlaneAuthContext) => Promise<Response>,
+) => {
+  const requestId = crypto.randomUUID();
+  let response: Response;
+  try {
+    if (env.WORKBENCH_PUBLIC_API_ENABLED !== "true")
+      throw new WorkbenchAuthError("Public API is not enabled", 404);
+    if (request.method === "OPTIONS")
+      return withCors(new Response(null, { status: 204 }), request, env);
+    const url = new URL(request.url);
+    if (url.pathname === "/v1/openapi.json" && request.method === "GET") {
+      response = json(publicApiOpenApi(compiledWorkbenchVersion));
+    } else {
+      const { principal, context } = await authenticatePublicApi(request, env);
+      const match = url.pathname.match(/^\/v1\/workspaces\/([^/]+)\/agents\/([^/]+)(\/.*)$/);
+      const account = url.pathname === "/v1/account" && request.method === "GET";
+      if (!account && (!match || !matchesPublicApiRoute(request.method, match[3]!))) {
+        throw new WorkbenchAuthError(
+          "Unknown public operation; commands require an explicit workspace and agent",
+          404,
+        );
+      }
+      const target = match
+        ? { workspaceId: decodeURIComponent(match[1]!), agentId: decodeURIComponent(match[2]!) }
+        : undefined;
+      if (
+        target &&
+        Object.values(target).some(
+          (value) =>
+            !value.trim() ||
+            value.length > 256 ||
+            value.includes("/") ||
+            value.includes("\\") ||
+            [...value].some((character) => character.charCodeAt(0) < 32),
+        )
+      )
+        throw new WorkbenchAuthError("Invalid target", 400);
+      let commandSource = request;
+      const actionContract = findPublicActionContract(request.method, match?.[3] ?? "");
+      if (
+        actionContract &&
+        "query" in actionContract &&
+        !actionContract.query.safeParse(Object.fromEntries(url.searchParams)).success
+      ) {
+        throw new WorkbenchAuthError("Invalid action query", 400);
+      }
+      if (
+        request.method === "POST" &&
+        /^\/workbench\/workspace-deletion(?:\/retry)?$/.test(match?.[3] ?? "")
+      ) {
+        if (
+          !principal.verifiedAuthenticationTime ||
+          Date.now() - principal.verifiedAuthenticationTime > 300_000
+        )
+          throw new WorkbenchAuthError(
+            "A recently authenticated token with verified auth_time is required for deletion",
+            403,
+          );
+        const body = (await request.json()) as Record<string, unknown>;
+        if (!body || typeof body !== "object" || Array.isArray(body))
+          throw new WorkbenchAuthError("Expected a JSON object", 400);
+        commandSource = new Request(request.url, {
+          method: request.method,
+          headers: request.headers,
+          body: JSON.stringify({
+            ...body,
+            reauthenticatedAt: new Date(principal.verifiedAuthenticationTime).toISOString(),
+          }),
+        });
+      }
+      response = await dispatch(
+        publicApiCommandRequest(commandSource, {
+          principal,
+          path: account ? "/workspace-context" : match![3]!,
+          target,
+        }),
+        context,
+      );
+    }
+    if (!response.ok && response.headers.get("content-type")?.includes("application/json")) {
+      const body = (await response.json()) as Record<string, unknown>;
+      const details = body.details as { code?: unknown } | undefined;
+      const headers = Object.fromEntries(response.headers);
+      delete headers["content-length"];
+      response = json(
+        {
+          ...body,
+          requestId,
+          code:
+            body.code ??
+            (typeof details?.code === "string" ? details.code : `http_${response.status}`),
+        },
+        { status: response.status, headers },
+      );
+    }
+  } catch (error) {
+    const known = error instanceof WorkbenchAuthError;
+    const conflict = agentRevisionConflict(error);
+    response = json(
+      {
+        ok: false,
+        requestId,
+        code: conflict?.code ?? (known ? `http_${error.status}` : "internal_error"),
+        error: conflict?.error ?? (known ? error.message : "Public API request failed"),
+      },
+      { status: conflict ? 409 : known ? error.status : 500 },
+    );
+  }
+  const headers = new Headers(response.headers);
+  headers.set("x-request-id", requestId);
+  headers.set("cache-control", "no-store");
+  return withCors(new Response(response.body, { status: response.status, headers }), request, env);
+};

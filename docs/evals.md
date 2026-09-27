@@ -36,6 +36,13 @@ Additional opt-in service smokes:
 
 Provider-dependent smokes and Swordfish remain outside the deterministic gate.
 
+Pack conformance checks schemas and declared limits; pack-owned deterministic
+evals may also assert outcome semantics. `pnpm agent-packs:test --pack repo-analyst`
+checks that a bounded repository report preserves evidence, warnings, and the
+limit that repository evidence does not prove deployed health. This fixture is
+offline and contains no user messages. It does not grade model responses or
+enable hosted tracing.
+
 ## Not In v0
 
 - No LLM judge.

@@ -71,6 +71,15 @@ export type ActionProposal = {
   summary: string;
   idempotencyKey: string;
   preview: RuntimeRecord;
+  /** Exact external-state versions relevant to the proposed effect; absence is version zero. */
+  preconditions?: readonly import("./state.js").RuntimeStateRead[];
+  /** Capacity held at provider admission until rejection or an atomic state projection. */
+  reservations?: readonly (import("./state.js").RuntimeStateRead & {
+    field: string;
+    amount: number;
+  })[];
+  /** Optional earlier deadline. The platform also bounds approval validity. */
+  expiresAt?: string;
 };
 
 export type ActionExecutionResult = {
@@ -82,6 +91,17 @@ export type ActionExecutionResult = {
 };
 
 export type ActionPort = {
+  inspect?(proposalId: string): Promise<{
+    proposal: ActionProposal | null;
+    provider: {
+      status: "dispatching" | "succeeded" | "failed" | "outcome_unknown";
+      output: RuntimeRecord;
+    } | null;
+    projection: { commitId: string; createdAt: string } | null;
+  }>;
+  simulate?(
+    input: import("./simulation.js").RuntimeSimulationCommit,
+  ): Promise<import("./simulation.js").RuntimeSimulationReceipt>;
   propose(input: ActionProposal): Promise<{ proposalId: string; status: "proposed" }>;
   execute(proposalId: string): Promise<ActionExecutionResult>;
   reconcile?(proposalId: string): Promise<ActionExecutionResult>;
@@ -119,6 +139,9 @@ export type AgentExecutionContext = {
   tools: {
     invoke(toolId: string, input: RuntimeRecord): Promise<RuntimeResult>;
   };
+  state?: import("./state.js").RuntimeStatePort;
+  context?: import("./context.js").RuntimeContextPort;
+  models?: import("./models.js").RuntimeModelPort;
   managedState: {
     upsert(input: ManagedStateWrite): Promise<{ id: string; version: number }>;
   };
@@ -157,22 +180,47 @@ export type RuntimeToolBinding = {
     policyEditable: boolean;
     mutationRisk: "read_only" | "mutation_capable";
   };
-  action?: {
-    connectionId?: string;
-    proposalSchema: JsonSchema;
-    resultSchema: JsonSchema;
-    idempotency: "required";
-    approval: "required" | "policy_controlled";
-    timeoutMs: number;
-    execute: (
-      proposal: ActionProposal,
-      context: AgentExecutionContext,
-    ) => Promise<ActionExecutionResult> | ActionExecutionResult;
-    reconcile?: (
-      proposal: ActionProposal,
-      context: AgentExecutionContext,
-    ) => Promise<ActionExecutionResult> | ActionExecutionResult;
-  };
+  action?:
+    | ({
+        /** V1 omissions retain external semantics. V2 action bindings name their target. */
+        target?: "external";
+        connectionId?: string;
+        proposalSchema: JsonSchema;
+        resultSchema: JsonSchema;
+        idempotency: "required";
+        approval: "required" | "policy_controlled";
+        timeoutMs: number;
+      } & (
+        | {
+            /** Platform-reviewed provider operation. Input is the approved proposal preview. */
+            providerOperation: { id: string; version: string };
+            execute?: never;
+            reconcile?: never;
+          }
+        | {
+            providerOperation?: never;
+            execute: (
+              proposal: ActionProposal,
+              context: AgentExecutionContext,
+            ) => Promise<ActionExecutionResult> | ActionExecutionResult;
+            reconcile?: (
+              proposal: ActionProposal,
+              context: AgentExecutionContext,
+            ) => Promise<ActionExecutionResult> | ActionExecutionResult;
+          }
+      ))
+    | {
+        target: "simulation";
+        proposalSchema: JsonSchema;
+        resultSchema: JsonSchema;
+        idempotency: "required";
+        timeoutMs: number;
+        connectionId?: never;
+        approval?: never;
+        execute?: never;
+        reconcile?: never;
+        providerOperation?: never;
+      };
   execute?: (
     input: RuntimeRecord,
     context: AgentExecutionContext,
@@ -181,6 +229,8 @@ export type RuntimeToolBinding = {
 
 export type RuntimeWorkflowBinding = {
   type: string;
+  /** v2 only. Default simulation preserves existing package state scopes. */
+  stateTarget?: "simulation" | "external";
   engine: "cloudflare" | "langgraph";
   label: string;
   runDisplayName?: string;
@@ -195,6 +245,8 @@ export type RuntimeWorkflowBinding = {
     physicalAbort: "unsupported" | "best_effort";
   };
   smokeCommand?: string;
+  /** Opt-in v2 durable execution. Request-mode execute remains a separate compatibility path. */
+  durable?: import("./durable.js").RuntimeDurableWorkflow;
   normalizeInput?: (input: RuntimeRecord) => RuntimeRecord;
   execute?: (
     input: RuntimeRecord,
@@ -270,7 +322,7 @@ export type WebRuntimeModule = {
 
 export type AgentModulePackage = {
   manifest: LocalAgentPackManifest;
-  controlPlane?: ControlPlaneRuntimeModule;
+  controlPlane?: import("./runtime-v2.js").AnyControlPlaneRuntimeModule;
   runner?: RunnerRuntimeModule;
   web?: WebRuntimeModule;
 };

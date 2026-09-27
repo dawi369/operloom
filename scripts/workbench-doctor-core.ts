@@ -6,6 +6,17 @@ import { readLocalEnvironment, type LocalEnvironment } from "./workbench-local-e
 
 type Values = LocalEnvironment;
 
+export const probeWorkOSApiKey = async (
+  apiKey: string,
+  request: typeof fetch = fetch,
+): Promise<number> => {
+  const response = await request("https://api.workos.com/user_management/users?limit=1", {
+    headers: { authorization: `Bearer ${apiKey}` },
+    signal: AbortSignal.timeout(5_000),
+  });
+  return response.status;
+};
+
 export type WorkbenchDoctorResult = {
   checks: string[];
   failures: string[];
@@ -183,6 +194,20 @@ export const diagnoseWorkbench = async ({
       }
     } catch {
       failures.push("A local service is unreachable; start pnpm workbench dev or use --offline");
+    }
+
+    if (frontend.WORKOS_CLIENT_ID && frontend.WORKOS_API_KEY) {
+      try {
+        const status = await probeWorkOSApiKey(frontend.WORKOS_API_KEY);
+        if (status === 200) checks.push("WorkOS API key is accepted");
+        else if (status === 401)
+          failures.push(
+            "WorkOS rejected the local API key (HTTP 401); replace it before signing in",
+          );
+        else failures.push(`WorkOS credential check returned HTTP ${status}`);
+      } catch {
+        failures.push("WorkOS credential check is unavailable; retry when WorkOS is reachable");
+      }
     }
   }
 

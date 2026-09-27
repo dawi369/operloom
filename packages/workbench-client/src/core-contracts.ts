@@ -78,6 +78,7 @@ export type RunStatus =
   | "running"
   | "waiting"
   | "interrupted"
+  | "blocked"
   | "completed"
   | "failed"
   | "cancelled";

@@ -7,13 +7,20 @@
   "vars": {
     "LANGGRAPH_UPSTREAM_URL": "http://127.0.0.1:2024",
     "LANGGRAPH_ASSISTANT_ID": "agent",
-    "OPENROUTER_MODEL": "deepseek/deepseek-v4-flash",
+    "OPENROUTER_MODEL": "openai/gpt-6-luna",
     "OPENROUTER_SITE_URL": "http://localhost:3000",
     "OPENROUTER_APP_NAME": "assistant-mk1-local-cloudflare-chat",
     "WORKBENCH_CALLBACK_URL": "http://127.0.0.1:8787/workbench/run-callbacks",
     "SENTRY_ENVIRONMENT": "local",
     "SENTRY_TRACES_SAMPLE_RATE": "0.02",
   },
+  "workflows": [
+    {
+      "binding": "DURABLE_WORKFLOWS",
+      "name": "operloom-local-durable",
+      "class_name": "OperloomDurableWorkflow",
+    },
+  ],
   "triggers": {
     "crons": [],
   },

@@ -1,3 +1,4 @@
+import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import { parseDataJson } from "./http";
 import { createId, toJson, type AgentRow, type D1Result, type Env } from "./types";
 import {
@@ -12,16 +13,18 @@ export type AgentProfile = (typeof agentProfiles)[number];
 export const allowedOpenRouterModels = [
   "deepseek/deepseek-v4-flash",
   "openai/gpt-4.1-mini",
+  "openai/gpt-6-luna",
 ] as const;
 export type AllowedOpenRouterModel = (typeof allowedOpenRouterModels)[number];
 
-const defaultModel = "openai/gpt-4.1-mini";
+const defaultModel = "openai/gpt-6-luna";
 const defaultTemperature = 0.4;
 const defaultMaxTokens = 1200;
 
 export type AgentRuntimeConfig = {
   provider: "openrouter";
   model: string;
+  reasoningEffort?: "none";
   temperature: number;
   maxTokens: number;
   source: "agent" | "system-default";
@@ -73,13 +76,17 @@ export const getAgentProfile = (row: AgentRow): AgentProfile => {
   return normalizeAgentProfile(data.profile) ?? "default";
 };
 
-const systemDefaultRuntimeConfig = (env: Env): AgentRuntimeConfig => ({
-  provider: "openrouter",
-  model: normalizeOpenRouterModel(env.OPENROUTER_MODEL) ?? defaultModel,
-  temperature: defaultTemperature,
-  maxTokens: defaultMaxTokens,
-  source: "system-default",
-});
+const systemDefaultRuntimeConfig = (env: Env): AgentRuntimeConfig => {
+  const model = normalizeOpenRouterModel(env.OPENROUTER_MODEL) ?? defaultModel;
+  return {
+    provider: "openrouter",
+    model,
+    reasoningEffort: model === "openai/gpt-6-luna" ? "none" : undefined,
+    temperature: defaultTemperature,
+    maxTokens: defaultMaxTokens,
+    source: "system-default",
+  };
+};
 
 export const resolveAgentRuntimeConfig = (env: Env, row: AgentRow | null): AgentRuntimeConfig => {
   const fallback = systemDefaultRuntimeConfig(env);
@@ -97,6 +104,7 @@ export const resolveAgentRuntimeConfig = (env: Env, row: AgentRow | null): Agent
   return {
     provider,
     model,
+    reasoningEffort: model === "openai/gpt-6-luna" ? "none" : undefined,
     temperature: defaultTemperature,
     maxTokens: defaultMaxTokens,
     source: "agent",
@@ -229,6 +237,14 @@ export const insertAgent = async (
     : undefined;
   const behavior =
     input.behaviorSnapshot ?? createAgentBehaviorSnapshot(input.profile, input.behaviorTemplateId);
+  const module = behavior.pack
+    ? resolvePackRuntime(behavior.pack.id, behavior.pack.version)
+    : undefined;
+  const runtimeModuleSnapshot =
+    module?.runnable &&
+    module.controlPlane.requirements.capabilities.includes("context.snapshots.v2")
+      ? { runtimeVersion: module.runtimeVersion, requirements: module.controlPlane.requirements }
+      : undefined;
   const result = (await env.DB.prepare(
     `${input.idempotent ? "INSERT OR IGNORE" : "INSERT"} INTO agents (
        id, workspace_id, name, description, status, is_default, created_by_user_id,
@@ -246,6 +262,7 @@ export const insertAgent = async (
         profile: input.profile,
         provisionedBy: input.provisionedBy ?? "manual",
         behavior,
+        ...(runtimeModuleSnapshot ? { runtimeModuleSnapshot } : {}),
         ...(runtime ? { runtime } : {}),
       }),
       timestamp,

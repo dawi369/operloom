@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { AdminAgentsPanel } from "@/components/workbench/admin-agents-panel";
+import { WorkflowReviewDetails } from "@/components/workbench/workflow-review-details";
 import {
   AdminControlsPanel,
   type AdminApprovalDecision,
@@ -311,7 +312,7 @@ export function AdminPanel({
                   Admin
                 </DialogTitle>
                 <DialogDescription className="mt-1">
-                  Configure agents, intervene when needed, and inspect system health.
+                  Access, agents, and diagnostics.
                 </DialogDescription>
               </div>
               <Button
@@ -333,13 +334,9 @@ export function AdminPanel({
             </div>
           ) : null}
 
-          <Tabs defaultValue="agents" className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)]">
+          <Tabs defaultValue="controls" className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)]">
             <div className="border-border overflow-x-auto border-b px-4 py-2">
               <TabsList>
-                <TabsTrigger value="agents">
-                  <BotIcon />
-                  Agents
-                </TabsTrigger>
                 <TabsTrigger value="controls">
                   <SlidersHorizontalIcon />
                   Controls
@@ -349,9 +346,13 @@ export function AdminPanel({
                     </span>
                   ) : null}
                 </TabsTrigger>
+                <TabsTrigger value="agents">
+                  <BotIcon />
+                  Agents
+                </TabsTrigger>
                 <TabsTrigger value="system">
                   <FlaskConicalIcon />
-                  System
+                  Diagnostics
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -467,7 +468,7 @@ export function AdminPanel({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {approvalDialog?.action === "approve" ? "Approve tool request" : "Deny tool request"}
+              {approvalDialog?.action === "approve" ? "Approve request" : "Deny request"}
             </DialogTitle>
             <DialogDescription>
               {approvalDialog?.approval.toolId ?? "Tool request"} ·{" "}
@@ -476,6 +477,9 @@ export function AdminPanel({
                 "No reason supplied."}
             </DialogDescription>
           </DialogHeader>
+          {approvalDialog?.approval.review ? (
+            <WorkflowReviewDetails review={approvalDialog.approval.review} />
+          ) : null}
           {approvalDialog?.action === "deny" ? (
             <label className="text-sm font-medium">
               Reason

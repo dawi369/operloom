@@ -9,6 +9,8 @@ export type WorkbenchAgentIdentity = {
   workspaceSource: "local-dev" | "workos-organization" | "workos-personal";
   organizationId?: Id;
   sessionId?: Id;
+  /** Signed identity-provider auth_time; never supplied by a client body. */
+  verifiedAuthenticationTime?: number;
   userEmail?: string;
   userName?: string;
   membershipRole?: string;

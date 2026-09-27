@@ -81,6 +81,25 @@ test("keyboard, focus, responsive, and accessibility contracts cover workbench s
   test.skip(releaseMode !== "local-session");
   test.setTimeout(120_000);
 
+  // Presentation fixture only; native approval/denial is exercised by runtime conformance.
+  const review = {
+    payload: { documentId: "review-ui-fixture", content: "<script>review as text</script>" },
+    requestHash: "a".repeat(64),
+    expiresAt: "2099-01-01T00:00:00.000Z",
+  };
+  await page.route("**/api/workbench/history/runs/e2e-approval-run", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    for (const intervention of body.snapshot.interventions ?? []) intervention.review = review;
+    await route.fulfill({ response, json: body });
+  });
+  await page.route("**/api/workbench/tools/approvals**", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    for (const approval of body.approvals ?? []) approval.review = review;
+    await route.fulfill({ response, json: body });
+  });
+
   await page.goto("/");
   const composer = page.getByRole("textbox", { name: "Message input" });
   await expect(composer).toBeEditable();
@@ -118,13 +137,20 @@ test("keyboard, focus, responsive, and accessibility contracts cover workbench s
 
   const adminComposer = page.getByRole("textbox", { name: "Message input" });
   await adminComposer.fill("/admin");
-  await expect(
-    page.getByText("Open workspace, agent, and runtime controls.", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Admin", { exact: true })).toBeVisible();
   await adminComposer.press("Enter");
   await expect(page.getByRole("dialog", { name: "Admin" })).toBeFocused();
   await expectDialogFocusTrap(page, "Admin");
   await auditPage(page, testInfo, "admin");
+  await page.getByRole("tab", { name: "Controls" }).click();
+  await page.getByRole("button", { name: "Approve", exact: true }).first().click();
+  const reviewDialog = page.getByRole("dialog", { name: "Approve request", exact: true });
+  await expect(reviewDialog.getByLabel("Workflow review content")).toContainText(
+    "review-ui-fixture",
+  );
+  await expect(reviewDialog.locator("pre")).toContainText("<script>review as text</script>");
+  await auditPage(page, testInfo, "workflow-review-dialog");
+  await reviewDialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("tab", { name: "Agents" }).press("Enter");
   const repositoryPack = page.locator("article").filter({ hasText: "Repository Analyst" });
   await expect(repositoryPack).toBeVisible();
@@ -207,8 +233,14 @@ test("keyboard, focus, responsive, and accessibility contracts cover workbench s
   const approvalRun = page.getByRole("listitem").filter({ hasText: "Approval recovery fixture" });
   await approvalRun.getByRole("button", { name: /Open Approval recovery fixture/ }).click();
   await expect(page.getByRole("button", { name: "Approve" })).toBeVisible();
+  await expect(page.getByLabel("Workflow review content")).toContainText("review-ui-fixture");
+  await expect(page.getByLabel("Workflow review content")).toContainText(review.expiresAt);
   await page.getByRole("button", { name: "Approve" }).focus();
   await page.keyboard.press("Shift+Tab");
   await expect(page.getByRole("button", { name: "Deny" })).toBeFocused();
   await auditPage(page, testInfo, "approval-recovery");
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expectNoHorizontalOverflow(page);
+  await expect(page.getByLabel("Workflow review content")).toBeVisible();
+  await auditPage(page, testInfo, "workflow-review-mobile");
 });

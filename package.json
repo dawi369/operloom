@@ -93,7 +93,7 @@
     "agent-packs:test": "tsx scripts/test-agent-pack.ts",
     "agent-packs:check": "tsx scripts/check-agent-pack.ts",
     "agent-sdk:build": "pnpm --filter @operloom/agent-sdk build",
-    "agent-sdk:verify": "pnpm agent-sdk:build && tsx scripts/verify-agent-sdk-consumer.ts",
+    "agent-sdk:verify": "pnpm agent-sdk:build && tsx scripts/verify-agent-sdk-consumer.ts && tsx scripts/verify-agent-sdk-consumer.ts --v2 && tsx scripts/verify-agent-sdk-consumer.ts --document-review && tsx scripts/verify-agent-sdk-consumer.ts --provider-operations",
     "agent-sdk:contract": "pnpm agent-sdk:build && tsx scripts/check-agent-sdk-contract.ts",
     "workbench-client:build": "pnpm --filter @operloom/workbench-client build && pnpm --filter @operloom/workbench-react build",
     "workbench-client:pack": "pnpm workbench-client:build && tsx scripts/pack-workbench-client.ts",
@@ -143,7 +143,11 @@
     "smoke:cloudflare-deploy-readiness": "pnpm smoke:cloudflare-signed-facade && pnpm smoke:cloudflare-workspace-context && pnpm smoke:cloudflare-policy-boundary && pnpm smoke:cloudflare-session-boundary && pnpm smoke:cloudflare-event-stream",
     "smoke:fly-tool-runner": "tsx scripts/smoke-fly-tool-runner.ts",
     "smoke:tenant-isolation": "pnpm smoke:cloudflare-workspace-context",
-    "operloom": "tsx scripts/workbench-cli.ts"
+    "operloom": "tsx scripts/workbench-cli.ts",
+    "runtime:bundle": "pnpm agent-sdk:build && tsx scripts/bundle-runtime.ts",
+    "dev:runtime": "pnpm agent-sdk:build && tsx scripts/runtime-dev.ts",
+    "conformance:runtime": "pnpm agent-sdk:build && tsx scripts/run-runtime-conformance.ts",
+    "conformance:provider-operations": "pnpm agent-sdk:build && tsx scripts/run-provider-operation-conformance.ts"
   },
   "dependencies": {
     "@assistant-ui/react": "^0.14.24",
@@ -191,6 +195,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
+    "@cloudflare/workers-types": "5.20260918.1",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.0.0",
@@ -201,7 +206,7 @@
     "tailwindcss": "^4.3.0",
     "typescript": "5.9.3",
     "vitest": "^4.1.8",
-    "wrangler": "^4.98.0"
+    "wrangler": "^4.135.0"
   },
   "engines": {
     "node": "^24.0.0 || ^26.0.0",

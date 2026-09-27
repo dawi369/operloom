@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { actionProposalSummarySchema } from "./public-action-contracts.js";
 
 const id = z.string().min(1);
 const timestamp = z.string().refine((value) => !Number.isNaN(Date.parse(value)));
@@ -101,7 +102,16 @@ const runSummary = z
     agentId: id.optional(),
     workflowIntentId: id.optional(),
     status: z
-      .enum(["queued", "running", "waiting", "interrupted", "completed", "failed", "cancelled"])
+      .enum([
+        "queued",
+        "running",
+        "waiting",
+        "interrupted",
+        "blocked",
+        "completed",
+        "failed",
+        "cancelled",
+      ])
       .or(z.string().min(1))
       .optional(),
     stage: z.string().optional(),
@@ -122,6 +132,11 @@ const runSummary = z
 const toolCall = z
   .object({ id, status: z.string().optional(), relation: runRelation.optional() })
   .passthrough();
+const workflowReview = z.object({
+  payload: jsonObject,
+  requestHash: z.string().regex(/^[a-f0-9]{64}$/),
+  expiresAt: timestamp,
+});
 const approval = z
   .object({
     id: id.optional(),
@@ -129,6 +144,7 @@ const approval = z
     runId: id.optional(),
     toolId: z.string().optional(),
     status: z.string().optional(),
+    review: workflowReview.optional(),
     createdAt: timestamp.optional(),
     updatedAt: timestamp.optional(),
   })
@@ -144,7 +160,11 @@ const executionSnapshot = z
     auditEvents: z.array(z.object({ id }).passthrough()),
     childRuns: z.array(z.object({}).passthrough()).optional(),
     interventions: z
-      .array(z.object({ id, runId: id, workflowIntentId: id }).passthrough())
+      .array(
+        z
+          .object({ id, runId: id, workflowIntentId: id, review: workflowReview.optional() })
+          .passthrough(),
+      )
       .optional(),
   })
   .passthrough();
@@ -164,29 +184,7 @@ const connection = z
     version: nonNegativeInteger.optional(),
   })
   .passthrough();
-const proposal = z
-  .object({
-    id,
-    toolId: z.string().min(1),
-    actionType: z.string().min(1),
-    status: z.string().min(1),
-    summary: z.string(),
-    version: nonNegativeInteger,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    terminalAt: timestamp.optional(),
-    ledger: z.array(
-      z
-        .object({
-          sequence: nonNegativeInteger,
-          status: z.string().min(1),
-          summary: z.string(),
-          createdAt: timestamp,
-        })
-        .passthrough(),
-    ),
-  })
-  .passthrough();
+const proposal = actionProposalSummarySchema;
 const managedState = z
   .object({
     id,

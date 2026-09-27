@@ -355,6 +355,7 @@ export const sweepExpiredOperationalData = async (
        SET data_json = json_object(
          'displayName', json_extract(data_json, '$.displayName'),
          'summary', json_extract(data_json, '$.summary'),
+         'agentRevision', COALESCE(json_extract(data_json, '$.agentRevision'), 0),
          'payloadPrunedAt', ?
        )
        WHERE rowid IN (
@@ -437,10 +438,21 @@ export const sweepExpiredOperationalData = async (
            '-' || COALESCE(policies.run_payload_retention_days, 90) || ' days'
          )
            AND json_extract(proposals.proposal_json, '$.payloadPrunedAt') IS NULL
+           AND NOT EXISTS (SELECT 1 FROM control_action_reservations held WHERE held.proposal_id=proposals.id AND held.status='held')
+           AND proposals.status IN ('executed','failed','reconciled','cancelled','expired')
          ORDER BY proposals.updated_at ASC
          LIMIT ?
        )`,
     ).bind(timestamp, timestamp, timestamp, limit),
+    env.DB.prepare(`UPDATE control_action_reviews SET binding_json=json_object('payloadPrunedAt',?)
+      WHERE id IN (SELECT review.id FROM control_action_reviews review
+        JOIN control_action_proposals p ON p.id=review.proposal_id
+        LEFT JOIN control_retention_policies policy ON policy.workspace_id=p.workspace_id
+        WHERE p.status IN ('executed','failed','reconciled','cancelled','expired')
+          AND NOT EXISTS (SELECT 1 FROM control_action_reservations held WHERE held.proposal_id=p.id AND held.status='held')
+          AND p.updated_at<=strftime('%Y-%m-%dT%H:%M:%fZ',?,'-' || COALESCE(policy.run_payload_retention_days,90) || ' days')
+          AND json_extract(review.binding_json,'$.payloadPrunedAt') IS NULL
+        ORDER BY p.updated_at,review.id LIMIT ?)`).bind(timestamp, timestamp, limit),
     env.DB.prepare(
       `DELETE FROM control_audit_events
        WHERE rowid IN (
@@ -538,10 +550,11 @@ export const sweepExpiredOperationalData = async (
     workflowPayloadsPruned: results[5]?.meta?.changes ?? 0,
     toolPayloadsPruned: results[6]?.meta?.changes ?? 0,
     actionPayloadsPruned: results[7]?.meta?.changes ?? 0,
-    auditEventsDeleted: results[8]?.meta?.changes ?? 0,
-    policyDecisionsDeleted: results[9]?.meta?.changes ?? 0,
-    approvalsDeleted: results[10]?.meta?.changes ?? 0,
-    actionLedgerDeleted: results[11]?.meta?.changes ?? 0,
+    actionReviewPayloadsPruned: results[8]?.meta?.changes ?? 0,
+    auditEventsDeleted: results[9]?.meta?.changes ?? 0,
+    policyDecisionsDeleted: results[10]?.meta?.changes ?? 0,
+    approvalsDeleted: results[11]?.meta?.changes ?? 0,
+    actionLedgerDeleted: results[12]?.meta?.changes ?? 0,
   };
 };
 

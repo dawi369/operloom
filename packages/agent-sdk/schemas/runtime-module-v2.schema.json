@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operloom.dev/schemas/runtime-module-v2.schema.json",
+  "title": "Operloom Runtime Module v2 metadata",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "packId",
+    "runtimeVersion",
+    "compatiblePackVersions",
+    "requirements",
+    "tools",
+    "workflows",
+    "health",
+    "evals"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": 2
+    },
+    "kind": {
+      "const": "agent_control_plane_module"
+    },
+    "packId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "runtimeVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "compatiblePackVersions": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimumBackendVersion", "capabilities"],
+      "properties": {
+        "minimumBackendVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "tools": {
+      "type": "array"
+    },
+    "workflows": {
+      "type": "array"
+    },
+    "health": {
+      "type": "array"
+    },
+    "evals": {
+      "type": "array"
+    },
+    "stateMigrations": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "namespace", "kind", "fromVersion", "toVersion", "operations"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$"
+          },
+          "namespace": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$"
+          },
+          "kind": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$"
+          },
+          "fromVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "toVersion": {
+            "type": "integer",
+            "minimum": 2
+          },
+          "operations": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": ["op", "field", "value"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "op": {
+                      "const": "set"
+                    },
+                    "field": {
+                      "type": "string",
+                      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$"
+                    },
+                    "value": {}
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": ["op", "field", "value"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "op": {
+                      "const": "default"
+                    },
+                    "field": {
+                      "type": "string",
+                      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$"
+                    },
+                    "value": {}
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": ["op", "field"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "op": {
+                      "const": "remove"
+                    },
+                    "field": {
+                      "type": "string",
+                      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": ["op", "from", "to"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "op": {
+                      "const": "rename"
+                    },
+                    "from": {
+                      "type": "string",
+                      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$"
+                    },
+                    "to": {
+                      "type": "string",
+                      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "context": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "required": ["id", "version", "schema", "maxAgeMs", "timeoutMs"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "schema": {
+            "type": "object"
+          },
+          "maxAgeMs": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 86400000
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000
+          }
+        }
+      }
+    }
+  }
+}

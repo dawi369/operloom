@@ -659,6 +659,7 @@ export const resolveAgentIdentity = async (
       identity: {
         scope: { userId, workspaceId },
         agentId: resolvedAgentId,
+        agentRevision: agent.runtime_revision ?? 0,
         accountId: accountId ?? undefined,
         accountSource: accountSource ?? undefined,
         authMode: auth.mode,
@@ -824,6 +825,7 @@ export const resolveAgentIdentity = async (
     identity: {
       scope: { userId, workspaceId: activeWorkspaceId },
       agentId: agentResult.agent.id,
+      agentRevision: agentResult.agent.runtime_revision ?? 0,
       accountId,
       accountSource,
       authMode: auth.mode,

@@ -19,6 +19,33 @@ const approval: ControlApprovalRequestRow = {
 };
 
 describe("human intervention summaries", () => {
+  it("exposes only bound workflow review content through the portable descriptor", () => {
+    const data = {
+      kind: "durable_workflow",
+      payload: { document: "Review this text" },
+      requestHash: "a".repeat(64),
+      expiresAt: "2026-10-01T00:00:00.000Z",
+      internal: "not presentation content",
+    };
+    const summary = toHumanInterventionSummary({ ...approval, data_json: JSON.stringify(data) });
+    expect(summary.title).toBe("Workflow review");
+    expect(summary.review).toEqual({
+      payload: data.payload,
+      requestHash: data.requestHash,
+      expiresAt: data.expiresAt,
+    });
+    for (const invalid of [
+      { ...data, requestHash: "invalid" },
+      { ...data, expiresAt: "invalid" },
+      { ...data, kind: "tool" },
+      { ...data, payload: [] },
+    ]) {
+      expect(
+        toHumanInterventionSummary({ ...approval, data_json: JSON.stringify(invalid) }).review,
+      ).toBeUndefined();
+    }
+  });
+
   it("maps requested approvals to parked work with approve and deny paths", () => {
     const summary = toHumanInterventionSummary(approval);
 

@@ -1,4 +1,22 @@
 import type { ControlApprovalRequestRow } from "./types";
+import type { WorkflowReviewDescriptor } from "@operloom/workbench-client";
+import { isRecord, parseDataJson } from "./http";
+
+export const workflowReviewDescriptor = (
+  dataJson: string,
+): WorkflowReviewDescriptor | undefined => {
+  const data = parseDataJson(dataJson);
+  if (
+    data.kind !== "durable_workflow" ||
+    !isRecord(data.payload) ||
+    typeof data.requestHash !== "string" ||
+    !/^[a-f0-9]{64}$/.test(data.requestHash) ||
+    typeof data.expiresAt !== "string" ||
+    !Number.isFinite(Date.parse(data.expiresAt))
+  )
+    return undefined;
+  return { payload: data.payload, requestHash: data.requestHash, expiresAt: data.expiresAt };
+};
 
 export type HumanInterventionStatus = "requested" | "approved" | "denied" | "failed" | string;
 
@@ -14,6 +32,7 @@ export type HumanInterventionSummary = {
   toolId: string;
   reason: string;
   title: string;
+  review?: WorkflowReviewDescriptor;
   approvePath?: string;
   denyPath?: string;
   currentPolicy?: {
@@ -40,6 +59,7 @@ export const toHumanInterventionSummary = (
 ): HumanInterventionSummary => {
   const status = input?.status ?? approval.status;
   const state = stateForStatus(status);
+  const review = workflowReviewDescriptor(approval.data_json);
   return {
     id: approval.id,
     kind: "approval",
@@ -51,7 +71,8 @@ export const toHumanInterventionSummary = (
     workflowIntentId: approval.workflow_intent_id,
     toolId: approval.tool_id,
     reason: approval.reason,
-    title: `${approval.tool_id} approval`,
+    title: review ? "Workflow review" : `${approval.tool_id} approval`,
+    review,
     approvePath:
       status === "requested"
         ? `/tools/approvals/${encodeURIComponent(approval.id)}/approve`

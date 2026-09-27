@@ -58,6 +58,9 @@ cloudflare/control-plane/.wrangler/
 /output/playwright/
 /output/conformance/
 /output/sdk-consumer/
+/output/sdk-consumer-v2/
+/output/sdk-consumer-document-review/
+/output/runtime-conformance/
 /output/workbench-client-consumer/
 /output/workbench-client-distribution/
 /output/mobile/
@@ -71,6 +74,7 @@ cloudflare/control-plane/.wrangler/
 /packages/workbench-react/dist/
 /packages/observability/dist/
 /examples/complex-operator/dist/
+/examples/document-review/dist/
 /output/release/
 /output/backups/
 /output/environments/
@@ -82,3 +86,12 @@ cloudflare/control-plane/.wrangler/
 
 # Private provider migration backups and deployment scratch files
 /output/operloom-deployment/
+/output/runtime-distribution/
+
+# Local verification logs and action-review browser scratch artifacts
+/output/*.log
+/output/action-review-browser/
+/output/action-review-playwright.config.ts
+/tests/fixtures/provider-operation-package/dist/
+/output/provider-operation-conformance/
+/output/sdk-consumer-provider-operations/

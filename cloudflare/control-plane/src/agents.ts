@@ -1,4 +1,5 @@
 import {
+  allowedOpenRouterModels,
   insertAgent,
   normalizeAgentProfile,
   normalizeOpenRouterModel,
@@ -77,7 +78,7 @@ export const handleCreateAgent = async (request: Request, env: Env, identity: Ag
     return json(
       {
         ok: false,
-        error: "Agent model must be one of deepseek/deepseek-v4-flash or openai/gpt-4.1-mini",
+        error: `Agent model must be one of ${allowedOpenRouterModels.join(", ")}`,
       },
       { status: 400 },
     );

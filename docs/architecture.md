@@ -1,5 +1,83 @@
 # Architecture
 
+## Runtime evolution (experimental)
+
+The v2 simulation action port uses the typed-state transaction for state, immutable
+decisions/effects and delivery receipts. The server selects the simulation scope
+and rechecks tool policy, evidence and attempt authority in the transaction.
+External proposal/dispatch rejects simulation bindings. No additional service or
+table is needed; see [simulation contracts](runtime-simulation.md).
+
+The opt-in `/v1` Worker facade accepts WorkOS bearer tokens and dispatches through
+the same authorization and command handlers as the signed Next facade. Command
+targets carry explicit workspace and agent identities; caller identity headers
+are discarded. The pure verifier is shared with native clients.
+
+Typed-state commits extend D1 with scoped records, declared equality indexes,
+receipts, immutable evidence and outbox intents. All mutations share one batch
+with database-enforced preconditions. See [state design](runtime-state-design.md).
+Operator reads and failed-event retry use the same backend authority, with shared
+OpenAPI/Fetch schemas. Retry is conditional on observed attempts and commits its
+audit event in the same D1 batch; simulation/external state targets stay separate.
+Schema migrations pin declarative plans in D1 and advance through bounded,
+transactional batches with persistent writer fences, cursors and replay receipts.
+Authorized partial repair retains both reviewed plans and replaces only the
+unprocessed suffix under the same revision guard and write fence.
+Server-owned agent execution revisions are pinned in authenticated identities and
+signed chat claims. D1 checks the pin at run admission/resumption; typed-state
+ports check it on reads and commits. Revision changes reject active work. This
+now supports explicit idle-agent package upgrades with immutable snapshots,
+state/index validation and atomic receipts/audit; see [upgrade design](package-upgrades.md). Pending HTTP
+chat commands now register in D1 before acknowledgement and pin the same revision.
+Run admission atomically links a command to one run, and terminal outcomes publish
+durable events. Deadline recovery closes abandoned work without re-executing it.
+See [chat admission](chat-command-admission.md) for the cross-store failure model.
+Opt-in v2 context resolvers receive immutable scope/input, read-only typed state
+and cancellation. Schema-validated evidence and run linkage commit atomically in
+D1 under current authority. Chat and workflows use the same collector; required
+stale evidence blocks work, and typed commits recheck expiry atomically. Trust
+comes from manifest declarations. See [scoped context](runtime-context.md).
+Workflow structured model calls use the configured OpenRouter model and schema
+validation, with no automatic provider retry. D1 atomically admits model/tool
+reservations against workspace and canonical root-run budgets. Chat follow-up
+steps use the same admission boundary. Settlement and its durable event share a
+transaction; failed/ambiguous settlement retains the original charge. Evidence
+configuration hashes include the effective model settings. See [models and budgets](runtime-models-and-budgets.md).
+The internal durable-execution kernel now records atomic submission/run identity,
+immutable pins, named step attempts and validated outcome receipts in D1. Safe
+retry is explicit and bounded; unknown unsafe attempts cannot redispatch. Its
+tables join export and purge. State/context publication and model/tool admission
+now enforce active step-attempt authority inside D1 transactions; incurred usage
+can settle afterward without granting new authority. The gated native Workflows
+adapter now supplies v2 steps, timer waits and `202` submission. A leased D1
+reconciler inspects bounded engine batches, recovers pending starts, closes expired/
+revoked/failed work atomically and terminates cancelled instances. Unknown step
+outcomes remain inspectable; started instances are never recreated automatically.
+It caches opaque result references, with inputs/results retained in D1.
+Native creation dispatches have scoped acknowledgement receipts. Workspace purge
+confirms native deletion in bounded batches before D1 identities can be removed;
+unsettled or ambiguous creation outcomes preserve a reconciliation fence.
+Durable steps now have separate immutable context captures and ordered revisions;
+new steps refresh evidence after waits, while retries retain the same capture.
+Clients page capture metadata and fetch evidence by ID. Approval pauses bind immutable
+review content and expiry in D1; the decision and wake intent commit together.
+Native events only wake execution, which must consume the canonical approval under
+current authority. Review descriptors are shared by headless clients and web views.
+Opt-in durable triggers transfer their leased dispatch into the run admission
+transaction. The dispatch ID remains the logical event identity. Pinned trigger
+configuration and current membership fence resumed work; pausing or changing the
+trigger cancels active runs. Pending observations coalesce; manual/webhook intake
+has a bounded backlog. The existing scheduler and signed ingress remain in control.
+Worker deployment now freezes its candidate and fences new durable admissions
+in D1 while comparing active handler pins inside the candidate runtime. An
+uncertain upload retains that fence for explicit operator recovery. Hosted
+activation/restart acceptance remains open; request-mode handlers keep their
+original execution semantics.
+See [durable execution](durable-execution.md) for the engine and authority gates.
+
+[Delivery evidence](runtime-delivery-status.md) records implemented versus
+verified behavior; [headless runtime](headless-runtime.md) documents the new API.
+
 Operloom is a reusable agent workbench with a conversational control
 plane, a heavy execution plane, and hosted environments split across a Next.js web host,
 Cloudflare, and Fly.
@@ -35,7 +113,8 @@ Document status: this page is the concise current system map. Use
 - Fly/LangGraph remain the explicit heavy workflow and server-side tool
   execution plane.
 - OpenRouter is configured server-side for Cloudflare Agent chat and the
-  Fly/LangGraph runtime.
+  Fly/LangGraph runtime. New agents default to `openai/gpt-6-luna` with
+  `reasoning.effort=none`; saved per-agent model selections remain authoritative.
 
 The browser is the supported product client in `0.5.1`; the Expo app
 is WIP on `codex/mobile-wip`, outside the web release. Shared clients use the
@@ -145,3 +224,27 @@ Browser -> Next.js web app (Railway for the maintained demo; Vercel optional)
 The configured web provider owns hosted sign-in and browser ergonomics. Cloudflare is the
 authorization, control-plane, chat coordination, and canonical-state boundary.
 Fly remains the execution plane.
+
+### External-action review authority
+
+Migration 0031 adds immutable review bindings and CHECK-backed ledger transitions
+to the existing D1 control plane. Approval and dispatch each atomically validate
+current authority against the reviewed payload, policy, credentials and state.
+Bounded scheduler expiry revokes pending work while preserving accepted effects.
+Reviews participate in export and purge; exports omit internal vault references.
+See [review design](action-review-design.md). Provider operation isolation and
+response reconciliation remain separate delivery gates.
+
+### Credential-isolated operation dispatch
+
+Experimental named provider operations run inside the Cloudflare broker. Packages
+supply an approved domain payload; the platform controls the operation registry,
+destination, method, signing and credential access. Migration 0032 separates
+provider receipts from action projection. A recorded dispatch is never reclaimed
+for another mutation; read-only reconciliation and projection repair preserve its
+identity. Provider resource lifecycle (pending/active/rejected) is distinct from
+dispatch acceptance. Recovery without a receipt atomically proves absence and
+fences proposal admission; it cannot race a dispatcher into a false no-effect
+result. The public API exposes redacted receipts separately from action status,
+with shared response schemas for frontend and headless clients. See
+[provider operations](provider-operation-contract.md).

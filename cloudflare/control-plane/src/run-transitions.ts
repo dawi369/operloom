@@ -1,7 +1,7 @@
 import type { RunStatus } from "./types";
 
 export const activeRunStatuses = ["queued", "running", "waiting", "interrupted"] as const;
-export const terminalRunStatuses = ["completed", "failed", "cancelled"] as const;
+export const terminalRunStatuses = ["completed", "failed", "cancelled", "blocked"] as const;
 
 export const activeRunStatusSql = "('queued', 'running', 'waiting', 'interrupted')";
 

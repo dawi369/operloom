@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import type {
   AgentModuleEntry,
-  ControlPlaneRuntimeModule,
+  AnyControlPlaneRuntimeModule,
   LocalAgentPackManifest,
   RunnerRuntimeModule,
   WebRuntimeModule,
@@ -13,11 +13,14 @@ import type {
 } from "@operloom/agent-sdk";
 import {
   assertSchemaDefinition,
+  assertRuntimeContextBindings,
+  assertRuntimeStateMigrations,
   assertSchemaValue,
   compareSemanticVersions,
   isPackVersionCompatible,
   isWorkbenchVersionCompatible,
   parseSemanticVersion,
+  negotiateRuntimeCapabilities,
 } from "@operloom/agent-sdk";
 import { format } from "oxfmt";
 import ts from "typescript";
@@ -25,7 +28,7 @@ import ts from "typescript";
 export type LoadedAgentModule = {
   entry: AgentModuleEntry;
   manifest: LocalAgentPackManifest;
-  controlPlane: ControlPlaneRuntimeModule;
+  controlPlane: AnyControlPlaneRuntimeModule;
   runner: RunnerRuntimeModule;
   web: WebRuntimeModule;
   packageMetadata: { name: string; version: string };
@@ -221,7 +224,10 @@ export const validateLoadedModules = (
     }
     requireUnique(packIds, "Pack id", manifest.id, entry.package);
     for (const runtime of [controlPlane, runner, web]) {
-      if (runtime.apiVersion !== 1 || runtime.packId !== manifest.id) {
+      if (
+        (runtime.apiVersion !== 1 && !(runtime === controlPlane && runtime.apiVersion === 2)) ||
+        runtime.packId !== manifest.id
+      ) {
         throw new Error(`${entry.package} runtime exports must identify pack ${manifest.id}.`);
       }
       if (
@@ -235,6 +241,43 @@ export const validateLoadedModules = (
           `${entry.package} runtime ${runtime.runtimeVersion} is incompatible with pack ${manifest.version}.`,
         );
       }
+    }
+    if (controlPlane.apiVersion === 2) {
+      if (
+        !controlPlane.requirements ||
+        typeof controlPlane.requirements.minimumBackendVersion !== "string" ||
+        !Array.isArray(controlPlane.requirements.capabilities) ||
+        controlPlane.requirements.capabilities.some(
+          (capability) => typeof capability !== "string" || !capability.trim(),
+        )
+      ) {
+        throw new Error(`${entry.package} must declare valid v2 runtime requirements.`);
+      }
+      for (const state of controlPlane.state ?? [])
+        assertSchemaDefinition(
+          state.schema,
+          `${entry.package} state ${state.namespace}/${state.kind}`,
+        );
+      if (
+        controlPlane.context?.length ||
+        controlPlane.requirements.capabilities.includes("context.snapshots.v2")
+      ) {
+        if (!controlPlane.requirements.capabilities.includes("context.snapshots.v2"))
+          throw new Error(
+            `${entry.package} must require context.snapshots.v2 for executable context.`,
+          );
+        assertRuntimeContextBindings(manifest.context, controlPlane.context ?? []);
+      }
+      const negotiation = negotiateRuntimeCapabilities(controlPlane.requirements, workbenchVersion);
+      assertRuntimeStateMigrations(controlPlane.state ?? [], controlPlane.stateMigrations ?? []);
+      if (
+        controlPlane.stateMigrations?.length &&
+        !controlPlane.requirements.capabilities.includes("state.migrations.v2")
+      )
+        throw new Error(
+          `${entry.package} must require state.migrations.v2 for declared migrations.`,
+        );
+      if (!negotiation.ok) throw new Error(`${entry.package}: ${negotiation.message}`);
     }
     const controlPlaneTools = new Map(controlPlane.tools.map((tool) => [tool.id, tool]));
     const runnerTools = new Map(runner.tools.map((tool) => [tool.id, tool]));
@@ -262,6 +305,42 @@ export const validateLoadedModules = (
         }
       }
       if (tool.action) {
+        if (
+          tool.action.providerOperation &&
+          (controlPlane.apiVersion !== 2 ||
+            tool.action.target !== "external" ||
+            tool.transport !== "cloudflare_inline" ||
+            !tool.action.connectionId ||
+            tool.action.execute ||
+            tool.action.reconcile ||
+            !tool.policy.requiresApproval ||
+            tool.action.approval !== "required" ||
+            typeof tool.action.providerOperation.id !== "string" ||
+            typeof tool.action.providerOperation.version !== "string" ||
+            !/^[a-z][a-z0-9.-]{0,127}$/.test(tool.action.providerOperation.id) ||
+            !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(tool.action.providerOperation.version))
+        )
+          throw new Error(
+            `${entry.package} provider operations require v2 inline external bindings, a connection and approval, without package execution callbacks.`,
+          );
+        if (
+          controlPlane.apiVersion === 2 &&
+          !["simulation", "external"].includes(tool.action.target ?? "")
+        )
+          throw new Error(`${entry.package} v2 action ${tool.id} must declare its target.`);
+        if (
+          tool.action.target === "simulation" &&
+          (controlPlane.apiVersion !== 2 ||
+            tool.transport !== "cloudflare_inline" ||
+            tool.action.execute ||
+            tool.action.reconcile ||
+            tool.action.connectionId ||
+            tool.policy.requiresApproval ||
+            tool.executionModes.includes("execute"))
+        )
+          throw new Error(
+            `${entry.package} simulation actions require v2 inline dry-run bindings without external executors, connections or implicit approval.`,
+          );
         assertSchemaDefinition(
           tool.action.proposalSchema,
           `${entry.package} tool ${tool.id} proposal`,
@@ -360,6 +439,33 @@ export const validateLoadedModules = (
       if (binding.engine !== declared.engine) {
         throw new Error(`${entry.package} workflow ${declared.type} engine does not match.`);
       }
+      if (
+        binding.stateTarget !== undefined &&
+        (controlPlane.apiVersion !== 2 ||
+          !["simulation", "external"].includes(binding.stateTarget) ||
+          !controlPlane.requirements.capabilities.includes("state.atomic.v2"))
+      )
+        throw new Error(
+          `${entry.package} workflow ${declared.type} stateTarget requires v2 typed state and must be simulation or external.`,
+        );
+      if (binding.durable) {
+        const durable = binding.durable;
+        if (
+          controlPlane.apiVersion !== 2 ||
+          binding.engine !== "cloudflare" ||
+          !/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,63}$/.test(durable.version) ||
+          typeof durable.execute !== "function" ||
+          !Number.isInteger(durable.maxSteps) ||
+          durable.maxSteps < 1 ||
+          durable.maxSteps > 128 ||
+          !Number.isInteger(durable.maxDurationMs) ||
+          durable.maxDurationMs < 1 ||
+          durable.maxDurationMs > 604800000
+        )
+          throw new Error(
+            `${entry.package} workflow ${declared.type} has an invalid v2 durable binding.`,
+          );
+      }
       assertSchemaDefinition(
         binding.inputSchema,
         `${entry.package} workflow ${declared.type} input`,
@@ -441,7 +547,7 @@ export const loadAgentModules = async (root: string): Promise<LoadedAgentModule[
         entry,
         packageMetadata: readPackageMetadata(root, entry),
         manifest: await loadExport<LocalAgentPackManifest>(root, entry, "manifest", "manifest"),
-        controlPlane: await loadExport<ControlPlaneRuntimeModule>(
+        controlPlane: await loadExport<AnyControlPlaneRuntimeModule>(
           root,
           entry,
           "control-plane",

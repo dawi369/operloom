@@ -344,7 +344,7 @@ describe("artifact lifecycle", () => {
   });
 
   it("prunes operational events and traces in bounded policy-aware batches", async () => {
-    const statements = Array.from({ length: 12 }, () => createStatement());
+    const statements = Array.from({ length: 13 }, () => createStatement());
     let index = 0;
     const env = {
       DB: {
@@ -360,6 +360,7 @@ describe("artifact lifecycle", () => {
               { meta: { changes: 7 } },
               { meta: { changes: 9 } },
               { meta: { changes: 2 } },
+              { meta: { changes: 4 } },
               { meta: { changes: 1 } },
               { meta: { changes: 3 } },
               { meta: { changes: 2 } },
@@ -383,6 +384,7 @@ describe("artifact lifecycle", () => {
       workflowPayloadsPruned: 7,
       toolPayloadsPruned: 9,
       actionPayloadsPruned: 2,
+      actionReviewPayloadsPruned: 4,
       auditEventsDeleted: 1,
       policyDecisionsDeleted: 3,
       approvalsDeleted: 2,

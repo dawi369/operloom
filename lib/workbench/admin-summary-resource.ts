@@ -236,6 +236,7 @@ export const refreshAdminSummary = async (
         lastDurationMs: Date.now() - startedAt,
         lastProjection: projection,
         refreshCounts,
+        syncStatus: input.minimumGeneratedAt ? ("exhausted" as const) : snapshot.syncStatus,
       };
       if (requestSequence === latestRequestSequence) setSnapshot(next);
       return next;

@@ -10,9 +10,7 @@ import {
 } from "@operloom/workbench-react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import {
-  ActivityIcon,
   BotIcon,
-  FileTextIcon,
   HistoryIcon,
   Loader2Icon,
   MessageSquarePlusIcon,
@@ -103,17 +101,6 @@ const WorkbenchWorkspacePanel = dynamic(
 );
 
 const adminAccessPath = "/api/workbench/admin-access";
-const toolRunsPath = "/api/workbench/tools/runs";
-
-const adminTestToolInputs: Record<
-  "diagnostic.ping" | "runner.echo" | "artifact.metadata.test",
-  Record<string, unknown>
-> = {
-  "diagnostic.ping": {},
-  "runner.echo": { message: "runner echo ok" },
-  "artifact.metadata.test": { label: "admin conformance" },
-};
-
 export function WorkbenchShell({
   demoMode = false,
   initialSignedOutPresentation = false,
@@ -265,44 +252,6 @@ function WorkbenchShellContent({
     [focusComposerAfterInteraction, startNewSession],
   );
 
-  const runAdminTestTool = useCallback(
-    async (toolName: keyof typeof adminTestToolInputs) => {
-      if (!adminAccess?.isAdmin) {
-        setAdminNotice("Admin tools are restricted for this account.");
-        window.setTimeout(() => setAdminNotice(null), 3000);
-        return;
-      }
-
-      setAdminNotice(`Running ${toolName}...`);
-      try {
-        const response = await fetch(toolRunsPath, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            toolName,
-            executionMode: "dry_run",
-            input: adminTestToolInputs[toolName],
-          }),
-        });
-        const body = (await response.json().catch(() => ({}))) as { error?: unknown };
-        if (!response.ok) {
-          throw new Error(
-            typeof body.error === "string" ? body.error : `Failed to run ${toolName}`,
-          );
-        }
-        setAdminNotice(`${toolName} accepted.`);
-        requestWorkbenchSummaryRefresh({ source: "event" });
-      } catch (error) {
-        setAdminNotice(error instanceof Error ? error.message : `Failed to run ${toolName}`);
-        requestWorkbenchSummaryRefresh({ source: "event" });
-      } finally {
-        focusComposerAfterInteraction();
-        window.setTimeout(() => setAdminNotice(null), 3000);
-      }
-    },
-    [adminAccess?.isAdmin, focusComposerAfterInteraction],
-  );
-
   const openPackWorkflowAction = useCallback((action: AgentSlashWorkflowAction) => {
     const defaults = Object.fromEntries(
       Object.entries(action.binding.defaultInput).map(([key, value]) => [
@@ -442,7 +391,6 @@ function WorkbenchShellContent({
       {
         id: "new",
         label: "New chat",
-        description: demoMode ? "Start a fresh chat." : "Start a fresh thread in this workspace.",
         icon: MessageSquarePlusIcon,
         execute: startNewChat,
       },
@@ -451,7 +399,6 @@ function WorkbenchShellContent({
             {
               id: "workspace",
               label: "Workspace",
-              description: "Switch accounts and manage workspace access.",
               icon: Building2Icon,
               execute: () => setWorkspaceOpen(true),
             },
@@ -460,28 +407,24 @@ function WorkbenchShellContent({
       {
         id: "agents",
         label: "Agents",
-        description: "Pick the active chat agent.",
         icon: BotIcon,
         execute: openAgents,
       },
       {
         id: "tools",
-        label: "Agent tools",
-        description: "See what you can run and what the current agent uses internally.",
+        label: "Tools",
         icon: WrenchIcon,
         execute: () => setCapabilitiesOpen(true),
       },
       ...workflowSlashActions.map((action) => ({
         id: action.id,
         label: action.label,
-        description: action.description,
         icon: PlayIcon,
         execute: () => openPackWorkflowAction(action),
       })),
       {
         id: "history",
         label: "History",
-        description: "Inspect recent scoped runs and artifacts.",
         icon: HistoryIcon,
         execute: openHistory,
       },
@@ -490,7 +433,6 @@ function WorkbenchShellContent({
             {
               id: "admin",
               label: "Admin",
-              description: "Open agent and runtime controls.",
               icon: ShieldCheckIcon,
               execute: openAdmin,
             },
@@ -498,32 +440,7 @@ function WorkbenchShellContent({
         : []),
     ];
 
-    if (!adminAccess?.isAdmin) return commands;
-
-    return [
-      ...commands,
-      {
-        id: "ping",
-        label: "Diagnostic ping",
-        description: "Run diagnostic.ping as an Admin dry-run.",
-        icon: ActivityIcon,
-        execute: () => runAdminTestTool("diagnostic.ping"),
-      },
-      {
-        id: "echo",
-        label: "Runner echo",
-        description: "Run runner.echo through the Fly callback path.",
-        icon: PlayIcon,
-        execute: () => runAdminTestTool("runner.echo"),
-      },
-      {
-        id: "artifact",
-        label: "Artifact metadata test",
-        description: "Run artifact.metadata.test and create metadata history.",
-        icon: FileTextIcon,
-        execute: () => runAdminTestTool("artifact.metadata.test"),
-      },
-    ];
+    return commands;
   }, [
     adminAccess?.isAdmin,
     demoMode,
@@ -531,7 +448,6 @@ function WorkbenchShellContent({
     openAdmin,
     openHistory,
     openPackWorkflowAction,
-    runAdminTestTool,
     startNewChat,
     workflowSlashActions,
   ]);

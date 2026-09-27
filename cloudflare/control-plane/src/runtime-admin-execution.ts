@@ -122,10 +122,12 @@ export const executeResolvedRuntimeAdminTool = async (input: {
     data: artifact.data,
     staged: binding.transport === "fly",
   }));
+  const blocked = !bounded.ok && bounded.error.code === "context_blocked";
   const finished = await finishPackWorkflowRun(input.env, input.identity, {
     ...started,
     workflowType: `tool.${binding.id}`,
     ok: bounded.ok,
+    blocked,
     summary: bounded.summary,
     artifacts,
     data: {
@@ -149,12 +151,12 @@ export const executeResolvedRuntimeAdminTool = async (input: {
       ...bounded,
       run: {
         ...started,
-        status: bounded.ok ? "completed" : "failed",
+        status: bounded.ok ? "completed" : blocked ? "blocked" : "failed",
         runtimeVersion,
       },
       artifact: artifacts[0],
       policyDecisionId: input.policyDecisionId,
     },
-    { status: bounded.ok ? 201 : 502 },
+    { status: bounded.ok ? 201 : blocked ? 409 : 502 },
   );
 };

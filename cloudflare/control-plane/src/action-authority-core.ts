@@ -1,4 +1,5 @@
 import {
+  assertSchemaValue,
   type ActionExecutionResult,
   type ActionProposal,
   type AgentPackConnectionDescriptor,
@@ -10,6 +11,8 @@ import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
 import { createBrokeredConnectionPort, issueFlyConnectionCapability } from "./connection-broker";
 import { mutationsEnabled } from "./feature-gates";
+import { dispatchProviderOperation } from "./provider-operations";
+import { providerOperationDescriptor } from "./provider-operation-registry";
 import { isRecord, parseDataJson } from "./http";
 import { selectMembership } from "./authz-store";
 import { evaluateToolPolicy, recordToolPolicyDecision } from "./tool-policy";
@@ -200,7 +203,7 @@ export const resolveBinding = (row: ControlActionProposalRow) => {
   const binding = runtime.controlPlane.tools.find((tool) => tool.id === row.tool_id) as
     | RuntimeToolBinding
     | undefined;
-  if (!binding?.action) {
+  if (!binding?.action || binding.action.target === "simulation") {
     throw Object.assign(new Error("The proposal action binding is unavailable."), {
       code: "action_binding_unavailable",
     });
@@ -282,6 +285,13 @@ export const mutationPreflight = async (
       });
   }
   const { binding } = resolveBinding(row);
+  const providerOperation = providerOperationDescriptor(env, binding);
+  if (providerOperation)
+    assertSchemaValue(
+      providerOperation.inputSchema,
+      parseDataJson(row.proposal_json).preview,
+      "Provider operation input",
+    );
   if (binding.action?.connectionId && !row.connection_record_id) {
     throw Object.assign(new Error("The required connection is not authorized."), {
       code: "connection_not_authorized",
@@ -363,8 +373,14 @@ export const dispatchAction = async (
   binding: RuntimeToolBinding,
   proposal: ActionProposal,
 ): Promise<ActionExecutionResult> => {
+  if (!binding.action || binding.action.target === "simulation")
+    throw Object.assign(new Error("Simulation cannot dispatch an external action."), {
+      code: "action_target_mismatch",
+    });
   if (binding.transport === "cloudflare_inline") {
-    return binding.action!.execute(
+    if (binding.action.providerOperation)
+      return dispatchProviderOperation(env, identity, row.id, binding);
+    return binding.action.execute(
       proposal,
       executionContext(env, identity, row, manifestConnections(row.pack_id)),
     );

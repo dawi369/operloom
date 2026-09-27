@@ -23,8 +23,11 @@ export const corsHeadersForRequest = (request: Request, env: Env): Record<string
 
   return {
     "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "authorization, content-type, x-agent-name",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "authorization, content-type, x-agent-name, idempotency-key, last-event-id, x-workbench-client-platform, x-workbench-client-version",
+    "Access-Control-Expose-Headers":
+      "x-request-id, retry-after, x-content-sha256, content-disposition",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };

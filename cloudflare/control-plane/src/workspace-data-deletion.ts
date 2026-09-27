@@ -109,6 +109,11 @@ export const handleRequestWorkspaceDeletion = async (
       `UPDATE control_triggers SET status = 'paused', secret_hash = NULL, version = version + 1,
          updated_at = ? WHERE workspace_id = ? AND status = 'enabled'`,
     ).bind(timestamp, identity.scope.workspaceId),
+    env.DB.prepare(`UPDATE control_chat_commands SET status = 'cancelled', error_code = 'workspace_quarantined', updated_at = ?
+      WHERE workspace_id = ? AND status IN ('pending','running')`).bind(
+      timestamp,
+      identity.scope.workspaceId,
+    ),
     env.DB.prepare(
       `UPDATE control_runs SET status = 'cancelled', cancelled_at = ?, updated_at = ?
        WHERE workspace_id = ? AND status IN ('queued', 'running', 'waiting', 'interrupted')`,

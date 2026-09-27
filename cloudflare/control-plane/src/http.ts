@@ -46,7 +46,7 @@ const constantTimeEqual = async (a: string, b: string) => {
 };
 
 export type ControlPlaneAuthContext = {
-  mode: "facade_signature" | "dev_token";
+  mode: "facade_signature" | "dev_token" | "access_token" | "local_api";
   nonce?: string;
   signatureHash?: string;
 };

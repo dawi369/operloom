@@ -166,6 +166,21 @@ describe("admin summary resource", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it("ends catch-up when a summary request fails so manual recovery remains available", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new Error("summary unavailable"))),
+    );
+
+    const result = await refreshAdminSummary({
+      source: "event",
+      minimumGeneratedAt: "2026-06-18T12:00:05.000Z",
+    });
+
+    expect(result.syncStatus).toBe("exhausted");
+    expect(result.error).toBe("summary unavailable");
+  });
+
   it("starts a fresh bounded catch-up budget when a newer event arrives", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-18T12:00:00.000Z"));

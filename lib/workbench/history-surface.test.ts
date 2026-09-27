@@ -112,7 +112,7 @@ describe("history surface helpers", () => {
     expect(isOpenableArtifactUri("not a url")).toBe(false);
   });
 
-  it("builds structured previews for bundled pack reports", () => {
+  it("builds pack-neutral previews from structured reports", () => {
     const artifact = {
       id: "repo-report",
       kind: "repo_readiness_report",
@@ -129,8 +129,27 @@ describe("history surface helpers", () => {
 
     expect(buildArtifactPreview(artifact).lines).toEqual([
       "Repository evidence captured.",
-      "pnpm · 42 files · 7 docs",
       "Warning: Build verification is pending.",
     ]);
+
+    expect(
+      buildArtifactPreview({
+        ...artifact,
+        kind: "external_analysis_report",
+      }).lines,
+    ).toEqual(buildArtifactPreview(artifact).lines);
+  });
+
+  it("falls back safely for unknown and malformed report payloads", () => {
+    expect(
+      buildArtifactPreview({
+        id: "unknown-report",
+        kind: "external_analysis_report",
+        data: { report: { summary: "Useful finding", warnings: [null, "Check source"] } },
+      }).lines,
+    ).toEqual(["Useful finding", "Warning: Check source"]);
+    expect(
+      buildArtifactPreview({ id: "malformed-report", data: { report: ["not an object"] } }).lines,
+    ).toEqual(["Metadata artifact."]);
   });
 });

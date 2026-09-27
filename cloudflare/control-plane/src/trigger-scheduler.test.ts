@@ -41,7 +41,11 @@ describe("trigger scheduler", () => {
               return statement;
             },
             async first<T>() {
-              return null as T | null;
+              return (
+                query.startsWith("SELECT id FROM control_trigger_dispatches")
+                  ? { id: record.values[0] }
+                  : null
+              ) as T | null;
             },
             async all<T>() {
               return { results: [dueTrigger] as T[] };

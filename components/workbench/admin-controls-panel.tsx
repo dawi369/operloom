@@ -38,7 +38,7 @@ export function AdminControlsPanel({
             </p>
           </div>
           {approvals.length ? (
-            <span className="bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-full px-2 py-1 text-xs font-medium">
+            <span className="bg-amber-500/10 text-amber-800 dark:text-amber-300 rounded-full px-2 py-1 text-xs font-medium">
               {approvals.length} pending
             </span>
           ) : null}

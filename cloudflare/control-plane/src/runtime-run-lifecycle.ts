@@ -59,6 +59,7 @@ type RecordToolCallInput = RuntimeRunIdentity & {
 type FinishPackWorkflowInput = RuntimeRunIdentity & {
   workflowType: string;
   ok: boolean;
+  blocked?: boolean;
   summary: string;
   artifact?: PackWorkflowArtifact;
   artifacts?: PackWorkflowArtifact[];
@@ -134,6 +135,7 @@ export const startPackWorkflowRun = async (
     ...runtimeMetadata,
     ...input.runtimeMetadata,
     ...triggerData,
+    agentRevision: identity.agentRevision ?? 0,
   });
   const auditData = toJson({
     eventName: "intent.created",
@@ -405,6 +407,7 @@ export const finishPackWorkflowRun = async (
   input: FinishPackWorkflowInput,
 ): Promise<{ applied: boolean }> => {
   const timestamp = new Date().toISOString();
+  const terminalStatus = input.ok ? "completed" : input.blocked ? "blocked" : "failed";
   const artifacts = input.artifacts ?? (input.artifact ? [input.artifact] : []);
   const artifactRefs = artifacts.map((artifact) => ({
     id: artifact.id,
@@ -500,7 +503,7 @@ export const finishPackWorkflowRun = async (
              AND status IN ('queued', 'running', 'waiting', 'interrupted')
          )`,
     ).bind(
-      input.ok ? "completed" : "failed",
+      terminalStatus,
       timestamp,
       identity.scope.userId,
       identity.scope.workspaceId,
@@ -517,7 +520,7 @@ export const finishPackWorkflowRun = async (
        WHERE user_id = ? AND workspace_id = ? AND id = ?
          AND status IN ('queued', 'running', 'waiting', 'interrupted')`,
     ).bind(
-      input.ok ? "completed" : "failed",
+      terminalStatus,
       timestamp,
       input.ok ? timestamp : null,
       input.ok ? null : timestamp,
@@ -533,7 +536,7 @@ export const finishPackWorkflowRun = async (
     ),
   );
   const runResultIndex = statements.length - 1;
-  const terminalStatus = input.ok ? "completed" : "failed";
+
   statements.push(
     env.DB.prepare(
       `UPDATE control_trigger_dispatches
@@ -546,7 +549,7 @@ export const finishPackWorkflowRun = async (
            WHERE user_id = ? AND workspace_id = ? AND id = ? AND status = ? AND updated_at = ?
          )`,
     ).bind(
-      terminalStatus,
+      input.ok ? "completed" : "failed",
       timestamp,
       input.ok ? "{}" : toJson({ code: "workflow_failed", message: input.summary }),
       timestamp,
@@ -572,12 +575,12 @@ export const finishPackWorkflowRun = async (
       createId("cf-audit"),
       identity.scope.userId,
       identity.scope.workspaceId,
-      input.ok ? "run.completed" : "run.failed",
+      input.ok ? "run.completed" : input.blocked ? "run.blocked" : "run.failed",
       input.summary,
       "run",
       input.runId,
       toJson({
-        eventName: input.ok ? "run.completed" : "run.failed",
+        eventName: input.ok ? "run.completed" : input.blocked ? "run.blocked" : "run.failed",
         runId: input.runId,
         workflowIntentId: input.workflowIntentId,
         ...input.data,
@@ -603,7 +606,11 @@ export const finishPackWorkflowRun = async (
       identity.scope.userId,
       identity.scope.workspaceId,
       identity.agentId,
-      input.ok ? "workflow.run.completed" : "workflow.run.failed",
+      input.ok
+        ? "workflow.run.completed"
+        : input.blocked
+          ? "workflow.run.blocked"
+          : "workflow.run.failed",
       input.summary,
       "run",
       input.runId,

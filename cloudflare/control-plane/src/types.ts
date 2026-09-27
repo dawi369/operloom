@@ -3,6 +3,7 @@ export type RunStatus =
   | "running"
   | "waiting"
   | "interrupted"
+  | "blocked"
   | "completed"
   | "failed"
   | "cancelled";
@@ -90,6 +91,31 @@ export type Queue<T> = {
 };
 
 export type Env = {
+  WORKBENCH_PUBLIC_API_ENABLED?: string;
+  WORKBENCH_TYPED_STATE_ENABLED?: string;
+  WORKBENCH_CONTEXT_ENABLED?: string;
+  WORKBENCH_STRUCTURED_MODELS_ENABLED?: string;
+  WORKBENCH_USAGE_LIMITS_ENABLED?: string;
+  WORKBENCH_DURABLE_WORKFLOWS_ENABLED?: string;
+  DURABLE_WORKFLOWS?: {
+    create(options: { id: string; params: { runId: string } }): Promise<{ id: string }>;
+    get(id: string): Promise<{
+      status(): Promise<{ status: string }>;
+      terminate(): Promise<void>;
+      sendEvent?(event: { type: string; payload: { approvalId: string } }): Promise<void>;
+    }>;
+    deleteBatch?(ids: string[]): Promise<{
+      deleted: { id: string }[];
+      errors: { id: string; code: number; message: string }[];
+    }>;
+  };
+  WORKBENCH_PACKAGE_UPGRADES_ENABLED?: string;
+  WORKBENCH_WORKOS_ISSUER?: string;
+  WORKBENCH_WORKOS_JWKS_URL?: string;
+  WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS?: string;
+  WORKBENCH_LOCAL_API_ENABLED?: string;
+  WORKBENCH_LOCAL_API_USER_ID?: string;
+  WORKBENCH_ENVIRONMENT?: string;
   DB: D1Database;
   ARTIFACTS?: R2Bucket;
   NOTIFICATIONS?: Queue<NotificationQueueMessage>;
@@ -120,6 +146,9 @@ export type Env = {
   WORKBENCH_E2E_MODE?: string;
   WORKBENCH_E2E_EXPORT_PAUSE_MS?: string;
   WORKBENCH_RELEASE_SHA?: string;
+  WORKBENCH_DEPLOYMENT_ID?: string;
+  WORKBENCH_SIMULATIONS_ENABLED?: string;
+  WORKBENCH_PROVIDER_OPERATIONS_ENABLED?: string;
   WORKBENCH_CONFORMANCE_MODE?: string;
   WORKBENCH_RETAINED_DATA_ENABLED?: string;
   WORKBENCH_CONNECTIONS_ENABLED?: string;
@@ -161,9 +190,11 @@ export type TenantScope = {
 export type AgentIdentity = {
   scope: TenantScope;
   agentId: string;
+  /** Server-resolved execution generation; never accepted from client headers. */
+  agentRevision?: number;
   accountId?: string;
   accountSource?: string;
-  authMode?: "facade_signature" | "dev_token";
+  authMode?: "facade_signature" | "dev_token" | "access_token" | "local_api";
 };
 
 export type ControlRequestNonceRow = {
@@ -234,6 +265,8 @@ export type MembershipRow = {
 
 export type AgentRow = {
   id: string;
+  /** Missing only in legacy fixtures; persisted agents start at revision zero. */
+  runtime_revision?: number;
   workspace_id: string;
   name: string;
   description: string | null;
@@ -709,6 +742,7 @@ export const allowedStatuses = new Set<RunStatus>([
   "running",
   "waiting",
   "interrupted",
+  "blocked",
   "completed",
   "failed",
   "cancelled",

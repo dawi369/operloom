@@ -77,7 +77,7 @@ describe("workbench environment manifests", () => {
         'dockerfile = "../../../Dockerfile.langgraph"',
       );
       expect(readFileSync(rendered.flyPath, "utf8")).toContain(
-        'OPENROUTER_MODEL = "deepseek/deepseek-v4-flash"',
+        'OPENROUTER_MODEL = "openai/gpt-6-luna"',
       );
       const worker = readFileSync(rendered.wranglerPath, "utf8");
       expect(worker).toContain("operloom-acceptance-control-plane");

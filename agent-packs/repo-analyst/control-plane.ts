@@ -12,12 +12,13 @@ type RepoSnapshotOutput = {
   timingMs: number;
 };
 
-const buildReadinessReport = (output: RepoSnapshotOutput) => {
+export const buildReadinessReport = (output: RepoSnapshotOutput) => {
   const failedCommands = output.commandMetrics.filter((metric) => metric.status !== "completed");
   const verificationScripts = output.scripts.filter((script) =>
     /^(test|typecheck|lint|build|verify|check)(:|$)/.test(script),
   );
   const warnings = [
+    output.repoFiles.length === 0 ? "No repository files were included in the snapshot." : null,
     output.docs.length === 0 ? "No documentation files were included in the snapshot." : null,
     verificationScripts.length === 0
       ? "No conventional verification scripts were found in the bounded package-script inventory."
@@ -46,6 +47,40 @@ const buildReadinessReport = (output: RepoSnapshotOutput) => {
       "Readiness findings describe repository evidence and do not prove deployed service health.",
     ],
     risk: { externalMutation: false, requiresSecrets: false, arbitraryShell: false },
+  };
+};
+
+export const validateReadinessReport = (report: ReturnType<typeof buildReadinessReport>) => {
+  const issues: string[] = [];
+  if (!report.summary.trim()) issues.push("Report summary is empty.");
+  if (report.inventory.repositoryFiles === 0) issues.push("Report has no repository evidence.");
+  if (report.status !== (report.warnings.length ? "review" : "ready")) {
+    issues.push("Report status conflicts with its warnings.");
+  }
+  if (!report.limitations.some((item) => item.includes("do not prove deployed service health"))) {
+    issues.push("Report limitation must distinguish repository evidence from deployed health.");
+  }
+  return issues;
+};
+
+const evaluateReadinessOutcome = () => {
+  const report = buildReadinessReport({
+    summary: "Deterministic repository evidence fixture.",
+    packageManager: "pnpm",
+    scripts: ["test", "build"],
+    repoFiles: ["package.json", "src/index.ts"],
+    docs: ["README.md"],
+    configFiles: ["tsconfig.json"],
+    signals: [],
+    commandMetrics: [{ name: "build", status: "failed" }],
+    timingMs: 1,
+  });
+  const issues = validateReadinessReport(report);
+  return {
+    ok: issues.length === 0,
+    summary: issues.length
+      ? issues.join(" ")
+      : "Repository outcome preserves evidence, warnings, and limitations.",
   };
 };
 
@@ -254,7 +289,7 @@ export const controlPlane = defineControlPlaneModule({
     {
       id: "repo.plan.runtime",
       required: true,
-      run: () => ({ ok: true, summary: "Repository Analyst runtime path is conformance-gated." }),
+      run: evaluateReadinessOutcome,
     },
   ],
 });

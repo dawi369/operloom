@@ -46,6 +46,7 @@ export type CreateTriggerInput = {
   packId: string;
   packTriggerId: string;
   status?: "enabled" | "paused";
+  execution?: "request" | "durable";
   input?: Record<string, unknown>;
 };
 

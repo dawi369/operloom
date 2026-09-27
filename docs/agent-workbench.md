@@ -1,5 +1,53 @@
 # Agent Workbench
 
+## Runtime direction
+
+Explicit v2 simulation actions commit proposed state, decisions and effect receipts
+in an isolated backend scope. They share the package/workflow interfaces used by
+headless clients; external dispatch remains a separately gated capability.
+See [simulation actions](runtime-simulation.md) for current limits.
+
+The approved next delivery makes the backend independently usable by arbitrary
+frontends. Packages supply domain schemas and behavior; Cloudflare retains
+canonical state and execution authority. The bundled web UI remains one client.
+The experimental headless client now exposes state and decision/effect inspection
+and authorized failed-event retry. Dedicated bundled operator views remain planned.
+Administrators can also advance reviewed schema migrations through the headless
+API, with state preserved across interrupted requests.
+Reviewed replacement plans can repair unfinished migration batches while retaining
+completed state and the full plan history. Execution revision checks now reject
+obsolete run admissions and state handles. Explicit in-place package upgrades now preserve snapshot history and validate
+retained state/indexes before committing; the interface remains experimental. Pending
+chat commands now block upgrades before a run exists; independent clients can
+inspect their completion, cancellation or failure through the API.
+Opt-in context packages now preserve bounded evidence snapshots for chat and
+workflows, with visible required-context blocks. Independent clients can inspect
+the same snapshots. The document-review example records a deterministic no-op
+when content is unchanged. Experimental structured model work and workspace/run
+budgets now reserve capacity before dispatch and retain ambiguous usage. The
+document-summary workflow reuses a recorded result when evidence and effective
+configuration are unchanged, including when no model quota remains.
+See the [gated roadmap](implementation-roadmap.md) and [current delivery evidence](runtime-delivery-status.md).
+
+Durable execution has an internal persistence foundation for submission identity,
+checkpoints and attempts, with transactionally enforced authority for state,
+context and model/tool admission. A gated native Workflows adapter now runs v2
+steps and timer waits independently of the initiating request. Bounded recovery
+now closes abandoned or revoked work with recorded outcomes and terminates
+cancelled engine instances. New steps refresh evidence after waits while earlier
+snapshots remain available through the headless client. Document review blocks a
+state change if refreshed document evidence differs from its observation. Optional
+human review pauses expose immutable content and expiry through both the API and
+web approval views; approval resumes through current backend authority. Opt-in
+durable triggers now use the same execution path, preserve event identity across
+delivery retries and revoke future work when paused. Hosted
+durability, deployed handler retention and complete operator recovery remain
+unverified. A local deployment compatibility gate now fences new admissions while
+checking the frozen candidate against active handler pins.
+Workspace purge now confirms native engine deletion before removing canonical
+records. Uncertain creation calls retain a reconciliation fence; native cleanup
+progress survives interrupted D1 cleanup.
+
 The workbench is the reusable product layer this repo is meant to become. Chat
 remains the first interface, but the product should support long-running agent
 work, tools, external triggers, user knowledge, managed state, audit trails,
@@ -16,7 +64,8 @@ The target audience is broader than internal use:
 
 Document status: the shipped surface is assistant-ui chat plus local workbench
 commands for `/new`, `/agents`, active-agent slash actions, `/history`, and
-server-gated `/admin`. The broader surfaces below are direction, not a claim
+server-gated `/admin`. Operator checks live in Admin > Diagnostics rather than
+the chat command menu. The broader surfaces below are direction, not a claim
 that every UI exists today.
 
 ## Product Scope
@@ -82,8 +131,8 @@ Background/event-driven operation (L3) and policy-controlled external execution
 - History exposes supported cancellation and pack-workflow retry plus approval
   resume/deny actions. Connection failures expose a direct reconnect action.
 - `/admin` opens a server-gated Admin panel and is stripped before model send.
-- Admin uses four focused tabs: Overview, Agents & Packs, Tools & Approvals,
-  and Diagnostics. It keeps pack activation and pending approvals prominent,
+- Admin uses three focused tabs: Controls, Agents, and Diagnostics. It keeps
+  pending approvals prominent and pack activation one tab away,
   isolates traces/raw state in Diagnostics, and links normal workspace, agent,
   and history work to their dedicated surfaces.
 - Cloudflare exposes backend execution and artifact history metadata through
@@ -146,3 +195,24 @@ Background/event-driven operation (L3) and policy-controlled external execution
 This should feel like an operator surface for serious work: dense,
 inspectable, and calm. Avoid turning the workbench into a marketing page or a
 generic chatbot wrapper.
+
+### External-action review visibility
+
+Experimental action listings now expose the complete proposal, review hash and
+expiry. Reviews bind exact state versions and current authority; stale approvals
+cannot silently adopt changed inputs. Operators can deny a pending review, and
+expired work closes automatically. Provider operations and final Action detail
+views remain unfinished; see [review design](action-review-design.md).
+
+### Provider operations rollout
+
+Reviewed actions can use a named backend provider operation. Packages define the
+domain proposal, while the broker owns authentication and permitted destinations.
+The initial bearer/HMAC capacity-service integrations are experimental and disabled
+by default. Native and hosted operation acceptance remain required; this is not
+a general provider marketplace or a financial integration. Independent clients
+can inspect redacted dispatch receipts and request reconciliation through the
+same backend API. Recovery can prove that no dispatch occurred only by atomically
+fencing future dispatch; accepted effects remain visible even if projection fails.
+Web History exposes the same redacted action evidence and reconciliation controls,
+including resolved outcomes, review bindings and external resource status.

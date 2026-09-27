@@ -37,53 +37,12 @@ const firstString = (...values: unknown[]) => {
   return undefined;
 };
 
-const firstNumber = (...values: unknown[]) => {
-  for (const value of values) {
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-  }
-  return undefined;
-};
-
-const structuredReportLines = (kind: string | undefined, data: Record<string, unknown>) => {
+const structuredReportLines = (data: Record<string, unknown>) => {
   if (!isRecord(data.report)) return [];
   const report = data.report;
   const lines: string[] = [];
-  const summary = firstString(report.summary);
+  const summary = firstString(data.summary, report.summary);
   if (summary) lines.push(summary);
-
-  if (kind === "repo_readiness_report") {
-    const inventory = isRecord(report.inventory) ? report.inventory : {};
-    const packageManager = firstString(report.packageManager) ?? "unknown package manager";
-    const files = firstNumber(inventory.repositoryFiles) ?? 0;
-    const docs = firstNumber(inventory.documentationFiles) ?? 0;
-    lines.push(`${packageManager} · ${files} files · ${docs} docs`);
-  } else if (kind === "market_research_report") {
-    const market = isRecord(report.selectedMarket) ? report.selectedMarket : {};
-    const orderbook = isRecord(report.orderbook) ? report.orderbook : {};
-    const question = firstString(market.question, market.slug);
-    if (question && question !== summary) lines.push(question);
-    const spread = firstString(orderbook.spread);
-    const liquidity = firstString(report.liquidity);
-    if (spread || liquidity) {
-      lines.push(
-        [spread ? `Spread ${spread}` : null, liquidity ? `Liquidity ${liquidity}` : null]
-          .filter(Boolean)
-          .join(" · "),
-      );
-    }
-  } else if (kind === "runtime_research_report") {
-    const runtime = isRecord(report.runtime) ? report.runtime : {};
-    const bars = isRecord(report.bars) ? report.bars : {};
-    const symbol = firstString(report.symbol) ?? "No symbol";
-    const status = firstString(report.status, runtime.status) ?? "unknown";
-    lines.push(`${symbol} · ${status}`);
-    const returnedBars = firstNumber(bars.returnedBars);
-    const timeframe = firstString(bars.timeframe);
-    if (returnedBars !== undefined) {
-      lines.push(`${returnedBars} bars${timeframe ? ` · ${timeframe}` : ""}`);
-    }
-  }
-
   const warnings = Array.isArray(report.warnings)
     ? report.warnings.filter((item): item is string => typeof item === "string")
     : [];
@@ -185,9 +144,7 @@ export const buildArtifactPreview = (
   const lines: string[] = [];
 
   if (isRecord(data)) {
-    const kind =
-      "kind" in artifact && typeof artifact.kind === "string" ? artifact.kind : undefined;
-    const structuredLines = structuredReportLines(kind, data);
+    const structuredLines = structuredReportLines(data);
     if (structuredLines.length) {
       return { title, lines: structuredLines, json: JSON.stringify(data, null, 2) };
     }

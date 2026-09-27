@@ -41,7 +41,7 @@ export const dispatchDueTriggers = async (env: Env, input: { now?: Date; limit?:
     if (!occurrence.due) continue;
     const dispatchId = createId("cf-dispatch");
     const idempotencyKey = `${trigger.kind}:${trigger.id}:${occurrence.scheduledFor.toISOString()}`;
-    const results = await env.DB.batch([
+    await env.DB.batch([
       env.DB.prepare(
         `UPDATE control_triggers
          SET next_trigger_at = ?, last_triggered_at = ?, version = version + 1, updated_at = ?
@@ -89,7 +89,14 @@ export const dispatchDueTriggers = async (env: Env, input: { now?: Date; limit?:
         occurrence.nextTriggerAt.toISOString(),
       ),
     ]);
-    if (results[0]?.meta?.changes === 1 && results[1]?.meta?.changes === 1) created += 1;
+    // D1 changes includes coalescing/validation trigger writes. Only the new ID
+    // establishes that this tick created a dispatch rather than updating one.
+    if (
+      await env.DB.prepare("SELECT id FROM control_trigger_dispatches WHERE id=?")
+        .bind(dispatchId)
+        .first()
+    )
+      created += 1;
   }
   return { inspected: due.results.length, created };
 };

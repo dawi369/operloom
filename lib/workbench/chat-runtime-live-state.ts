@@ -71,6 +71,23 @@ export const isAdminSummaryFreshForLiveEvent = (
   return Boolean(summaryTime && summaryTime >= eventTime);
 };
 
+export const describeSummarySync = (input: {
+  isStale: boolean;
+  isLoading: boolean;
+  syncStatus: "idle" | "catching_up" | "exhausted";
+}) => {
+  if (!input.isStale) return null;
+  if (input.isLoading || input.syncStatus === "catching_up") {
+    return {
+      message: "Refreshing runtime details.",
+      canRefresh: false,
+    };
+  }
+  return input.syncStatus === "exhausted"
+    ? { message: "Runtime details refresh is delayed.", canRefresh: true }
+    : { message: "Runtime details are out of date.", canRefresh: true };
+};
+
 export const deriveRuntimeState = (input: {
   session: ChatSessionResponse | null;
   connection: RuntimeConnectionSnapshot;

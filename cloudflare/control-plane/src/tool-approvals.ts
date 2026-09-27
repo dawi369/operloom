@@ -1,4 +1,6 @@
 import { assertSchemaValue } from "@operloom/agent-sdk/control-plane";
+import { decideDurableApproval } from "./durable-approvals";
+import { workflowReviewDescriptor } from "./human-interventions";
 
 import { selectAgent, selectMembership } from "./authz-store";
 import { isRecord, json, parseDataJson, parseJson } from "./http";
@@ -43,6 +45,7 @@ const approvalBody = (row: ControlApprovalRequestRow, status = row.status) => ({
   toolId: row.tool_id,
   status,
   reason: row.reason,
+  review: workflowReviewDescriptor(row.data_json),
   data: parseDataJson(row.data_json),
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -121,6 +124,7 @@ export const createRuntimeToolApproval = async (input: {
         summary: input.reason,
         approvalRequestId,
         ...payload,
+        agentRevision: input.identity.agentRevision ?? 0,
       }),
       timestamp,
       timestamp,
@@ -527,6 +531,8 @@ export const handleApproveToolApproval = async (
       { status: 409 },
     );
   const approvalData = parseDataJson(approval.data_json);
+  if (approvalData.kind === "durable_workflow")
+    return decideDurableApproval(env, identity, approval.id, "approved");
   if (typeof approvalData.actionProposalId === "string") {
     return approveAndExecuteActionApproval(env, identity, approval);
   }
@@ -644,6 +650,8 @@ export const handleDenyToolApproval = async (
     isRecord(body) && typeof body.reason === "string" && body.reason.trim()
       ? body.reason.trim().slice(0, 240)
       : "Approval denied by workspace admin.";
+  if (parseDataJson(approval.data_json).kind === "durable_workflow")
+    return decideDurableApproval(env, identity, approval.id, "denied", reason);
   if (!(await denyApprovalAndCancelRun(env, identity, approval, reason))) {
     return json(
       {

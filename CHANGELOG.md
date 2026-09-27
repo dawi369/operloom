@@ -1,5 +1,132 @@
 # Changelog
 
+## Unreleased runtime foundations
+
+- Add experimental SDK 1.1.0 declarative provider-operation bindings. The broker
+  owns bearer/HMAC authentication, fixed destinations, bounded responses and
+  allowlisted output. Migration 0032 records outcomes independently of action
+  projection; read-only reconciliation and projection repair do not redispatch
+  mutations. Native fixture acceptance passes; keep hosted provider operations
+  disabled pending hosted acceptance.
+- Atomically fence provider actions that never reached dispatch admission before
+  recording `not_dispatched`. A competing dispatch receipt prevents false recovery;
+  a paused old continuation cannot dispatch after recovery. Preserve reconciled
+  status after payload retention.
+- Add client 0.2.0 action inspection, approval-request and reconciliation methods,
+  shared runtime response validation and generated OpenAPI. Action summaries expose
+  redacted provider receipts independently of action projection; nullable terminal
+  fields are accepted by both frontend and headless clients. A registered external
+  conformance package exercises bearer/HMAC, response loss, projection repair and
+  lifecycle operations through the native Worker without Next.js or model calls.
+- Expose recent action evidence and provider projection repair in web History.
+  Keep resolved/no-dispatch outcomes visible, distinguish resource lifecycle from
+  dispatch status, expand payloads on demand and retain cached actions on refresh
+  failure. Verify inspection and reconciliation at desktop and mobile widths.
+
+- Bind external-action reviews to full proposal/runtime/policy/credential/state
+  evidence with a maximum fifteen-minute approval lifetime. Migration 0031 adds
+  immutable scoped reviews and atomic transition checks; expired pending work is
+  cancelled without changing accepted effects. SDK 1.1.0 adds optional declared
+  state preconditions and an earlier action deadline. Changed-content or
+  cross-agent proposal replay now fails closed. Historical unbound approvals
+  require cancellation/denial and a new proposal; completed evidence is retained.
+- Treat thrown dispatch errors and invalid success results as `outcome_unknown`,
+  requiring reconciliation. Do not persist raw adapter exception messages. Keep
+  explicit provider failure outcomes distinct and clear completed dispatch timers.
+- Add experimental SDK 1.1.0 simulation targets and `actions.simulate`: atomically
+  commit isolated state, decisions, effect evidence and delivery receipts. Recheck
+  tool policy in the transaction and reject simulation at external dispatch.
+  Preserve v1 external semantics. Document review persists its proposal before
+  the durable commit so acknowledgement loss can replay the original receipt.
+- Gate Worker deployment against active durable handler pins in the frozen
+  candidate. Migration 0030 fences new admissions across inspection/activation,
+  including old Workers; retain uncertain upload fences for explicit recovery.
+  Ship the same guarded deployment command inside frontend-free artifacts.
+- Add opt-in durable schedule/monitor/webhook execution with atomic dispatch-to-run
+  admission, pinned trigger authority, pause revocation and bounded ingress.
+  Coalesce pending observations without recounting duplicate ticks. Migration 0029
+  includes trigger links in workspace export and purge; export pagination uses run IDs.
+- Add experimental v2 `flow.approval` checkpoints with immutable review payloads,
+  expiry, canonical decision/consumption and retryable native wake delivery.
+  Migration 0028 includes approval metadata in export and purge. Shared client
+  review descriptors and web approval views expose the same bound content.
+  Review approval does not authorize external effects. Fix elapsed native waits
+  and D1 trigger-inclusive mutation counts in approval and recovery reporting.
+- SDK 1.1.0 and client 0.2.0 additions remain unpublished; durable execution
+  remains experimental and unadvertised pending the remaining acceptance gates.
+
+- Fence native engine creation with scoped dispatch receipts and remove native
+  instances in bounded batches before workspace D1 purge. Retain partial deletion
+  confirmations across retries; unresolved creation outcomes block purge. Migration
+  0027 preserves historical uncertainty. Update Wrangler for its native deletion API.
+- Capture immutable context per logical durable step, refresh evidence after waits
+  and retain original evidence across retries. Add scoped revision pagination to
+  the public API/Fetch client; preserve historical IDs and JSON in migration 0026.
+  Document review now links both observations and refreshed evidence, rejecting
+  changed content before committing state. SDK/client additions remain unpublished.
+
+- Add leased, bounded durable-engine reconciliation with backoff, deadline and
+  authority closure, immutable unknown-attempt outcomes and physical cancellation.
+  Keep started instances protected from automatic recreation. Forward migration
+  0025 stores recovery metadata in the existing execution/lifecycle boundary.
+  Verify native cancellation through the standalone artifact without rebundling;
+  require artifact-local Wrangler so acceptance cannot silently use workspace tools.
+- Add experimental v2 durable step/sleep authoring and a Cloudflare Workflows
+  adapter with stable `202` submission identities, bounded pending-start recovery,
+  fresh attempt-scoped ports and atomic terminal projection. Document review
+  exercises observation, a persisted wait and a state commit. Keep the feature
+  disabled by default; automatic local process-restart recovery fails in the
+  installed emulator, while explicit-wake replay passes. Hosted acceptance,
+  approval waits, deployment handler retention and engine deletion remain open.
+- Add an internal durable-execution persistence kernel with atomic run/submission
+  identity, pinned configuration, named step attempts, bounded explicit replay,
+  immutable results and lifecycle storage. This does not enable durable package
+  production execution. Fence state/context commits
+  and model/tool admission with server-owned step attempts; retain incurred usage
+  after expiry and preserve receipt identities across safe retries.
+- Add experimental structured model calls to SDK 1.1.0 with schema validation,
+  configured-model selection, stored results and safe replay. Reserve workspace/
+  root-run model/tool capacity atomically before dispatch, including chat steps.
+  Report provider usage, estimates and fixtures separately through shared budget/
+  usage contracts in client 0.2.0. Include receipts and atomic settlement events
+  in lifecycle storage. Demonstrate summaries and quota-independent no-op decisions
+  in the document-review package; no hosted model/budget readiness is claimed.
+- Add opt-in Runtime Module v2, capability negotiation and a v1 adapter to the
+  unpublished `@operloom/agent-sdk` SDK 1.1.0; preserve existing package identities.
+- Add an experimental, default-disabled Worker public API with WorkOS bearer
+  verification, explicit command scope and a loopback-only development adapter.
+  Add a standalone Worker bundle with frontend-dependency auditing and independent
+  deployment configuration.
+- Add a Fetch runtime client and chat transport in `@operloom/workbench-client`
+  0.2.0, public content blocks, cursor
+  reset responses, generated chat schemas and backend-only supervised conformance.
+- Retain chat command receipts beyond transcript pruning; export/purge them with
+  their thread. Explicitly delete message rows during lifecycle purge.
+- Add experimental typed state: scoped reads/indexes, transactional commits,
+  receipts, immutable entries and atomic event publication with export/deletion coverage.
+- Add scoped state, decision/effect and delivery inspection to the public API and
+  Fetch client; add authorized optimistic retries with atomic audit and stable event identity.
+- Add reviewed v2 state migration declarations, durable bounded batches and index
+  rebuilds, replay receipts, database writer fencing and scoped admin commands.
+- Add authorized partial-migration repair with registered replacement plans,
+  unchanged schemas/indexes, complete plan history and atomic idempotent receipts.
+- Fence obsolete execution admissions and state handles with server-owned agent
+  revisions, D1 admission/resume checks and signed chat claims. Preserve generation
+  zero compatibility.
+- Register pending HTTP chat commands before acknowledgement; atomically link them
+  to one run, expose canonical outcomes through API/Fetch, and fence cancelled or
+  expired execution. Include records in export, quarantine and purge.
+- Add experimental explicit package upgrades and paginated snapshot history to the
+  API/Fetch client, with state/index/trigger validation, atomic revision/receipt/audit
+  commits and lifecycle coverage. Keep upgrades disabled by default.
+- These additions do not establish durable workflow or hosted production readiness;
+  see [delivery evidence](docs/runtime-delivery-status.md).
+- Add experimental scoped context resolvers, bounded immutable evidence snapshots,
+  required-context blocks and atomic evidence-expiry checks for typed commits.
+  Expose snapshots through shared API/Fetch contracts and include them in lifecycle
+  storage. Add a frontend-independent document-review package with deterministic
+  observation, versioned state and recorded no-op decisions without provider usage.
+
 ## 1.0.0
 
 - Update vulnerable image dependencies and harden archive extraction; see

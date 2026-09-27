@@ -1,5 +1,74 @@
 # Agent Runtime Kit
 
+## Runtime Module v2 (experimental)
+
+`defineControlPlaneModuleV2` is exported from the SDK root and `/control-plane`.
+A v2 module declares `requirements.minimumBackendVersion` and required capability
+names. The compiler and runtime reject missing capabilities. v1 modules retain
+their source and snapshot contracts and pass through a nonmutating adapter.
+The external SDK consumer check installs both v1 and v2 package tarballs.
+
+Supported implementation capabilities are `runtime.module.v2`,
+`runtime.workflow.request.v1`, and experimental `state.atomic.v2` / `state.migrations.v2`. Typed state
+also requires `WORKBENCH_TYPED_STATE_ENABLED=true` on the Worker. Declare
+`state` record schemas and indexes on the module; use `requireRuntimeState(context)`
+for scoped `get`, `list` and `commit`. Simulation is the only workflow state
+target currently bound. Reads must supply explicit versions for every write.
+State schema version changes require migration; normal commits reject them.
+Declare reviewed `stateMigrations` alongside both source and destination `state`
+schemas and require `state.migrations.v2`. The backend's admin migration commands pin and execute bounded field
+transformations; the package receives no database or migration execution privilege.
+An admin can select a different registered declaration to repair unfinished work,
+provided both schemas and indexes are unchanged. Completed records remain intact.
+See [state design](runtime-state-design.md) for bounds and remaining gates.
+Frontends inspect canonical state and immutable entries through `runtime.state`
+in the shared client. They do not receive the package's commit port. Delivery
+retry requires a current admin role and an optimistic attempt-count precondition.
+
+The experimental `context.snapshots.v2` capability binds manifest context sources
+to schema-checked resolvers under `WORKBENCH_CONTEXT_ENABLED=true`. Both chat and
+workflow invocations capture immutable scoped evidence. Required missing or stale
+sources block work; typed commits check expiry in the same D1 transaction.
+Use `context.context.snapshot` and `context.context.assertReady()` inside a package,
+and `runtime.context.snapshot(id)` from the Fetch client. See [context authoring](runtime-context.md).
+
+Experimental `models.structured.v2` and `usage.reservations.v2` supply
+`context.models.structured({ idempotencyKey, prompt, outputSchema, maxOutputTokens })`
+to workflows. The backend selects the configured model, validates output and
+records public results/usage. Enable `WORKBENCH_STRUCTURED_MODELS_ENABLED` and
+`WORKBENCH_USAGE_LIMITS_ENABLED`; an administrator must first configure workspace
+limits. When usage enforcement is enabled, chat steps and tool dispatches also
+reserve capacity before execution. Read [model/budget semantics](runtime-models-and-budgets.md)
+for replay, unknown outcomes, token estimates and limits.
+
+V2 bindings may additionally declare experimental durable orchestration using
+`durable.execute`, `flow.step`, `flow.sleep` and `flow.approval`. Submission is opt-in and deployment
+flags default off. Existing `execute` handlers keep their request-mode behavior.
+Declared triggers can opt into `execution: "durable"` when instantiated through
+the shared API. Their dispatch ID supplies the logical event identity; the runtime
+owns lease transfer, coalescing, backlog limits and resumed trigger authority.
+The [engine integration gates](durable-execution.md) still require hosted restart
+acceptance, hosted deployment retention and complete engine lifecycle acceptance before the
+negotiated `runtime.workflow.durable.v2` capability is advertised. Provider-operation
+signing is also still unavailable.
+
+Approval checkpoints bind immutable review content, version and expiry. The
+backend records decisions and retries native wake delivery; continuation rechecks
+membership, policy, expiry and kill switches. A review receipt does not grant
+tool or external-action authority. The document-review example links the receipt
+to its decision and revalidates evidence/state after the pause.
+
+Durable startup and engine reconciliation are platform-owned. Recovery never
+recreates a started instance or invokes a package handler to infer an outcome.
+A stopped engine with no canonical result becomes blocked; unfinished attempts
+remain `outcome_unknown`. Packages must preserve idempotency and reconciliation
+semantics for effects already accepted before cancellation. Each new durable step
+receives a new context capture; a retried step receives its original capture and
+blocks if required evidence expired. `snapshot.captureKey`, `revision` and `stepId`
+are optional on retained historical snapshots. Packages should link the current
+snapshot and any earlier observation to their decisions, and validate meaningful
+evidence changes before committing an effect derived from an earlier step.
+
 Document status: current Runtime Module v1 authoring and enforcement contract.
 
 The Runtime Kit turns a trusted build-time package into an executable Agent
@@ -187,8 +256,49 @@ An incompatible historical Agent snapshot remains available for chat. Pack and
 runtime range drift returns `runtime_incompatible`; workbench range drift
 returns `workbench_incompatible`. Both block tools, workflows, triggers,
 retries, and actions until an explicit agent upgrade creates a compatible
-snapshot. A runtime package deploys one version at a time.
+snapshot. The experimental [explicit upgrade command](package-upgrades.md)
+changes an idle existing agent while preserving its identity and state scopes.
+Pack instantiation still creates a distinct version-derived agent. A runtime
+package deploys one version at a time; active handler retention remains pending.
+
+Execution revisions are server-owned and independent of profile timestamps. The
+runtime pins them before admission and rejects a stale pin with
+`agent_runtime_revision_conflict`; callers refresh canonical configuration before
+submitting a new command. Packages cannot provide or replace the pin through
+runtime metadata. Missing legacy pins represent revision zero only. Typed-state
+handles retain their original revision and cannot read, write or replay a commit
+after authority advances; a newly authorized handle retains the same state scope.
+Pending HTTP chat commands pin the revision before acknowledgement and transfer to
+a single run atomically. Expired or cancelled commands cannot begin late work.
+They expose durable outcomes through the headless API; replay never automatically
+repeats model work. See [command admission](chat-command-admission.md).
+
+V2 action bindings explicitly select `simulation` or `external`; omitted v1
+targets retain external semantics. The experimental workflow `actions.simulate`
+port commits state, decisions and effect/delivery receipts atomically without an
+external executor. Durable-step contexts expose this port but no external action
+authority. See [simulation contracts and replay](runtime-simulation.md).
 
 Not implemented: remote package installation, arbitrary executable uploads,
 package-owned D1 access, pack-supplied migration hooks, trading adapters, or
 marketplace distribution. Swordfish remains packaged and intentionally parked.
+
+## Bound external-action approval (experimental)
+
+`ActionProposal.preconditions` optionally declares exact versions of external
+state records from the package's declared namespaces/kinds. `expiresAt` can set
+an earlier deadline; the platform caps review validity at fifteen minutes.
+Approval binds the full proposal, runtime adapter, policy and credential version.
+Changed content requires a new proposal/key and review. Exact legacy proposal
+replay remains supported; cross-agent key collisions fail rather than returning
+another agent's proposal. See [review authority](action-review-design.md).
+
+## Declarative provider operations (experimental)
+
+V2 inline external action bindings may name a reviewed `providerOperation` and
+connection instead of package execution/reconciliation callbacks. Approval pins
+the operation version, schemas and configured destination. D1 dispatch receipts
+precede network mutation; validated provider outcomes precede action projection.
+A lost response requires read-only reconciliation, and projection repair reuses
+the receipt. See [the contract](provider-operation-contract.md) for input,
+authentication, output filtering, lifecycle semantics and acceptance limits.

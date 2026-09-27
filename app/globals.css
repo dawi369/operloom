@@ -48,38 +48,38 @@
 
 :root {
   --radius: 0.5rem;
-  --background: oklch(0.979 0.008 88);
+  --background: oklch(0.982 0.006 220);
   --foreground: oklch(0.225 0.018 238);
-  --card: oklch(0.995 0.004 88);
+  --card: oklch(0.995 0.003 220);
   --card-foreground: oklch(0.225 0.018 238);
-  --popover: oklch(0.995 0.004 88);
+  --popover: oklch(0.995 0.003 220);
   --popover-foreground: oklch(0.225 0.018 238);
-  --primary: oklch(0.31 0.04 214);
-  --primary-foreground: oklch(0.985 0.006 88);
-  --secondary: oklch(0.946 0.012 88);
+  --primary: oklch(0.3 0.055 221);
+  --primary-foreground: oklch(0.99 0.003 220);
+  --secondary: oklch(0.948 0.01 220);
   --secondary-foreground: oklch(0.27 0.024 226);
-  --muted: oklch(0.947 0.009 88);
+  --muted: oklch(0.951 0.008 220);
   --muted-foreground: oklch(0.49 0.022 234);
-  --accent: oklch(0.923 0.027 173);
-  --accent-foreground: oklch(0.25 0.036 195);
+  --accent: oklch(0.93 0.026 202);
+  --accent-foreground: oklch(0.25 0.046 220);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.875 0.014 84);
-  --input: oklch(0.86 0.015 84);
-  --ring: oklch(0.58 0.082 184);
-  --signal: oklch(0.67 0.095 174);
+  --border: oklch(0.882 0.011 218);
+  --input: oklch(0.865 0.012 218);
+  --ring: oklch(0.56 0.095 200);
+  --signal: oklch(0.68 0.11 190);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.958 0.011 87);
+  --sidebar: oklch(0.961 0.009 220);
   --sidebar-foreground: oklch(0.225 0.018 238);
-  --sidebar-primary: oklch(0.31 0.04 214);
-  --sidebar-primary-foreground: oklch(0.985 0.006 88);
-  --sidebar-accent: oklch(0.925 0.018 86);
+  --sidebar-primary: oklch(0.3 0.055 221);
+  --sidebar-primary-foreground: oklch(0.99 0.003 220);
+  --sidebar-accent: oklch(0.928 0.015 214);
   --sidebar-accent-foreground: oklch(0.27 0.024 226);
-  --sidebar-border: oklch(0.86 0.015 84);
-  --sidebar-ring: oklch(0.58 0.082 184);
+  --sidebar-border: oklch(0.868 0.012 218);
+  --sidebar-ring: oklch(0.56 0.095 200);
 }
 
 .dark {

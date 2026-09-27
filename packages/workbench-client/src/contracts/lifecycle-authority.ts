@@ -77,23 +77,34 @@ export type CloudflareActionsResponse = {
     id: Id;
     toolId: string;
     actionType: string;
+    proposal?: Record<string, unknown>;
+    result?: Record<string, unknown>;
+    review?: { requestHash: string; expiresAt: string } | null;
+    providerOperation?: {
+      id: Id;
+      operationId: string;
+      version: string;
+      status: "dispatching" | "succeeded" | "failed" | "outcome_unknown";
+      output: Record<string, unknown>;
+      updatedAt: string;
+    } | null;
     status: string;
     summary: string;
-    externalReference?: string;
+    externalReference?: string | null;
     version: number;
     createdAt: string;
     updatedAt: string;
-    terminalAt?: string;
+    terminalAt?: string | null;
     ledger: Array<{
       sequence: number;
       status: string;
       summary: string;
-      externalReference?: string;
+      externalReference?: string | null;
       createdAt: string;
     }>;
   }>;
   result?: Record<string, unknown>;
-  approvalRequest?: { id: Id; status: string };
+  approvalRequest?: { id: Id; status: string; requestHash?: string; expiresAt?: string };
   error?: string;
 };
 

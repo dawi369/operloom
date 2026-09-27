@@ -181,7 +181,8 @@ export const executeLeasedTriggerDispatch = async (env: Env, item: LeasedTrigger
     return { ok: false as const, code: "trigger_binding_unavailable" };
   }
   const callbackUrl = env.WORKBENCH_CALLBACK_URL?.trim();
-  if (!callbackUrl) {
+  const durable = parseDataJson(item.trigger.execution_json).runtime === "durable";
+  if (!callbackUrl && !durable) {
     await failUnfinishedDispatch(env, item, {
       code: "trigger_callback_unavailable",
       message: "The trigger callback URL is not configured.",
@@ -190,10 +191,15 @@ export const executeLeasedTriggerDispatch = async (env: Env, item: LeasedTrigger
   }
   const triggerInput = parseDataJson(item.trigger.input_json);
   const dispatchPayload = parseDataJson(item.dispatch.payload_json);
-  const request = buildPackWorkflowRequest(item.trigger.workflow_type, {
-    ...triggerInput,
-    ...dispatchPayload,
-  });
+  let request;
+  try {
+    request = buildPackWorkflowRequest(item.trigger.workflow_type, {
+      ...triggerInput,
+      ...(durable && ["schedule", "monitor"].includes(item.dispatch.source) ? {} : dispatchPayload),
+    });
+  } catch {
+    request = null;
+  }
   if (!request) {
     await failUnfinishedDispatch(env, item, {
       code: "trigger_input_invalid",
@@ -208,10 +214,10 @@ export const executeLeasedTriggerDispatch = async (env: Env, item: LeasedTrigger
   try {
     const response = await executeRuntimeWorkflow(
       item.trigger.workflow_type,
-      new Request(new URL(binding.workerRoute, callbackUrl), {
+      new Request(new URL(binding.workerRoute, callbackUrl ?? "https://operloom.internal"), {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(request),
+        body: JSON.stringify({ ...request, ...(durable ? { execution: "durable" } : {}) }),
       }),
       env,
       identity,
@@ -225,6 +231,12 @@ export const executeLeasedTriggerDispatch = async (env: Env, item: LeasedTrigger
         idempotencyKey: item.dispatch.idempotency_key,
         scheduledFor: item.dispatch.scheduled_for,
         previousRunId: item.dispatch.previous_run_id,
+        triggerSnapshot: {
+          inputJson: item.trigger.input_json,
+          executionJson: item.trigger.execution_json,
+          configJson: item.trigger.config_json,
+          payloadJson: item.dispatch.payload_json,
+        },
       },
     );
     if (!response.ok) {

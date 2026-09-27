@@ -53,7 +53,11 @@ const {
 } = createSmokeContext();
 
 const accountId = `workos-org:agent-runtime-config-org-${suffix}`;
-const modelOptions = ["deepseek/deepseek-v4-flash", "openai/gpt-4.1-mini"] as const;
+const modelOptions = [
+  "deepseek/deepseek-v4-flash",
+  "openai/gpt-4.1-mini",
+  "openai/gpt-6-luna",
+] as const;
 
 const owner: TenantIdentity = {
   userId: `agent-runtime-config-owner-${suffix}`,

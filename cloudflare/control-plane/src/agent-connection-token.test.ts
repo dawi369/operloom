@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertCurrentAgentConnectionScope,
+  claimsToIdentity,
   signAgentConnectionClaims,
   verifyAgentConnectionToken,
   type AgentConnectionClaims,
@@ -53,6 +54,30 @@ const agent = (input: Partial<AgentRow> = {}): AgentRow => ({
 });
 
 describe("agent connection token", () => {
+  it("pins execution authority and accepts legacy claims only at generation zero", async () => {
+    expect(() => assertCurrentAgentConnectionScope(claims(), thread(), agent())).not.toThrow();
+    expect(() =>
+      assertCurrentAgentConnectionScope(claims(), thread(), agent({ runtime_revision: 1 })),
+    ).toThrow("Agent token runtime revision is stale");
+    const token = await signAgentConnectionClaims("test-secret", claims({ agentRevision: 2 }));
+    const verified = await verifyAgentConnectionToken("test-secret", token);
+    expect(claimsToIdentity(verified).agentRevision).toBe(2);
+    expect(() =>
+      assertCurrentAgentConnectionScope(verified, thread(), agent({ runtime_revision: 2 })),
+    ).not.toThrow();
+    expect(() =>
+      assertCurrentAgentConnectionScope(verified, thread(), agent({ runtime_revision: 3 })),
+    ).toThrow("Agent token runtime revision is stale");
+    for (const agentRevision of [-1, 0.5, "2", Number.MAX_SAFE_INTEGER + 1]) {
+      const invalid = await signAgentConnectionClaims(
+        "test-secret",
+        claims({ agentRevision } as Partial<AgentConnectionClaims>),
+      );
+      await expect(verifyAgentConnectionToken("test-secret", invalid)).rejects.toThrow(
+        "Invalid agent token claims",
+      );
+    }
+  });
   it("round-trips selected agent and preserved thread instance claims", async () => {
     const token = await signAgentConnectionClaims(
       "test-secret",

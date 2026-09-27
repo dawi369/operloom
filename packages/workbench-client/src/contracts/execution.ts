@@ -14,6 +14,13 @@ export type RunRelationSummary = {
   durableChild?: boolean;
 };
 
+/** Immutable human-review content; approval does not grant tool execution authority. */
+export type WorkflowReviewDescriptor = {
+  payload: Record<string, unknown>;
+  requestHash: string;
+  expiresAt: string;
+};
+
 export type ExecutionRunSnapshot = {
   scope: TenantScope;
   intent: {
@@ -77,6 +84,7 @@ export type ExecutionRunSnapshot = {
     toolId: string;
     reason: string;
     title: string;
+    review?: WorkflowReviewDescriptor;
     approvePath?: string;
     denyPath?: string;
     createdAt?: string;
@@ -323,6 +331,7 @@ export type ToolApprovalRequestSummary = {
   toolId?: string;
   status?: string;
   reason?: string;
+  review?: WorkflowReviewDescriptor;
   input?: {
     url?: string;
   };
@@ -358,6 +367,7 @@ export type ToolApprovalRequestSummary = {
     toolId?: string;
     reason?: string;
     title?: string;
+    review?: WorkflowReviewDescriptor;
     approvePath?: string;
     denyPath?: string;
     currentPolicy?: {

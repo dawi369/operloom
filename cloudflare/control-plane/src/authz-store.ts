@@ -146,7 +146,7 @@ export const selectWorkspaceMemberships = (env: Env, workspaceId: string) =>
 export const selectDefaultAgent = (env: Env, workspaceId: string) =>
   env.DB.prepare(
     `SELECT id, workspace_id, name, description, status, is_default, created_by_user_id,
-            data_json, created_at, updated_at
+            data_json, created_at, updated_at, runtime_revision
      FROM agents
      WHERE workspace_id = ? AND is_default = 1
      LIMIT 1`,
@@ -157,7 +157,7 @@ export const selectDefaultAgent = (env: Env, workspaceId: string) =>
 export const selectAgent = (env: Env, agentId: string, workspaceId: string) =>
   env.DB.prepare(
     `SELECT id, workspace_id, name, description, status, is_default, created_by_user_id,
-            data_json, created_at, updated_at
+            data_json, created_at, updated_at, runtime_revision
      FROM agents
      WHERE id = ? AND workspace_id = ?
      LIMIT 1`,
@@ -168,7 +168,7 @@ export const selectAgent = (env: Env, agentId: string, workspaceId: string) =>
 export const selectWorkspaceAgents = (env: Env, workspaceId: string) =>
   env.DB.prepare(
     `SELECT id, workspace_id, name, description, status, is_default, created_by_user_id,
-            data_json, created_at, updated_at
+            data_json, created_at, updated_at, runtime_revision
      FROM agents
      WHERE workspace_id = ?
      ORDER BY is_default DESC, updated_at DESC, created_at DESC`,

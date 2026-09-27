@@ -161,7 +161,13 @@ test.describe.serial("Agent-system executable conformance", () => {
       { headers },
     );
     expect(execute.status(), await execute.text()).toBe(202);
-    const executeBody = (await execute.json()) as { approvalRequest: { id: string } };
+    const executeBody = (await execute.json()) as {
+      approvalRequest: { id: string; requestHash: string; expiresAt: string };
+    };
+    expect(executeBody.approvalRequest.requestHash).toMatch(/^[a-f0-9]{64}$/);
+    const reviewRemainingMs = Date.parse(executeBody.approvalRequest.expiresAt) - Date.now();
+    expect(reviewRemainingMs).toBeGreaterThan(0);
+    expect(reviewRemainingMs).toBeLessThanOrEqual(15 * 60 * 1000);
     const approve = await request.post(
       `${workerOrigin}/tools/approvals/${encodeURIComponent(executeBody.approvalRequest.id)}/approve`,
       { headers },
@@ -177,6 +183,10 @@ test.describe.serial("Agent-system executable conformance", () => {
         expect.objectContaining({
           id: proposal!.id,
           status: "executed",
+          review: {
+            requestHash: executeBody.approvalRequest.requestHash,
+            expiresAt: executeBody.approvalRequest.expiresAt,
+          },
           ledger: expect.arrayContaining([
             expect.objectContaining({ status: "proposed" }),
             expect.objectContaining({ status: "approved" }),

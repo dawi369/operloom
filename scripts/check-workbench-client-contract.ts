@@ -49,7 +49,17 @@ const packages = ["workbench-client", "workbench-react"].map((directory) => {
   };
 });
 
-const runtimeSchemas = ["src/response-schemas.ts", "src/validation.ts"].map((path) => ({
+const runtimeSchemas = [
+  "src/response-schemas.ts",
+  "src/validation.ts",
+  "src/public-chat-contracts.ts",
+  "src/public-context-contracts.ts",
+  "src/public-budget-contracts.ts",
+  "src/public-state-contracts.ts",
+  "src/public-upgrade-contracts.ts",
+  "src/messages.ts",
+  "src/public-action-contracts.ts",
+].map((path) => ({
   path: `workbench-client/${path}`,
   sha256: hash(readFileSync(resolve(clientRoot, path), "utf8")),
 }));

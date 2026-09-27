@@ -36,6 +36,12 @@ describe("local authentication configuration", () => {
 });
 
 describe("WorkOS public callback origin", () => {
+  it("uses the same local origin as the configured callback", () => {
+    expect(
+      getWorkOSBaseURL({ NEXT_PUBLIC_WORKOS_REDIRECT_URI: "http://localhost:3000/auth/callback" }),
+    ).toBe("http://localhost:3000");
+  });
+
   it("pins hosted callback redirects to the configured public origin", () => {
     expect(
       getWorkOSBaseURL({

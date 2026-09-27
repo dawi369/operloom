@@ -1,6 +1,6 @@
 {
   "name": "@operloom/agent-sdk",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Build-time Agent Pack and Runtime Module contracts for Operloom.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "files": [
@@ -36,6 +36,9 @@
     },
     "./schemas/runtime-module-v1.json": {
       "default": "./schemas/runtime-module-v1.schema.json"
+    },
+    "./schemas/runtime-module-v2.json": {
+      "default": "./schemas/runtime-module-v2.schema.json"
     }
   },
   "scripts": {

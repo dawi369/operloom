@@ -1,0 +1,31 @@
+{
+  "name": "@operloom/external-agent-v2-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "files": [
+    "*.mjs",
+    "*.d.ts"
+  ],
+  "type": "module",
+  "exports": {
+    "./manifest": {
+      "types": "./manifest.d.ts",
+      "default": "./manifest.mjs"
+    },
+    "./control-plane": {
+      "types": "./control-plane.d.ts",
+      "default": "./control-plane.mjs"
+    },
+    "./runner": {
+      "types": "./runner.d.ts",
+      "default": "./runner.mjs"
+    },
+    "./web": {
+      "types": "./web.d.ts",
+      "default": "./web.mjs"
+    }
+  },
+  "dependencies": {
+    "@operloom/agent-sdk": "^1.0.0"
+  }
+}

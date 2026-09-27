@@ -283,13 +283,13 @@ test("trusted local session is immediately usable and exposes release controls",
   await expect(page.getByRole("tab", { name: "Overview" })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Agents" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Controls" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "System" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Diagnostics" })).toBeVisible();
 
   await page.getByRole("tab", { name: "Controls" }).click();
   await expect(page.getByRole("heading", { name: "Approvals" })).toBeVisible();
   await expect(page.getByText("Tool permissions", { exact: true })).toBeVisible();
 
-  await page.getByRole("tab", { name: "System" }).click();
+  await page.getByRole("tab", { name: "Diagnostics" }).click();
   await expect(page.getByRole("heading", { name: "Recent runtime" })).toBeVisible();
   await expect(page.getByText("Run system checks", { exact: true })).toBeVisible();
 
@@ -384,6 +384,30 @@ test("trusted local session is immediately usable and exposes release controls",
     .getByRole("button", { name: /Open Release recovery fixture/ })
     .click();
   await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
+
+  let finishRunRefresh: () => void = () => undefined;
+  const blockedRunRefresh = new Promise<void>((resolve) => {
+    finishRunRefresh = resolve;
+  });
+  await page.route("**/api/workbench/history/runs/*", async (route) => {
+    await blockedRunRefresh;
+    await route.continue();
+  });
+  const runRefreshRequest = page.waitForRequest((request) =>
+    request.url().includes("/api/workbench/history/runs/"),
+  );
+  await page.getByRole("button", { name: "Refresh history" }).click();
+  await runRefreshRequest;
+  await expect(
+    page.getByRole("status").filter({ hasText: "Refreshing run details" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
+  await expect(page.getByText("Loading run", { exact: true })).toHaveCount(0);
+  finishRunRefresh();
+  await expect(page.getByRole("status").filter({ hasText: "Refreshing run details" })).toHaveCount(
+    0,
+  );
+  await page.unroute("**/api/workbench/history/runs/*");
 
   await page
     .getByRole("dialog", { name: "Workbench History" })

@@ -330,7 +330,7 @@ export const updateControlRunStatus = async (env: Env, input: ControlRunStatusIn
   await env.DB.prepare(
     `UPDATE control_runs
      SET status = ?, heartbeat_at = ?, last_event_at = ?, completed_at = ?,
-         failed_at = ?, data_json = ?, updated_at = ?
+         failed_at = ?, data_json = json_set(?, '$.agentRevision', COALESCE(json_extract(data_json, '$.agentRevision'), 0)), updated_at = ?
      WHERE user_id = ? AND workspace_id = ? AND id = ?`,
   )
     .bind(

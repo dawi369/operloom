@@ -72,11 +72,35 @@ export const exportCollections: readonly ExportCollection[] = [
   tenantCollection("control_policy_decisions"),
   tenantCollection("control_workflow_intents"),
   tenantCollection("control_runs"),
+  tenantCollection("control_chat_commands"),
+  tenantCollection("control_context_snapshots"),
+  tenantCollection("control_resource_reservations"),
+  tenantCollection("control_durable_executions", "*", "run_id"),
+  tenantCollection("control_durable_engine_dispatches"),
+  tenantCollection("control_durable_approvals"),
+  tenantCollection("control_durable_trigger_links", "*", "run_id"),
+  tenantCollection("control_durable_steps"),
+  tenantCollection("control_durable_step_attempts"),
+  tenantCollection("control_durable_step_outcomes"),
+  tenantCollection("control_budget_changes"),
+  tenantCollection("control_budget_policies", "*", "workspace_id"),
+  tenantCollection("control_agent_snapshots"),
+  tenantCollection("control_agent_upgrades"),
   tenantCollection("control_approval_requests"),
   tenantCollection("control_tool_calls"),
   tenantCollection("control_artifacts"),
   tenantCollection("control_decisions"),
   tenantCollection("control_managed_state"),
+  tenantCollection("control_state_records"),
+  tenantCollection("control_state_indexes"),
+  tenantCollection("control_state_commits"),
+  tenantCollection("control_state_entries"),
+  tenantCollection("control_state_outbox"),
+  tenantCollection("control_state_schema_heads", "*", "json_array(scope_id, namespace, kind)"),
+  tenantCollection("control_state_migrations"),
+  tenantCollection("control_state_migration_steps"),
+  tenantCollection("control_state_migration_repairs"),
+
   tenantCollection(
     "control_triggers",
     `id, user_id, workspace_id, agent_id, pack_id, pack_trigger_id, kind, workflow_type,
@@ -102,7 +126,19 @@ export const exportCollections: readonly ExportCollection[] = [
      last_error_code, version, data_json, created_at, updated_at, revoked_at`,
   ),
   tenantCollection("control_action_proposals"),
+  tenantCollection(
+    "control_action_reviews",
+    `id,user_id,workspace_id,agent_id,proposal_id,request_hash,
+    json_remove(binding_json,'$.connection.vaultObjectId','$.connection.vaultVersion') AS binding_json,
+    expires_at,created_at,preconditions_met`,
+  ),
   tenantCollection("control_action_ledger"),
+  tenantCollection("control_action_reservations"),
+  tenantCollection("control_action_projections"),
+  tenantCollection(
+    "control_provider_operations",
+    "id,user_id,workspace_id,agent_id,proposal_id,review_id,operation_id,operation_version,request_hash,status,result_json,created_at,updated_at",
+  ),
   tenantCollection("control_kill_switches"),
   tenantCollection(
     "control_client_devices",
@@ -224,6 +260,7 @@ export const threadLifecycleRequest = async (
   return action === "export" || action === "freeze"
     ? ((await response.json()) as {
         messages?: unknown[];
+        turnReceipts?: unknown[];
         snapshotAt?: string;
         messageCount?: number;
         contentSha256?: string;

@@ -10,6 +10,7 @@ export type AgentConnectionClaims = {
   workspaceId: string;
   agentId: string;
   agentUpdatedAt?: string;
+  agentRevision?: number;
   threadId: string;
   sessionId: string;
   instanceName: string;
@@ -73,6 +74,11 @@ const normalizeClaims = (value: unknown): AgentConnectionClaims | null => {
       return null;
     }
   }
+  if (
+    value.agentRevision !== undefined &&
+    (!Number.isSafeInteger(value.agentRevision) || (value.agentRevision as number) < 0)
+  )
+    return null;
   return value as AgentConnectionClaims;
 };
 
@@ -106,6 +112,7 @@ export const claimsToIdentity = (claims: AgentConnectionClaims): AgentIdentity =
     workspaceId: claims.workspaceId,
   },
   agentId: claims.agentId,
+  agentRevision: claims.agentRevision ?? 0,
   accountId: claims.accountId,
   accountSource: claims.accountSource,
 });
@@ -127,6 +134,9 @@ export const assertCurrentAgentConnectionScope = (
   }
   if (!agent || agent.status !== "active" || agent.id !== claims.agentId) {
     throw new Error("Agent token agent is inactive");
+  }
+  if ((claims.agentRevision ?? 0) !== (agent.runtime_revision ?? 0)) {
+    throw new Error("Agent token runtime revision is stale");
   }
   if (claims.agentUpdatedAt && claims.agentUpdatedAt !== agent.updated_at) {
     throw new Error("Agent token agent version is stale");

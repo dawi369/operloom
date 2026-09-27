@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { deriveRuntimeState } from "@/lib/workbench/chat-runtime-live-state";
+import { deriveRuntimeState, describeSummarySync } from "@/lib/workbench/chat-runtime-live-state";
 import { useAdminSummaryResource } from "@/lib/workbench/use-admin-summary-resource";
 import { useWorkbenchAgentConnection } from "@/lib/workbench/use-agent-connection";
 import { hasWorkbenchSessionAccess } from "@/lib/workbench/session-access";
@@ -39,6 +39,7 @@ export function WorkbenchRuntimeHint({
     refreshSummary,
     clearSummary,
     syncStatus: summarySyncStatus,
+    isLoading: summaryIsLoading,
   } = useAdminSummaryResource();
   const { user, loading } = useAuth();
   const {
@@ -80,6 +81,11 @@ export function WorkbenchRuntimeHint({
     summary,
     summaryError,
     authLoading: loading,
+  });
+  const summarySync = describeSummarySync({
+    isStale: liveRuntime.summaryIsStale,
+    isLoading: summaryIsLoading,
+    syncStatus: summarySyncStatus,
   });
   const hasError = Boolean(error ?? liveRuntime.errorMessage);
   const activeAgent = session?.activeAgent ?? summary?.activeAgent ?? null;
@@ -190,14 +196,10 @@ export function WorkbenchRuntimeHint({
         <div className="text-muted-foreground text-[11px]">
           Cached shell is visible; chat actions unlock after Cloudflare returns a live token.
         </div>
-      ) : liveRuntime.summaryIsStale ? (
+      ) : summarySync ? (
         <div className="text-muted-foreground flex items-center justify-between gap-2 text-[11px]">
-          <span>
-            {summarySyncStatus === "exhausted"
-              ? "Live updates are connected; details refresh is delayed."
-              : "Live updates are connected; synchronizing refreshed details."}
-          </span>
-          {summarySyncStatus === "exhausted" ? (
+          <span>{summarySync.message}</span>
+          {summarySync.canRefresh ? (
             <Button
               variant="ghost"
               size="sm"

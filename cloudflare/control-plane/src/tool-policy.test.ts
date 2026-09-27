@@ -75,9 +75,14 @@ describe("tool policy catalog", () => {
     });
   });
 
-  it("keeps mutation authority isolated to the explicit Complex Operator action", () => {
+  it("keeps mutation authority isolated to explicitly approved action bindings", () => {
+    const mutationTools = new Set([
+      "operator.action.execute",
+      "capacity.allocate",
+      "capacity.allocate-signed",
+    ]);
     for (const [toolName, policy] of Object.entries(toolPolicyCatalog)) {
-      if (toolName === "operator.action.execute") {
+      if (mutationTools.has(toolName)) {
         expect(policy.mutationRisk).toBe("mutation_capable");
         expect(policy.allowedExecutionModes).toEqual(["dry_run", "execute"]);
         expect(policy.requiresApproval).toBe(true);

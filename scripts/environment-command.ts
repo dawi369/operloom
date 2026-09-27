@@ -257,7 +257,56 @@ if (phase === "deploy-cloudflare" && featureStage !== "disabled") {
     throw new Error(`feature promotion evidence for ${previousStage} is invalid`);
   }
 }
-run(selected.command, selected.args, selected.env);
+if (phase === "deploy-cloudflare") {
+  run("pnpm", ["runtime:bundle", "--config", rendered.wranglerPath]);
+  const artifact = JSON.parse(
+    readFileSync(resolve(process.cwd(), "output/runtime-distribution/latest.json"), "utf8"),
+  ) as { directory: string };
+  run("pnpm", ["--dir", artifact.directory, "install", "--ignore-workspace", "--prefer-offline"]);
+  run("node", [
+    resolve(artifact.directory, "deploy-durable-runtime.mjs"),
+    "--remote",
+    "--origin",
+    rendered.manifest.cloudflare.origin,
+  ]);
+} else if (phase === "bootstrap-cloudflare") {
+  // Bootstrap is only a secret attachment point for a fresh/legacy Worker.
+  // It must not bypass durable retention after that schema has been installed.
+  const inspection = spawnSync(
+    "pnpm",
+    [
+      "exec",
+      "wrangler",
+      "d1",
+      "execute",
+      rendered.manifest.cloudflare.d1DatabaseName,
+      "--remote",
+      "--config",
+      rendered.wranglerPath,
+      "--json",
+      "--command",
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='control_durable_executions'",
+    ],
+    { cwd: process.cwd(), encoding: "utf8" },
+  );
+  if (inspection.status !== 0)
+    throw new Error("Bootstrap database inspection failed; no Worker was deployed");
+  const result = JSON.parse(inspection.stdout) as { success?: boolean; results?: unknown[] }[];
+  if (
+    !Array.isArray(result) ||
+    result.length !== 1 ||
+    result[0]?.success !== true ||
+    !Array.isArray(result[0].results)
+  )
+    throw new Error("Bootstrap database inspection was invalid");
+  if (result[0].results.length)
+    throw new Error(
+      "Durable schema already exists; use the final guarded Cloudflare deployment instead of bootstrap",
+    );
+  run(selected.command, selected.args, selected.env);
+} else {
+  run(selected.command, selected.args, selected.env);
+}
 const evidenceDirectory = resolve(process.cwd(), "output/release", sha);
 mkdirSync(evidenceDirectory, { recursive: true });
 writeFileSync(

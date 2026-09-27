@@ -210,7 +210,7 @@ export const handleRetryExecutionRun = async (
   if (!run) return json({ ok: false, error: "Run not found" }, { status: 404 });
   if (!isTerminalRunStatus(run.status) || run.status === "completed") {
     return json(
-      { ok: false, error: "Only failed or cancelled runs can be retried" },
+      { ok: false, error: "Only failed, blocked or cancelled runs can be retried" },
       { status: 409 },
     );
   }

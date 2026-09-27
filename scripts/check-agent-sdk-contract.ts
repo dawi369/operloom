@@ -27,6 +27,7 @@ const declarations = readdirSync(resolve(packageRoot, "dist"))
 const schemas = [
   resolve(packageRoot, "schemas/agent-pack-v2.schema.json"),
   resolve(packageRoot, "schemas/runtime-module-v1.schema.json"),
+  resolve(packageRoot, "schemas/runtime-module-v2.schema.json"),
 ];
 const files = [...declarations, ...schemas]
   .map((file) => ({

@@ -57,10 +57,18 @@ writeFileSync(
 run("pnpm", ["install", "--ignore-workspace", "--prefer-offline"], consumer);
 writeFileSync(
   resolve(consumer, "consumer.ts"),
-  `import { createWorkbenchClient, workbenchChatProtocolVersion } from "@operloom/workbench-client";
+  `import { createWorkbenchClient, createRuntimeClient, workbenchChatProtocolVersion } from "@operloom/workbench-client";
 
 const client = createWorkbenchClient({ baseUrl: "https://example.invalid", client: { platform: "ios", version: "test" }, fetch });
 void [client, workbenchChatProtocolVersion];
+const runtime = createRuntimeClient({ baseUrl: "https://example.invalid", target: { workspaceId: "w", agentId: "a" }, getAccessToken: async () => "token" });
+void runtime.state.records({ target: "simulation", namespace: "capacity", kind: "pool", limit: 10 }).then(page => page.records.map(record => record.version));
+void runtime.budgets.get().then(snapshot => snapshot.usage.knownTokens + snapshot.usage.estimatedTokens);
+void runtime.budgets.usage({ day: "2026-09-27", limit: 5 }).then(page => page.reservations.map(reservation => reservation.usageSource));
+void runtime.context.list({ runId: "run", runKind: "workflow", limit: 5 }).then(page => page.snapshots.map(snapshot => snapshot.revision));
+void runtime.admin.actions({ limit: 10 }).then(page => page.proposals.map(proposal => proposal.providerOperation?.status));
+void runtime.admin.requestAction("proposal").then(response => response.approvalRequest.requestHash);
+void runtime.admin.reconcileAction("proposal").then(response => response.result.status);
 `,
 );
 writeFileSync(
@@ -86,7 +94,7 @@ writeFileSync(
 run("pnpm", ["exec", "tsc", "-p", "tsconfig.json"], consumer);
 writeFileSync(
   resolve(consumer, "runtime.mjs"),
-  `import { createWorkbenchClient } from "@operloom/workbench-client";
+  `import { createWorkbenchClient, createRuntimeClient } from "@operloom/workbench-client";
 
 const response = (body, requestId) => new Response(JSON.stringify(body), {
   headers: { "content-type": "application/json", "x-request-id": requestId },
@@ -97,6 +105,18 @@ const valid = createWorkbenchClient({
   fetch: async () => response({ ok: true, runnable: true, workflows: [], additive: true }, "req_valid"),
 });
 if (!(await valid.workflows.list()).ok) throw new Error("Packed valid response was rejected.");
+const runtime = createRuntimeClient({
+  baseUrl: "https://example.invalid", target: { workspaceId: "w", agentId: "a" }, getAccessToken: async () => "token",
+  fetch: async () => response({ ok: true, records: [] }, "req_state"),
+});
+if ((await runtime.state.records({ target: "simulation", namespace: "capacity", kind: "pool" })).records.length !== 0)
+  throw new Error("Packed state client failed.");
+const evidence = createRuntimeClient({
+  baseUrl: "https://example.invalid", target: { workspaceId: "w", agentId: "a" }, getAccessToken: async () => "token",
+  fetch: async () => response({ ok: true, snapshots: [{ id: "context", captureKey: "run", revision: 0, stepId: null, status: "ready", capturedAt: "now" }] }, "req_context"),
+});
+if ((await evidence.context.list({ runId: "run", runKind: "workflow" })).snapshots[0].revision !== 0)
+  throw new Error("Packed context client failed.");
 
 const invalid = createWorkbenchClient({
   baseUrl: "https://example.invalid",

@@ -28,6 +28,19 @@ you need to change a particular boundary.
 - [Troubleshooting and resource limits](dev-infrastructure-readiness.md) · [Execution deadlines](runtime-deadlines.md)
 - [Release checklist](release-readiness.md) · [Dependency security](dependency-security.md)
 
+## Runtime delivery
+
+- [Headless runtime](headless-runtime.md): experimental direct API and client.
+- [Delivery evidence](runtime-delivery-status.md): local verification and remaining gates.
+- [Typed-state design](runtime-state-design.md): transaction and lifecycle boundaries.
+- [Simulation actions](runtime-simulation.md): explicit targets, atomic effects and safe replay.
+- [Bound action reviews](action-review-design.md): payload binding, expiry and atomic approval/dispatch admission.
+- [Package upgrades](package-upgrades.md): explicit version changes and immutable snapshot history.
+- [Chat command admission](chat-command-admission.md): pending work, revision fencing and recovery.
+- [Scoped runtime context](runtime-context.md): executable resolvers, evidence, freshness and no-op decisions.
+- [Models and budgets](runtime-models-and-budgets.md): structured calls, atomic reservations, usage and replay.
+- [Durable execution](durable-execution.md): persistence kernel and remaining engine integration gates.
+
 ## Future work
 
 [The roadmap](implementation-roadmap.md) separates future work from the stable

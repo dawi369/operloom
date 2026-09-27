@@ -13,6 +13,12 @@ export type WorkflowInvocationContext =
       idempotencyKey: string;
       scheduledFor: string | null;
       previousRunId: string | null;
+      triggerSnapshot?: {
+        inputJson: string;
+        executionJson: string;
+        configJson: string;
+        payloadJson: string;
+      };
     };
 
 export type RuntimeWorkflowExecutor = (

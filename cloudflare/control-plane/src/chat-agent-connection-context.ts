@@ -151,6 +151,7 @@ export const getOrCreateThreadAgentConnectionContext = async (
     workspaceId: identity.scope.workspaceId,
     agentId: identity.agentId,
     agentUpdatedAt: activeAgent?.updated_at,
+    agentRevision: activeAgent?.runtime_revision ?? 0,
     accountId: identity.accountId,
     accountSource: identity.accountSource,
   };

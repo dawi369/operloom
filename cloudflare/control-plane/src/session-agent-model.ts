@@ -29,6 +29,7 @@ export type ChatThreadListRow = ChatThreadRow & {
   agent_data_json: string | null;
   agent_created_at: string | null;
   agent_updated_at: string | null;
+  agent_runtime_revision?: number | null;
 };
 
 export type CoordinatorAction =
@@ -99,6 +100,7 @@ export type SessionContext = {
   workspaceId: string;
   agentId: string;
   agentUpdatedAt?: string;
+  agentRevision?: number;
   accountId?: string;
   accountSource?: string;
 };
@@ -276,6 +278,7 @@ export const rowAgent = (row: ChatThreadListRow): AgentRow | null => {
     data_json: row.agent_data_json ?? "{}",
     created_at: row.agent_created_at ?? row.created_at,
     updated_at: row.agent_updated_at ?? row.updated_at,
+    runtime_revision: row.agent_runtime_revision ?? 0,
   };
 };
 
@@ -371,6 +374,7 @@ export const listWorkspaceThreads = async (
             a.data_json AS agent_data_json,
             a.created_at AS agent_created_at,
             a.updated_at AS agent_updated_at,
+            a.runtime_revision AS agent_runtime_revision,
             (
               SELECT r.status
               FROM chat_runs r
@@ -501,6 +505,7 @@ export const sessionContext = async (
   workspaceId: identity.scope.workspaceId,
   agentId: input.agent.id,
   agentUpdatedAt: input.agent.updated_at,
+  agentRevision: input.agent.runtime_revision ?? 0,
   accountId: input.accountId,
   accountSource: input.accountSource,
 });
@@ -588,6 +593,7 @@ export const responseFromSnapshot = async (
           workspaceId: snapshot.context.workspaceId,
           agentId: snapshot.context.agentId,
           agentUpdatedAt: snapshot.context.agentUpdatedAt,
+          agentRevision: snapshot.context.agentRevision ?? 0,
           threadId: snapshot.context.threadId,
           sessionId: snapshot.context.sessionId,
           instanceName: snapshot.context.instanceName,
