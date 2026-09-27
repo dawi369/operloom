@@ -21,7 +21,9 @@ user, real OpenRouter model:
   completed; the wallet monitor reads live Polymarket activity; the heartbeat
   records a `noop` decision with its settings version and context snapshot.
 - Found and fixed upstream: request-mode monitor ticks failed with
-  `trigger_input_invalid`.
+  `trigger_input_invalid`; one slow `ps` poll stopped the whole local stack.
+- Gates: `pnpm verify:fast` and `pnpm test:e2e:local:release` (console,
+  operations panel, chat lifecycle and accessibility audits) pass.
 
 Not covered locally: WorkOS Google sign-in (the local stack uses local API auth,
 which the console only allows under `NODE_ENV=development`), live market quotes
