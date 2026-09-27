@@ -10,6 +10,7 @@ import { recoverExpiredTriggerDispatches } from "./trigger-recovery";
 import { handleCreateTriggerDispatch, handleReplayTriggerDispatch } from "./triggers";
 import type { ControlTriggerRow, ControlTriggerDispatchRow } from "./types";
 import type { DurableTriggerInvocation } from "./durable-trigger-links";
+import { readDurableRunTrigger } from "./durable-trigger-links";
 import { controlPlane } from "../../../examples/document-review/control-plane";
 import { createRuntimeClient } from "../../../packages/client/src/runtime-client";
 import { recoverDurableExecutions } from "./durable-recovery";
@@ -251,6 +252,7 @@ const triggerFixture = (db: DatabaseSync) => {
   const invocation: DurableTriggerInvocation = {
     source: "trigger",
     triggerId: "tr",
+    packTriggerId: "document-monitor",
     dispatchId: "dispatch",
     leaseOwner: "owner",
     attemptCount: 1,
@@ -537,6 +539,15 @@ describe("durable trigger admission", () => {
     expect(
       JSON.parse(String(db.prepare("SELECT data_json FROM control_runs").get()!.data_json)),
     ).toMatchObject({ logicalEventId: "dispatch", triggerDispatchId: "dispatch" });
+    expect(await readDurableRunTrigger(env, String(link.run_id))).toEqual({
+      id: "tr",
+      packTriggerId: "document-monitor",
+      dispatchId: "dispatch",
+      source: "monitor",
+      scheduledFor: null,
+      attempt: 1,
+    });
+    expect(await readDurableRunTrigger(env, "user-run")).toBeUndefined();
     expect(count(db, "control_durable_executions")).toBe(1);
     expect(await executeLeasedTriggerDispatch(env, item)).toMatchObject({ ok: true, status: 202 });
     expect(count(db, "control_durable_executions")).toBe(1);

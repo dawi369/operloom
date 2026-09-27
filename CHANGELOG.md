@@ -42,3 +42,8 @@ the baseline schema.
 - Packages declare operator-editable `settings` (versioned per agent, pinned per
   run, `GET/PUT /agents/{id}/settings`, shown to chat as data) and read-only
   `queries` (`GET /queries`, `POST /queries/{id}`) for client read models.
+- Monitors: triggered runs receive `context.run.trigger` (installed trigger,
+  package trigger id, dispatch, source, occurrence, attempt). The SDK adds
+  `observeMonitor`, `monitorFingerprint` and `monitorCursorState` for
+  once-per-change decisions. Rendered hosted Workers tick every minute and
+  `pnpm operloom dev` drives the scheduled handler locally.

@@ -224,6 +224,7 @@ export const executeLeasedTriggerDispatch = async (env: Env, item: LeasedTrigger
       {
         source: "trigger",
         triggerId: item.trigger.id,
+        packTriggerId: item.trigger.pack_trigger_id,
         dispatchId: item.dispatch.id,
         leaseOwner: item.dispatch.lease_owner ?? "",
         triggerSource: item.dispatch.source,

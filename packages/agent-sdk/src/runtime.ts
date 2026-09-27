@@ -114,6 +114,18 @@ export type ManagedStateWrite = {
   expectedVersion?: number;
 };
 
+export type RuntimeRunTrigger = Readonly<{
+  /** Installed trigger identity. */
+  id: string;
+  /** The trigger id declared by the package. */
+  packTriggerId: string;
+  /** One dispatch per occurrence; stable across retries of that occurrence. */
+  dispatchId: string;
+  source: "manual" | "schedule" | "monitor" | "webhook" | "replay";
+  scheduledFor: string | null;
+  attempt: number;
+}>;
+
 export type AgentExecutionContext = {
   scope: Readonly<RuntimeScope>;
   pack: Readonly<{ id: string; version: string; runtimeVersion: string }>;
@@ -122,6 +134,8 @@ export type AgentExecutionContext = {
     workflowIntentId: string;
     executionMode: AgentPackExecutionMode;
     source: "user" | "trigger" | "retry";
+    /** Present when a schedule, monitor, webhook, manual or replay dispatch admitted the run. */
+    trigger?: RuntimeRunTrigger;
   }>;
   /** Signed runner restrictions; network tools must enforce these on every hop. */
   networkPolicy?: Readonly<{

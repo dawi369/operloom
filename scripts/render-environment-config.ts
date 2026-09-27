@@ -100,7 +100,8 @@ export const renderEnvironmentConfig = (
       SENTRY_ENVIRONMENT: target,
       SENTRY_TRACES_SAMPLE_RATE: isDemo ? "0" : "0.02",
     },
-    ...(bootstrap ? {} : { triggers: { crons: isDemo ? ["17 3 * * *"] : [] } }),
+    // Triggers, monitors and recovery run from the scheduled handler; monitors are minute-scale.
+    ...(bootstrap ? {} : { triggers: { crons: isDemo ? ["17 3 * * *"] : ["* * * * *"] } }),
     d1_databases: [
       {
         binding: "DB",

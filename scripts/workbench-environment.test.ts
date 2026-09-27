@@ -80,7 +80,7 @@ describe("workbench environment manifests", () => {
       const worker = readFileSync(rendered.wranglerPath, "utf8");
       expect(worker).toContain("operloom-acceptance-control-plane");
       expect(worker).toContain('"workers_dev": true');
-      expect(worker).toContain('"crons": []');
+      expect(worker).toContain('"* * * * *"');
       expect(worker).not.toContain("OPERLOOM_ACCEPTANCE_RUNNER_SIGNING_SECRET");
       expect(readFileSync(rendered.flyPath, "utf8")).toContain("min_machines_running = 0");
 

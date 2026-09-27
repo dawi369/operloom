@@ -58,5 +58,9 @@ describe("local workbench supervisor", () => {
     );
     expect(runner.env.OPERLOOM_CALLBACK_ORIGIN).toBe("http://127.0.0.1:8787");
     expect(runner.healthUrl).toBe("http://127.0.0.1:3101/health");
+    expect(configuration.scheduler).toEqual({
+      url: "http://127.0.0.1:8787/cdn-cgi/handler/scheduled?cron=*%20*%20*%20*%20*",
+      intervalMs: 60_000,
+    });
   });
 });

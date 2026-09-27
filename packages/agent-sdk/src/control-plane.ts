@@ -13,6 +13,7 @@ export {
   type RuntimeHealthBinding,
   type RuntimeRecord,
   type RuntimeResult,
+  type RuntimeRunTrigger,
   type RuntimeToolBinding,
   type RuntimeWorkflowBinding,
 } from "./runtime.js";
@@ -33,3 +34,4 @@ export * from "./durable.js";
 export * from "./simulation.js";
 export * from "./settings.js";
 export * from "./queries.js";
+export * from "./monitor.js";

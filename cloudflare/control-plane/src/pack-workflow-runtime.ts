@@ -6,6 +6,7 @@ export type WorkflowInvocationContext =
   | {
       source: "trigger";
       triggerId: string;
+      packTriggerId: string;
       dispatchId: string;
       leaseOwner: string;
       triggerSource: "manual" | "schedule" | "monitor" | "webhook" | "replay";

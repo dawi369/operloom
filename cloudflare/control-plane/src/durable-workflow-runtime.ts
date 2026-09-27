@@ -1,3 +1,4 @@
+import { readDurableRunTrigger } from "./durable-trigger-links";
 import { readRunSettings } from "./agent-settings";
 import {
   beginDurableEngineDispatch,
@@ -122,11 +123,7 @@ export const runDurableWorkflow = async (
     return { stepId: runId };
   });
   const input = JSON.parse(execution.input_json) as RuntimeRecord;
-  const triggerLink = await env.DB.prepare(
-    "SELECT dispatch_id FROM control_durable_trigger_links WHERE run_id=?",
-  )
-    .bind(runId)
-    .first<{ dispatch_id: string }>();
+  const trigger = await readDurableRunTrigger(env, runId);
   const usedNames = new Set<string>();
   const authority = () => requireDurableExecutionAuthority(env, identity, runId, pins);
   const reserveName = (name: string) => {
@@ -224,7 +221,8 @@ export const runDurableWorkflow = async (
                 id: runId,
                 workflowIntentId: execution.workflow_intent_id,
                 executionMode: "dry_run",
-                source: triggerLink ? "trigger" : "user",
+                source: trigger ? "trigger" : "user",
+                ...(trigger ? { trigger } : {}),
               },
               signal: controller.signal,
               connections: defaultConnectionPort([]),

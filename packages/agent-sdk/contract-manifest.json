@@ -20,7 +20,7 @@
     },
     {
       "path": "dist/control-plane.d.ts",
-      "sha256": "e50b0c48db396a2c8a4f83e47ee504c0eb91682c37d5d688ac3af64bde850c37"
+      "sha256": "30a12751ad6a8cc0fc5ee533417fe65535e131ed7707b59ea2b04ebd51310ea9"
     },
     {
       "path": "dist/durable.d.ts",
@@ -28,7 +28,7 @@
     },
     {
       "path": "dist/index.d.ts",
-      "sha256": "d82185a9df7631f4bc1b3d0d1f1f6456b3a922be9a887714054fd0afddb11c7b"
+      "sha256": "37c5c9e42b7941ff3f8ba9d42d7ce84e931e7a110cf3bc9a739993f8dfa4c883"
     },
     {
       "path": "dist/manifest.d.ts",
@@ -37,6 +37,10 @@
     {
       "path": "dist/models.d.ts",
       "sha256": "8731e7ef7444d56cf6333e58f0ae4f6a4da25f0aa49389ede04222bd87b0485c"
+    },
+    {
+      "path": "dist/monitor.d.ts",
+      "sha256": "50d1657142a530bacf74b0c72719116c44f0eba143e660f98649bb1a4ab023a8"
     },
     {
       "path": "dist/queries.d.ts",
@@ -48,7 +52,7 @@
     },
     {
       "path": "dist/runtime.d.ts",
-      "sha256": "ec85719092c790b59ff5d1c3292d6e2ad519573e6fb6d3105f29fe8e83432eeb"
+      "sha256": "1778c1da607a350b1544b83d9c26912849d41df0d6ed746a5582c1d9dc92257b"
     },
     {
       "path": "dist/schema.d.ts",

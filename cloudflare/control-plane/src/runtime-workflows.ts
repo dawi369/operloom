@@ -11,6 +11,7 @@ import {
   assertSchemaValue,
   type AgentExecutionContext,
   type RuntimeResult,
+  type RuntimeRunTrigger,
   type RuntimeToolBinding,
   type RuntimeWorkflowBinding,
 } from "@operloom/agent-sdk/control-plane";
@@ -118,6 +119,20 @@ export const listRuntimeWorkflows = async (env: Env, identity: AgentIdentity) =>
       })),
   });
 };
+
+export const runTriggerContext = (
+  invocation: WorkflowInvocationContext,
+): RuntimeRunTrigger | undefined =>
+  invocation.source === "trigger"
+    ? Object.freeze({
+        id: invocation.triggerId,
+        packTriggerId: invocation.packTriggerId,
+        dispatchId: invocation.dispatchId,
+        source: invocation.triggerSource,
+        scheduledFor: invocation.scheduledFor,
+        attempt: invocation.attemptCount,
+      })
+    : undefined;
 
 export const executeRuntimeWorkflowRequest = async (
   workflowType: string,
@@ -405,6 +420,7 @@ export const executeRuntimeWorkflowRequest = async (
       workflowIntentId: started.workflowIntentId,
       executionMode: "dry_run",
       source: invocation.source === "trigger" ? "trigger" : "user",
+      ...(invocation.source === "trigger" ? { trigger: runTriggerContext(invocation) } : {}),
     },
     settings,
     signal: controller.signal,

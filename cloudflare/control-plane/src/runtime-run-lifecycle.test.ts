@@ -86,6 +86,7 @@ describe("pack workflow lifecycle", () => {
       invocation: {
         source: "trigger",
         triggerId: "trigger-1",
+        packTriggerId: "scheduled-readiness",
         dispatchId: "dispatch-1",
         leaseOwner: "scheduler-1",
         triggerSource: "replay",
@@ -127,6 +128,7 @@ describe("pack workflow lifecycle", () => {
         invocation: {
           source: "trigger",
           triggerId: "trigger-1",
+          packTriggerId: "scheduled-readiness",
           dispatchId: "dispatch-stale",
           leaseOwner: "stale-owner",
           triggerSource: "schedule",

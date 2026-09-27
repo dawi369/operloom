@@ -20,6 +20,8 @@ export type LocalWorkbenchService = {
 
 export type LocalWorkbenchConfiguration = {
   services: LocalWorkbenchService[];
+  /** Local wrangler does not run crons; the supervisor calls the scheduled handler instead. */
+  scheduler: { url: string; intervalMs: number };
 };
 
 const required = (values: Record<string, string>, key: string, source: string) => {
@@ -67,6 +69,10 @@ export const createLocalWorkbenchConfiguration = (
   };
 
   return {
+    scheduler: {
+      url: `http://127.0.0.1:${workerPort}/cdn-cgi/handler/scheduled?cron=${encodeURIComponent("* * * * *")}`,
+      intervalMs: 60_000,
+    },
     services: [
       {
         name: "frontend",
@@ -148,11 +154,13 @@ const main = async () => {
 
   const children = new Map<ServiceName, ReturnType<typeof startManagedProcess>>();
   let stopping = false;
+  let schedulerTimer: ReturnType<typeof setInterval> | undefined;
   const startup = new AbortController();
   const stop = (exitCode: number) => {
     if (stopping) return;
     stopping = true;
     startup.abort();
+    clearInterval(schedulerTimer);
     for (const child of children.values()) child.stop();
     process.exitCode = exitCode;
   };
@@ -182,6 +190,14 @@ const main = async () => {
       configuration.services.map((service) => waitForHealth(service, startup.signal)),
     );
     console.log("Workbench is ready. Run `pnpm workbench doctor` in another terminal.");
+    const { scheduler } = configuration;
+    schedulerTimer = setInterval(() => {
+      void fetch(scheduler.url, { signal: AbortSignal.timeout(30_000) })
+        .then((response) => {
+          if (!response.ok) console.error(`Scheduler tick failed (HTTP ${response.status})`);
+        })
+        .catch(() => console.error("Scheduler tick failed: Worker unreachable"));
+    }, scheduler.intervalMs);
   } catch (error) {
     if (!stopping) console.error(error instanceof Error ? error.message : String(error));
     stop(1);

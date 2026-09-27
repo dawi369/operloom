@@ -181,6 +181,48 @@ key. Pack installation never grants credentials, model exposure, trigger
 authority, or mutation rights. Validation rejects non-serializable values,
 invalid references, duplicate identifiers, and non-positive limits.
 
+### Monitors
+
+Rendered hosted Workers run the scheduled handler every minute, and
+`pnpm operloom dev` calls it every minute locally. Monitor intervals are at least 60 seconds.
+Each occurrence creates one dispatch; its run sees `context.run.trigger`
+(`id`, `packTriggerId`, `dispatchId`, `source`, `scheduledFor`, `attempt`),
+which stays the same when that occurrence is retried.
+
+A monitor tick should observe, then no-op unless something changed:
+
+```ts
+import { monitorCursorState, monitorFingerprint, observeMonitor } from "@operloom/agent-sdk";
+
+// state: [monitorCursorState("capacity"), ...]
+const observation = await observeMonitor(state, {
+  namespace: "capacity",
+  key: "pool",
+  fingerprint: await monitorFingerprint(snapshot),
+  observedAt: new Date().toISOString(),
+});
+if (!observation.changed)
+  return { ok: true, output: { outcome: "no_change" }, summary: "Unchanged." };
+await state.commit({
+  idempotencyKey: `${context.run.trigger?.dispatchId ?? context.run.id}.decision`,
+  reads: [...observation.commit.reads],
+  writes: [...observation.commit.writes],
+  entries: [{ id: `${context.run.id}.decision`, type: "decision", data: { outcome: "escalate" } }],
+});
+```
+
+The cursor read is versioned, so a concurrent or retried tick for the same
+observation conflicts instead of recording a second decision.
+
+### Settings And Queries
+
+`settings` declares a JSON schema, defaults, and the top-level keys operators
+may edit (`GET/PUT /agents/{id}/settings`, owner/admin, versioned). Runs read
+the values pinned at admission from `context.settings`; chat receives editable
+values as data in the system prompt. `queries` are bounded, read-only
+projections for clients (`GET /queries`, `POST /queries/{id}`) that see
+`settings` and the `get`/`list` state port for the agent's current effect target.
+
 Connection descriptors are part of Pack API v2. They bind declared tools
 to a provider, principal, credential class, scopes, required/optional posture,
 and either `none` or `external_broker` custody. Credentialed descriptors use the

@@ -1,3 +1,5 @@
+import type { RuntimeRunTrigger } from "@operloom/agent-sdk/control-plane";
+
 import type { AgentIdentity, Env } from "./types";
 import type { WorkflowInvocationContext } from "./pack-workflow-runtime";
 
@@ -57,4 +59,37 @@ export const durableTriggerLinkStatement = (
     invocation.leaseOwner,
     invocation.attemptCount,
   );
+};
+
+/** The trigger occurrence that admitted a durable run, from its immutable admission link. */
+export const readDurableRunTrigger = async (
+  env: Env,
+  runId: string,
+): Promise<RuntimeRunTrigger | undefined> => {
+  const row = await env.DB.prepare(
+    `SELECT l.trigger_id, l.dispatch_id, t.pack_trigger_id, d.source, d.scheduled_for, d.attempt_count
+     FROM control_durable_trigger_links l
+     JOIN control_trigger_dispatches d ON d.id = l.dispatch_id
+     LEFT JOIN control_triggers t ON t.id = l.trigger_id
+     WHERE l.run_id = ?`,
+  )
+    .bind(runId)
+    .first<{
+      trigger_id: string;
+      dispatch_id: string;
+      pack_trigger_id: string | null;
+      source: RuntimeRunTrigger["source"];
+      scheduled_for: string | null;
+      attempt_count: number;
+    }>();
+  return row
+    ? Object.freeze({
+        id: row.trigger_id,
+        packTriggerId: row.pack_trigger_id ?? "",
+        dispatchId: row.dispatch_id,
+        source: row.source,
+        scheduledFor: row.scheduled_for,
+        attempt: row.attempt_count,
+      })
+    : undefined;
 };
