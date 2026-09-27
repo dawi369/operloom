@@ -17,6 +17,7 @@ import {
 
 import { packWorkflowBindings, resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import { resolveAgentBehaviorConfig } from "./agent-records";
+import { agentSettingsFor, settingsPin } from "./agent-settings";
 import { selectAgent } from "./authz-store";
 import { appendControlPlaneEvent } from "./control-plane-events";
 import { isRecord, json, parseJson } from "./http";
@@ -225,6 +226,7 @@ export const executeRuntimeWorkflowRequest = async (
           maxSteps: workflow.durable.maxSteps,
           maxDurationMs: workflow.durable.maxDurationMs,
           maxActiveRuns: pack.resourceLimits.maxConcurrentRuns,
+          settings: agentSettingsFor(agent),
         },
         invocation.source === "trigger" ? invocation : undefined,
       );
@@ -310,6 +312,7 @@ export const executeRuntimeWorkflowRequest = async (
   const quotaResponse = await claimDemoDailyUsage(env, identity, "workflow");
   if (quotaResponse) return quotaResponse;
 
+  const settings = agentSettingsFor(agent);
   const started = await startPackWorkflowRun(env, identity, {
     workflowType,
     policyReference: `runtime:${pack.id}:${runtime.runtimeVersion}`,
@@ -323,6 +326,7 @@ export const executeRuntimeWorkflowRequest = async (
       packVersion: pack.version,
       runtimeVersion: runtime.runtimeVersion,
       bindingVersion: 1,
+      ...settingsPin(settings),
       transports: Array.from(
         new Set(
           workflow.toolIds.map((toolId) => {
@@ -402,6 +406,7 @@ export const executeRuntimeWorkflowRequest = async (
       executionMode: "dry_run",
       source: invocation.source === "trigger" ? "trigger" : "user",
     },
+    settings,
     signal: controller.signal,
     connections: createBrokeredConnectionPort(env, identity, pack.connections),
     actions: createDurableActionPort(env, identity, {
@@ -467,6 +472,7 @@ export const executeRuntimeWorkflowRequest = async (
             runKind: "workflow",
             input,
             target: effectTargetOf(identity),
+            settingsVersion: settings.version,
             signal: controller.signal,
           });
           if (evidence) {

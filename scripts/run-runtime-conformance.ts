@@ -385,6 +385,22 @@ const main = async () => {
     });
     if (reviewState.records.length !== 1 || reviewState.records[0].version !== 1)
       throw new Error("Unchanged document caused another state write");
+    const reviewerSettings = await reviewerClient.admin.settings(reviewer.agent.id);
+    const strictSettings = await reviewerClient.admin.updateSettings(reviewer.agent.id, {
+      values: { strictness: "strict" },
+      expectedVersion: reviewerSettings.version,
+    });
+    const reviewSummary = await reviewerClient.queries.run<{
+      strictness: string;
+      reviews: { documentId: string }[];
+    }>("document-review.summary");
+    if (
+      reviewerSettings.values.strictness !== "normal" ||
+      strictSettings.version !== reviewerSettings.version + 1 ||
+      reviewSummary.output.strictness !== "strict" ||
+      reviewSummary.output.reviews.map((review) => review.documentId).join() !== "guide"
+    )
+      throw new Error("Package settings or queries did not round-trip through /v1");
     const reviewEvidence = await reviewerClient.context.snapshot(firstReview.report.snapshotId);
     if (
       reviewEvidence.snapshot.status !== "ready" ||

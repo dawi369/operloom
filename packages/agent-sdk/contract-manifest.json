@@ -16,11 +16,11 @@
     },
     {
       "path": "dist/context.d.ts",
-      "sha256": "c393d409df7365be9f46bcdddad5b097678c7f6949bfcc425247b3c0bc76160c"
+      "sha256": "ab369340250adce654690cdaf64044e01d9f487831f6f842323908d917b39dc8"
     },
     {
       "path": "dist/control-plane.d.ts",
-      "sha256": "890cc4ed2a68e991e3a8bb002b2c901cf34b9777d4b35cb11ac06b0f65a3a548"
+      "sha256": "e50b0c48db396a2c8a4f83e47ee504c0eb91682c37d5d688ac3af64bde850c37"
     },
     {
       "path": "dist/durable.d.ts",
@@ -28,7 +28,7 @@
     },
     {
       "path": "dist/index.d.ts",
-      "sha256": "d8caf510df5d56a3d6ba81bb3099c964a5d60206aec21e2876f6a274348e2a38"
+      "sha256": "d82185a9df7631f4bc1b3d0d1f1f6456b3a922be9a887714054fd0afddb11c7b"
     },
     {
       "path": "dist/manifest.d.ts",
@@ -39,16 +39,24 @@
       "sha256": "8731e7ef7444d56cf6333e58f0ae4f6a4da25f0aa49389ede04222bd87b0485c"
     },
     {
+      "path": "dist/queries.d.ts",
+      "sha256": "439196d06be864c7ffbcbb7028b1d1370fa2ae88fbc6f5ddbbb1b0d296d6cfb5"
+    },
+    {
       "path": "dist/runner.d.ts",
       "sha256": "5590123aa5f7bb8b4a2b025996c19cb0bce94f4b28a5fadcaa0394c7ce92110d"
     },
     {
       "path": "dist/runtime.d.ts",
-      "sha256": "35066bb05eda2659d483815cc7b9afb3836c2c76b9a16512cf69579d718df27f"
+      "sha256": "ec85719092c790b59ff5d1c3292d6e2ad519573e6fb6d3105f29fe8e83432eeb"
     },
     {
       "path": "dist/schema.d.ts",
       "sha256": "bb65d208be440c55ef3a6f37231b781f37bff5ae51935fe35d0471a4afac16d8"
+    },
+    {
+      "path": "dist/settings.d.ts",
+      "sha256": "b3563bec27b055f7b6c1b37b880f4cff285eaa301dc5d0432cfe609b9078e852"
     },
     {
       "path": "dist/simulation.d.ts",
@@ -72,7 +80,7 @@
     },
     {
       "path": "schemas/runtime-module.schema.json",
-      "sha256": "81c84376106c36035a17a592d1f88530c112c9e7c0059872051bfd39b97255bb"
+      "sha256": "8851d006933c76cf15664214946a0fe7995e6edf7bc00b0657515f1977f6b1b9"
     }
   ]
 }

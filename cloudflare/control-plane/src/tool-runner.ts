@@ -5,7 +5,7 @@ import {
 import type { UrlInspectResult } from "../../../lib/workbench/url-inspect";
 import type { RepoSnapshotResult } from "../../../lib/workbench/repo-snapshot";
 import type { RunnerEchoResult } from "../../../lib/workbench/admin-test-tools";
-import type { RuntimeResult } from "@operloom/agent-sdk/control-plane";
+import type { RuntimeResult, RuntimeSettings } from "@operloom/agent-sdk/control-plane";
 import type { AgentIdentity, Env, ExecutionMode, TenantScope } from "./types";
 
 export const cloudflareInlineRunnerTransport = "cloudflare_inline";
@@ -179,6 +179,7 @@ export type ToolRunnerInvocation = {
   toolName: string;
   execution: ToolRunnerExecution;
   input: Record<string, unknown>;
+  settings?: RuntimeSettings;
   runner: ToolRunnerMetadata;
   callback?: ToolRunnerCallbackContext;
   connectionCapability?: {

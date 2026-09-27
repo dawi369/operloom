@@ -10,3 +10,5 @@ export * from "./context.js";
 export * from "./models.js";
 export * from "./durable.js";
 export * from "./simulation.js";
+export * from "./settings.js";
+export * from "./queries.js";

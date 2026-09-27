@@ -124,6 +124,50 @@ export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
   ],
   health: [],
   evals: [],
+  settings: {
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: { strictness: { type: "string", enum: ["normal", "strict"] } },
+    },
+    defaults: { strictness: "normal" },
+    editable: ["strictness"],
+  },
+  queries: [
+    {
+      id: "document-review.summary",
+      description: "Reviewed documents in the agent's current effect-target scope.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: { limit: { type: "integer", minimum: 1, maximum: 50 } },
+      },
+      outputSchema: {
+        type: "object",
+        required: ["strictness", "reviews"],
+        properties: {
+          strictness: { type: "string" },
+          reviews: { type: "array", maxItems: 50 },
+        },
+      },
+      async execute(input, context) {
+        const listed = await context.state?.list({
+          namespace: "documents",
+          kind: "review",
+          limit: Number(input.limit ?? 20),
+        });
+        return {
+          strictness: String(context.settings.values.strictness),
+          reviews: (listed?.records ?? []).map((record) => ({
+            documentId: record.key,
+            version: record.version,
+            wordCount: record.data.wordCount,
+            status: record.data.status,
+          })),
+        };
+      },
+    },
+  ],
   context: [
     {
       id: "document.input",
@@ -481,6 +525,7 @@ export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
               data: {
                 outcome,
                 snapshotId: evidence.snapshot.id,
+                strictness: String(context.settings.values.strictness),
                 explanation: unchanged
                   ? "The supplied document content is unchanged; no model or state update was needed."
                   : "A deterministic word count was recorded. Semantic review was not performed.",

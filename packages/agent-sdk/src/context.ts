@@ -48,6 +48,8 @@ export type RuntimeContextSnapshot = RuntimeContextEvidence & {
   runKind: "workflow" | "chat";
   target: "simulation" | "external";
   agentRevision: number;
+  /** Settings version pinned by the run; absent on historical snapshots. */
+  settingsVersion?: number;
   packId: string;
   packVersion: string;
   runtimeVersion: string;

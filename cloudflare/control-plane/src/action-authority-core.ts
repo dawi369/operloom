@@ -1,3 +1,4 @@
+import { readRunSettings } from "./agent-settings";
 import {
   assertSchemaValue,
   type ActionExecutionResult,
@@ -7,6 +8,7 @@ import {
   type RuntimeRecord,
   type RuntimeToolBinding,
   type RuntimeResult,
+  type RuntimeSettings,
 } from "@operloom/agent-sdk/control-plane";
 import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
@@ -330,8 +332,10 @@ export const executionContext = (
   identity: AgentIdentity,
   row: ControlActionProposalRow,
   connections: readonly AgentPackConnectionDescriptor[],
+  settings: RuntimeSettings,
 ): AgentExecutionContext => ({
   scope: { ...identity.scope, agentId: identity.agentId },
+  settings,
   pack: { id: row.pack_id, version: row.pack_version, runtimeVersion: row.runtime_version },
   run: {
     id: row.run_id,
@@ -457,7 +461,13 @@ export const dispatchAction = async (
       return dispatchProviderOperation(env, identity, row.id, binding);
     return binding.action.execute(
       proposal,
-      executionContext(env, identity, row, manifestConnections(row.pack_id)),
+      executionContext(
+        env,
+        identity,
+        row,
+        manifestConnections(row.pack_id),
+        await readRunSettings(env, identity, row.run_id),
+      ),
     );
   }
   const runner = runnerMetadataFor(

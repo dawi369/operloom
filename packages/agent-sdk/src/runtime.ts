@@ -130,6 +130,8 @@ export type AgentExecutionContext = {
     allowedHosts: readonly string[];
     deniedHosts: readonly string[];
   }>;
+  /** Operator settings pinned when the run was admitted. */
+  settings: import("./settings.js").RuntimeSettings;
   signal: AbortSignal;
   connections: ConnectionPort;
   actions: ActionPort;
@@ -266,6 +268,8 @@ export type ControlPlaneRuntimeModule = {
   context?: readonly import("./context.js").RuntimeContextBinding[];
   state?: readonly import("./state.js").RuntimeStateDefinition[];
   stateMigrations?: readonly import("./state.js").RuntimeStateMigration[];
+  settings?: import("./settings.js").RuntimeSettingsDefinition;
+  queries?: readonly import("./queries.js").RuntimeQueryBinding[];
 };
 
 export type RunnerRuntimeModule = {

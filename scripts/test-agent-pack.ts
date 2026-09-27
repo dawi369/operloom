@@ -2,6 +2,7 @@ import {
   assertSchemaValue,
   defaultActionPort,
   defaultConnectionPort,
+  resolveRuntimeSettings,
   type AgentExecutionContext,
   type RuntimeResult,
   type RuntimeToolBinding,
@@ -115,6 +116,7 @@ export const runAgentPackConformance = async (root: string, requested: string) =
     };
     context = {
       scope: { userId: "conformance-user", workspaceId: "tenant-a", agentId: "agent-a" },
+      settings: resolveRuntimeSettings(loaded.controlPlane.settings),
       pack: {
         id: loaded.manifest.id,
         version: loaded.manifest.version,

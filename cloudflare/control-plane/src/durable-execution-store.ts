@@ -3,11 +3,13 @@ import {
   assertSchemaValue,
   type JsonSchema,
   type RuntimeRecord,
+  type RuntimeSettings,
 } from "@operloom/agent-sdk";
 import { durableExecutionLiveSql as live } from "./durable-attempt-authority";
 import { sha256Hex } from "../../../lib/workbench/control-plane-signing";
 import { resolveAgentBehaviorConfig, resolveAgentRuntimeConfig } from "./agent-records";
 import { runtimeStateCanonicalJson } from "./runtime-state";
+import { settingsPin } from "./agent-settings";
 import { buildControlRunRelation } from "./run-relations";
 import {
   createId,
@@ -179,6 +181,7 @@ export const admitDurableExecution = async (
     maxSteps: number;
     maxDurationMs: number;
     maxActiveRuns: number;
+    settings: RuntimeSettings;
   },
   invocation?: DurableTriggerInvocation,
 ) => {
@@ -264,6 +267,7 @@ export const admitDurableExecution = async (
     workflowVersion: input.workflowVersion,
     agentRevision: identity.agentRevision ?? 0,
     effectTarget: effectTargetOf(identity),
+    ...settingsPin(input.settings),
     relation: relation.relation,
     logicalEventId: invocation?.dispatchId ?? runId,
     ...(invocation

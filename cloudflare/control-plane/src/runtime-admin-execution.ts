@@ -1,3 +1,4 @@
+import { currentAgentSettings } from "./agent-settings";
 import { type AgentExecutionContext } from "@operloom/agent-sdk/control-plane";
 
 import { json } from "./http";
@@ -26,6 +27,7 @@ export const executeResolvedRuntimeAdminTool = async (input: {
   const toolCallId = `${started.runId}-tool-${binding.id.replaceAll(".", "-")}`;
   const context: AgentExecutionContext = {
     scope: { ...input.identity.scope, agentId: input.identity.agentId },
+    settings: await currentAgentSettings(input.env, input.identity),
     pack: { id: packId, version: packVersion, runtimeVersion },
     run: {
       id: started.runId,

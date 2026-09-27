@@ -160,6 +160,7 @@ const submission = {
   maxSteps: 4,
   maxDurationMs: 600000,
   maxActiveRuns: 4,
+  settings: { version: 3, values: { strictness: "strict" } },
 };
 const pins = {
   definitionHash: submission.definitionHash,
@@ -275,6 +276,13 @@ describe("durable deployment gate", () => {
     const { db, env } = fixture();
     const sql = adapter(db);
     const original = await admitDurableExecution(env, identity, submission);
+    const pinned = db
+      .prepare("SELECT data_json FROM control_runs WHERE id = ?")
+      .get(original.execution.run_id) as { data_json: string };
+    expect(JSON.parse(pinned.data_json)).toMatchObject({
+      settingsVersion: 3,
+      settings: { strictness: "strict" },
+    });
     await acquireDeploymentFence(sql, fence);
     db.exec(
       "CREATE TRIGGER fail_activation BEFORE INSERT ON control_durable_deployment_generation BEGIN SELECT RAISE(ABORT,'activation failed'); END",

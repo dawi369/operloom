@@ -1,3 +1,4 @@
+import { currentAgentSettings } from "./agent-settings";
 import { bindRuntimeContext } from "./runtime-context";
 import type { RuntimeContextPort } from "@operloom/agent-sdk";
 import { jsonSchema, tool, type ToolSet } from "ai";
@@ -182,6 +183,7 @@ const buildRuntimeModelTool = (input: {
       );
       const context: AgentExecutionContext = {
         scope: { ...input.identity.scope, agentId: input.identity.agentId },
+        settings: await currentAgentSettings(input.env, input.identity),
         pack: {
           id: input.pack.id,
           version: input.pack.version,

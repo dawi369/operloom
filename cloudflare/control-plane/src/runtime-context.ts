@@ -50,6 +50,7 @@ export const captureRuntimeContext = async (
     target: "simulation" | "external";
     signal: AbortSignal;
     durableAttempt?: DurableAttemptAuthority;
+    settingsVersion?: number;
   },
 ): Promise<RuntimeContextPort | undefined> => {
   input = { ...input, durableAttempt: input.durableAttempt && { ...input.durableAttempt } };
@@ -186,6 +187,7 @@ export const captureRuntimeContext = async (
     runKind: input.runKind,
     target: input.target,
     agentRevision: identity.agentRevision ?? 0,
+    settingsVersion: input.settingsVersion ?? 0,
     packId: pack.id,
     packVersion: pack.version,
     runtimeVersion: runtime.runtimeVersion,

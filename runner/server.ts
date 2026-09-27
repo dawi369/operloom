@@ -21,6 +21,7 @@ import {
   type AgentPackConnectionDescriptor,
   type ConnectionPort,
   type RuntimeResult,
+  type RuntimeSettings,
   type RuntimeToolBinding,
 } from "@operloom/agent-sdk/control-plane";
 import { agentManifestRegistry } from "../generated/agent-runtime/manifests";
@@ -194,6 +195,7 @@ const verifyRunnerSignature = async (
 type ToolRunnerInvocation = {
   toolName?: string;
   input?: unknown;
+  settings?: unknown;
   scope?: {
     userId?: unknown;
     workspaceId?: unknown;
@@ -271,6 +273,19 @@ type WorkflowCallbackPayload = {
 };
 
 type RunnerToolResult = RuntimeResult;
+
+const runnerSettings = (value: unknown): RuntimeSettings => {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return { version: 0, values: {} };
+  const { version, values } = value as { version?: unknown; values?: unknown };
+  return {
+    version: Number.isSafeInteger(version) ? (version as number) : 0,
+    values:
+      values && typeof values === "object" && !Array.isArray(values)
+        ? (values as Record<string, unknown>)
+        : {},
+  };
+};
 
 const callbackTraceId = (invocation: ToolRunnerInvocation) => {
   if (typeof invocation.callback?.traceId === "string" && invocation.callback.traceId.trim()) {
@@ -663,6 +678,7 @@ const handleToolRunnerInvocation = async (
         ? parsed.toolCallId
         : `${runId}-tool-${String(parsed.toolName).replace(/[^a-z0-9_-]/gi, "-")}`;
     const context: AgentExecutionContext = {
+      settings: runnerSettings(parsed.settings),
       scope: {
         userId: typeof parsed.scope?.userId === "string" ? parsed.scope.userId : "unknown-user",
         workspaceId:

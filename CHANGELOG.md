@@ -39,3 +39,6 @@ the baseline schema.
   agents in simulation run it instead of the provider, connection or runner,
   with identical results, approvals, receipts and projections. `actions.simulate`
   and simulation-only bindings are removed.
+- Packages declare operator-editable `settings` (versioned per agent, pinned per
+  run, `GET/PUT /agents/{id}/settings`, shown to chat as data) and read-only
+  `queries` (`GET /queries`, `POST /queries/{id}`) for client read models.

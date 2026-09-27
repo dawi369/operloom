@@ -1,3 +1,4 @@
+import { readRunSettings } from "./agent-settings";
 import {
   assertSchemaValue,
   type ActionExecutionResult,
@@ -478,7 +479,13 @@ export const reconcileActionProposal = async (
           }
       : await binding.action!.reconcile!(
           proposal,
-          executionContext(env, identity, row, manifestConnections(row.pack_id)),
+          executionContext(
+            env,
+            identity,
+            row,
+            manifestConnections(row.pack_id),
+            await readRunSettings(env, identity, row.run_id),
+          ),
         );
   const timestamp = new Date().toISOString();
   if (binding.action?.providerOperation && result.output?.dispatchStatus === "not_dispatched")

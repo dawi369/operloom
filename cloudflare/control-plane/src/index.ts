@@ -35,6 +35,8 @@ import {
   handleListAgentBehaviorTemplates,
   handleListAgents,
 } from "./agents";
+import { handleGetAgentSettings, handleUpdateAgentSettings } from "./agent-settings";
+import { handleListRuntimeQueries, handleRunRuntimeQuery } from "./runtime-queries";
 import { handleChatRuntimeSummary } from "./chat-runtime-summary";
 import {
   handleActivateChatSessionThread,
@@ -847,6 +849,19 @@ const handleRequest = async (
     if (request.method === "PUT")
       return handleUpdateAgentEffectTarget(request, env, identity, agentId);
   }
+
+  const settingsMatch = url.pathname.match(/^\/agents\/([^/]+)\/settings$/);
+  if (settingsMatch?.[1]) {
+    const agentId = decodeURIComponent(settingsMatch[1]);
+    if (request.method === "GET") return handleGetAgentSettings(env, identity, agentId);
+    if (request.method === "PUT") return handleUpdateAgentSettings(request, env, identity, agentId);
+  }
+
+  if (request.method === "GET" && url.pathname === "/queries")
+    return handleListRuntimeQueries(env, identity);
+  const queryMatch = url.pathname.match(/^\/queries\/([^/]+)$/);
+  if (request.method === "POST" && queryMatch?.[1])
+    return handleRunRuntimeQuery(request, env, identity, decodeURIComponent(queryMatch[1]));
 
   if (request.method === "GET" && url.pathname === "/events/latest") {
     return json(await handleLatestControlPlaneEvents(env, identity, url));

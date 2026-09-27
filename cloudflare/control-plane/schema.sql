@@ -154,7 +154,10 @@ CREATE TABLE agents (
   updated_at TEXT NOT NULL, runtime_revision INTEGER NOT NULL DEFAULT 0
   CHECK (typeof(runtime_revision) = 'integer' AND runtime_revision >= 0 AND runtime_revision <= 9007199254740991), upgrade_validation_revision INTEGER NOT NULL DEFAULT 0
   CHECK (typeof(upgrade_validation_revision) = 'integer' AND upgrade_validation_revision >= 0 AND upgrade_validation_revision <= 9007199254740991),
-  effect_target TEXT NOT NULL DEFAULT 'simulation' CHECK (effect_target IN ('simulation','external'))
+  effect_target TEXT NOT NULL DEFAULT 'simulation' CHECK (effect_target IN ('simulation','external')),
+  settings_json TEXT NOT NULL DEFAULT '{}',
+  settings_version INTEGER NOT NULL DEFAULT 0
+  CHECK (typeof(settings_version) = 'integer' AND settings_version >= 0 AND settings_version <= 9007199254740991)
 );
 
 CREATE UNIQUE INDEX idx_agents_workspace_default

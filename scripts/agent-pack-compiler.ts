@@ -14,6 +14,8 @@ import type {
 import {
   assertSchemaDefinition,
   assertRuntimeContextBindings,
+  assertRuntimeQueryBindings,
+  assertRuntimeSettingsDefinition,
   assertRuntimeStateMigrations,
   assertSchemaValue,
   compareSemanticVersions,
@@ -264,6 +266,10 @@ export const validateLoadedModules = (
     assertRuntimeStateMigrations(controlPlane.state ?? [], controlPlane.stateMigrations ?? []);
     if (controlPlane.stateMigrations?.length && !capabilities.includes("state.migrations"))
       throw new Error(`${entry.package} must require state.migrations for declared migrations.`);
+    if (controlPlane.settings !== undefined)
+      assertRuntimeSettingsDefinition(controlPlane.settings, `${entry.package} settings`);
+    if (controlPlane.queries !== undefined)
+      assertRuntimeQueryBindings(controlPlane.queries, `${entry.package} queries`);
     if (!negotiation.ok) throw new Error(`${entry.package}: ${negotiation.message}`);
     const controlPlaneTools = new Map(controlPlane.tools.map((tool) => [tool.id, tool]));
     const runnerTools = new Map(runner.tools.map((tool) => [tool.id, tool]));

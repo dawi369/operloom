@@ -33,6 +33,25 @@ export type AgentEffectTargetResponse = {
   effectTarget: "simulation" | "external";
   runtimeRevision: number;
 };
+export type AgentSettingsResponse = {
+  ok: true;
+  agentId: string;
+  version: number;
+  values: Record<string, unknown>;
+  editable: string[];
+  schema: Record<string, unknown>;
+};
+export type RuntimeQueryDescriptor = {
+  id: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  outputSchema: Record<string, unknown>;
+};
+export type RuntimeQueryResponse<T extends Record<string, unknown> = Record<string, unknown>> = {
+  ok: true;
+  queryId: string;
+  output: T;
+};
 import type { PublicMessage } from "./messages.js";
 import { findPublicChatContract, type ChatCommandResponse } from "./public-chat-contracts.js";
 import {
@@ -379,6 +398,19 @@ export const createRuntimeClient = (options: RuntimeClientOptions) => {
       fetchAuthorized("/v1/account", { signal: AbortSignal.timeout(30_000) }).then((response) =>
         readJson(response),
       ),
+    queries: {
+      list: () => request<{ ok: true; queries: RuntimeQueryDescriptor[] }>("/queries"),
+      run: <T extends Record<string, unknown> = Record<string, unknown>>(
+        id: string,
+        input: Record<string, unknown> = {},
+        signal?: AbortSignal,
+      ) =>
+        request<RuntimeQueryResponse<T>>(`/queries/${encodeURIComponent(id)}`, {
+          method: "POST",
+          body: { input },
+          signal,
+        }),
+    },
     threads: {
       create: () =>
         request<{ ok: true; threadId: string; sessionId: string; agentId: string }>(
@@ -424,6 +456,16 @@ export const createRuntimeClient = (options: RuntimeClientOptions) => {
         input: { effectTarget: "simulation" | "external"; expectedRevision: number },
       ) =>
         request<AgentEffectTargetResponse>(`/agents/${encodeURIComponent(agentId)}/effect-target`, {
+          method: "PUT",
+          body: input,
+        }),
+      settings: (agentId: string) =>
+        request<AgentSettingsResponse>(`/agents/${encodeURIComponent(agentId)}/settings`),
+      updateSettings: (
+        agentId: string,
+        input: { values: Record<string, unknown>; expectedVersion: number },
+      ) =>
+        request<AgentSettingsResponse>(`/agents/${encodeURIComponent(agentId)}/settings`, {
           method: "PUT",
           body: input,
         }),

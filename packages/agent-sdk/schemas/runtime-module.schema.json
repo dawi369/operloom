@@ -65,6 +65,56 @@
     "evals": {
       "type": "array"
     },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "defaults", "editable"],
+      "properties": {
+        "schema": {
+          "type": "object"
+        },
+        "defaults": {
+          "type": "object"
+        },
+        "editable": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "queries": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "inputSchema", "outputSchema"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "inputSchema": {
+            "type": "object"
+          },
+          "outputSchema": {
+            "type": "object"
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 15000
+          }
+        }
+      }
+    },
     "stateMigrations": {
       "type": "array",
       "maxItems": 32,

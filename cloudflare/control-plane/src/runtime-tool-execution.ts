@@ -185,6 +185,7 @@ export const executeRuntimeToolBinding = async (input: {
             toolName: binding.id,
             execution: { mode: "dry_run", policy: binding.policy.reference },
             input: input.toolInput,
+            settings: input.context.settings,
             runner,
             callback: execution.callbackUrl
               ? {

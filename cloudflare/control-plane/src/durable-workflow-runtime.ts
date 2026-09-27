@@ -1,3 +1,4 @@
+import { readRunSettings } from "./agent-settings";
 import {
   beginDurableEngineDispatch,
   settleDurableEngineDispatch,
@@ -213,6 +214,7 @@ export const runDurableWorkflow = async (
             let calls = 0;
             const context: AgentExecutionContext = {
               scope: { ...identity.scope, agentId: identity.agentId },
+              settings: await readRunSettings(env, identity, runId),
               pack: {
                 id: execution.pack_id,
                 version: execution.pack_version,

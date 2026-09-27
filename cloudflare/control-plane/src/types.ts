@@ -259,6 +259,9 @@ export type AgentRow = {
   runtime_revision?: number;
   /** Missing only in legacy fixtures; persisted agents start in simulation. */
   effect_target?: EffectTarget;
+  /** Stored operator overrides for the pack's editable settings. */
+  settings_json?: string;
+  settings_version?: number;
   workspace_id: string;
   name: string;
   description: string | null;
