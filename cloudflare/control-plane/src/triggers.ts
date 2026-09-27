@@ -252,9 +252,16 @@ export const handleCreateTrigger = async (request: Request, env: Env, identity: 
     return json({ ok: false, error: "Execution must be request or durable" }, { status: 400 });
   if (execution === "durable") {
     const runtime = resolvePackRuntime(declared.pack.id, declared.pack.version);
+    if (!env.DURABLE_WORKFLOWS)
+      return json(
+        {
+          ok: false,
+          error: "The durable workflow engine binding is not configured",
+          code: "durable_binding_missing",
+        },
+        { status: 503 },
+      );
     if (
-      env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED !== "true" ||
-      !env.DURABLE_WORKFLOWS ||
       !runtime.runnable ||
       !runtime.controlPlane.workflows.find(
         (workflow) => workflow.type === declared.trigger.workflowType,
@@ -264,9 +271,9 @@ export const handleCreateTrigger = async (request: Request, env: Env, identity: 
         {
           ok: false,
           error: "Durable workflow is unavailable",
-          code: "runtime_capability_disabled",
+          code: "workflow_binding_unavailable",
         },
-        { status: 503 },
+        { status: 409 },
       );
   }
   const requestedStatus = parsed.body.status ?? "paused";

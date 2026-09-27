@@ -16,3 +16,7 @@ the baseline schema.
 - LangGraph is removed. The signed Node.js tool runner runs standalone from
   `runner/server.ts` (`pnpm start:runner`, `Dockerfile.runner`,
   `fly.runner.toml`).
+- Public API, typed state, context, structured models, usage limits,
+  simulations, durable workflows, package upgrades and provider operations are
+  always on; their rollout flags are removed. Workspaces without an
+  administrator budget receive default limits on first use.

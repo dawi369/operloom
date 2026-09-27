@@ -16,7 +16,6 @@ import { createRuntimeStatePort } from "./runtime-state";
 import { createSimulationActionPort } from "./runtime-simulation";
 import { captureRuntimeContext, contextIsRequired } from "./runtime-context";
 import { createRuntimeModelPort } from "./runtime-models";
-import { runtimeUsageCapabilitiesEnabled } from "./runtime-usage";
 import { executeRuntimeToolBinding } from "./runtime-tool-execution";
 import { authorizeWorkflowTools } from "./workflow-tool-policy";
 import {
@@ -76,29 +75,13 @@ export const durableWorkflowDefinitionHash = async (
     ),
   );
 };
-const resolveExecution = async (env: Env, execution: DurableHandlerPin) => {
-  if (env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED !== "true")
-    return fail("runtime_capability_disabled");
+const resolveExecution = async (execution: DurableHandlerPin) => {
   const runtime = resolvePackRuntime(execution.pack_id, execution.pack_version);
   if (!runtime.runnable) return fail("durable_handler_unavailable");
   const workflow = runtime.controlPlane.workflows.find(
     (item) => item.type === execution.workflow_type,
   );
   if (!workflow?.durable) return fail("durable_handler_unavailable");
-  if (
-    runtime.controlPlane.tools.some(
-      (tool) => workflow.toolIds.includes(tool.id) && tool.action?.target === "simulation",
-    ) &&
-    (env.WORKBENCH_SIMULATIONS_ENABLED !== "true" || env.WORKBENCH_TYPED_STATE_ENABLED !== "true")
-  )
-    return fail("runtime_capability_disabled");
-  if (
-    !runtimeUsageCapabilitiesEnabled(env, runtime.controlPlane.requirements.capabilities) ||
-    (contextIsRequired(runtime) && env.WORKBENCH_CONTEXT_ENABLED !== "true") ||
-    (runtime.controlPlane.requirements.capabilities.includes("state.atomic") &&
-      env.WORKBENCH_TYPED_STATE_ENABLED !== "true")
-  )
-    return fail("runtime_capability_disabled");
   const pins = {
     definitionHash: await durableWorkflowDefinitionHash(runtime, workflow),
     workflowVersion: workflow.durable.version,
@@ -110,7 +93,7 @@ const resolveExecution = async (env: Env, execution: DurableHandlerPin) => {
 export const checkDurableHandlerCompatibility = async (env: Env, execution: DurableHandlerPin) => {
   try {
     if (!env.DURABLE_WORKFLOWS) return { ok: false, code: "durable_binding_missing" };
-    const { pins } = await resolveExecution(env, execution);
+    const { pins } = await resolveExecution(execution);
     if (
       pins.definitionHash !== execution.definition_hash ||
       pins.runtimeVersion !== execution.runtime_version ||
@@ -132,7 +115,7 @@ export const runDurableWorkflow = async (
   if (!execution) return fail("durable_run_unavailable");
   if (execution.status === "closed") return { runId };
   const identity = identityFor(execution),
-    { runtime, workflow, pins } = await resolveExecution(env, execution);
+    { runtime, workflow, pins } = await resolveExecution(execution);
   await engine.do("__start", { retries: { limit: 3, delay: 1000 }, timeout: 30000 }, async () => {
     await startDurableExecution(env, identity, runId, pins);
     return { stepId: runId };
@@ -310,16 +293,15 @@ export const runDurableWorkflow = async (
               });
               context.context?.assertReady();
             }
-            if (env.WORKBENCH_TYPED_STATE_ENABLED === "true")
-              context.state = await createRuntimeStatePort(env, identity, {
-                packId: execution.pack_id,
-                target: workflow.stateTarget ?? "simulation",
-                definitions: runtime.controlPlane.state ?? [],
-                signal: controller.signal,
-                runId,
-                durableAttempt,
-                contextSnapshotId: context.context?.snapshot.id,
-              });
+            context.state = await createRuntimeStatePort(env, identity, {
+              packId: execution.pack_id,
+              target: workflow.stateTarget ?? "simulation",
+              definitions: runtime.controlPlane.state ?? [],
+              signal: controller.signal,
+              runId,
+              durableAttempt,
+              contextSnapshotId: context.context?.snapshot.id,
+            });
             if (runtime.controlPlane.requirements.capabilities.includes("models.structured"))
               context.models = createRuntimeModelPort(env, identity, {
                 runId,
@@ -421,8 +403,7 @@ export const runDurableWorkflow = async (
 
 /** Stable instance IDs recover response loss between D1 admission and engine creation. */
 export const startDurableWorkflowEngine = async (env: Env, execution: DurableExecution) => {
-  if (!env.DURABLE_WORKFLOWS || env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED !== "true")
-    return fail("runtime_capability_disabled");
+  if (!env.DURABLE_WORKFLOWS) return fail("durable_binding_missing");
   if (execution.status === "closed") return;
   const current = await requireDurableExecutionAuthority(
     env,

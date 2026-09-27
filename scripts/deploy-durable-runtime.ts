@@ -215,7 +215,6 @@ const main = async () => {
               ...candidate.vars,
               WORKBENCH_ENVIRONMENT: "local",
               WORKBENCH_LOCAL_API_ENABLED: "true",
-              WORKBENCH_PUBLIC_API_ENABLED: "true",
               CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: token,
             },
           }),

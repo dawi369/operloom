@@ -43,7 +43,6 @@ export const createChatUsageTracker = (
     async beforeStep(stepNumber: number, messages: unknown) {
       input.signal.throwIfAborted();
       input.context?.assertReady();
-      if (env.WORKBENCH_USAGE_LIMITS_ENABLED !== "true") return;
       const payload = JSON.parse(
         JSON.stringify({
           model: input.model,

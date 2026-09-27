@@ -21,7 +21,6 @@ import { bindRuntimeContext, captureRuntimeContext, contextIsRequired } from "./
 import {
   reserveRuntimeUsage,
   settleRuntimeUsage,
-  runtimeUsageCapabilitiesEnabled,
   type RuntimeUsageReservation,
 } from "./runtime-usage";
 
@@ -102,18 +101,6 @@ export const executeRuntimeToolBinding = async (input: {
   const { binding, execution } = input;
   let reservation: RuntimeUsageReservation | undefined;
   try {
-    const runtime = resolvePackRuntime(input.context.pack.id, input.context.pack.version);
-    if (
-      runtime.runnable &&
-      !runtimeUsageCapabilitiesEnabled(input.env, runtime.controlPlane.requirements.capabilities)
-    )
-      throw Object.assign(new Error("Required model or usage capability is disabled."), {
-        code: "runtime_capability_disabled",
-      });
-    if (execution.durableAttempt && input.env.WORKBENCH_USAGE_LIMITS_ENABLED !== "true")
-      throw Object.assign(new Error("Durable tools require resource admission"), {
-        code: "runtime_capability_disabled",
-      });
     assertSchemaValue(binding.inputSchema, input.toolInput, `${binding.id} input`);
     if (
       !input.context.context &&
@@ -134,31 +121,29 @@ export const executeRuntimeToolBinding = async (input: {
       bindRuntimeContext(input.context, evidence);
     }
     input.context.context?.assertReady();
-    if (input.env.WORKBENCH_USAGE_LIMITS_ENABLED === "true") {
-      const claim = await reserveRuntimeUsage(input.env, input.identity, {
-        runId: execution.runId,
-        durableAttempt: execution.durableAttempt,
-        runKind: "workflow",
-        packId: input.context.pack.id,
-        kind: "tool",
-        operationKey: execution.toolCallId,
-        payload: {
-          toolId: binding.id,
-          input: input.toolInput,
-          adapterVersion: binding.adapterVersion,
-        },
-        contextSnapshotId: input.context.context?.snapshot.id,
-        maxRuntimeMs: binding.timeoutMs,
-      });
-      if (!claim.fresh)
-        throw Object.assign(
-          new Error(
-            "This tool operation has already been admitted; inspect its outcome before retrying.",
-          ),
-          { code: "tool_already_dispatched" },
-        );
-      reservation = claim.reservation;
-    }
+    const claim = await reserveRuntimeUsage(input.env, input.identity, {
+      runId: execution.runId,
+      durableAttempt: execution.durableAttempt,
+      runKind: "workflow",
+      packId: input.context.pack.id,
+      kind: "tool",
+      operationKey: execution.toolCallId,
+      payload: {
+        toolId: binding.id,
+        input: input.toolInput,
+        adapterVersion: binding.adapterVersion,
+      },
+      contextSnapshotId: input.context.context?.snapshot.id,
+      maxRuntimeMs: binding.timeoutMs,
+    });
+    if (!claim.fresh)
+      throw Object.assign(
+        new Error(
+          "This tool operation has already been admitted; inspect its outcome before retrying.",
+        ),
+        { code: "tool_already_dispatched" },
+      );
+    reservation = claim.reservation;
     let result: RuntimeResult;
     if (binding.transport === "cloudflare_inline") {
       if (!binding.execute) {

@@ -40,8 +40,6 @@ export const providerOperationDescriptor = (
 ) => {
   const reference = binding.action?.providerOperation;
   if (!reference) return null;
-  if (env.WORKBENCH_PROVIDER_OPERATIONS_ENABLED !== "true")
-    throw new Error("provider_operations_disabled");
   if (
     binding.action?.target !== "external" ||
     binding.transport !== "cloudflare_inline" ||

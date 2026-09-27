@@ -108,7 +108,6 @@ const main = async () => {
       db.migrations_dir = resolve(root, "cloudflare/control-plane/migrations");
     config.vars = {
       ...config.vars,
-      WORKBENCH_PUBLIC_API_ENABLED: "true",
       WORKBENCH_LOCAL_API_ENABLED: "true",
       WORKBENCH_ENVIRONMENT: "local",
       CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: token,
@@ -118,8 +117,6 @@ const main = async () => {
       WORKBENCH_RETAINED_DATA_ENABLED: "true",
       WORKBENCH_CONNECTIONS_ENABLED: "true",
       WORKBENCH_MUTATIONS_ENABLED: "true",
-      WORKBENCH_PROVIDER_OPERATIONS_ENABLED: "true",
-      WORKBENCH_TYPED_STATE_ENABLED: "true",
       WORKBENCH_VAULT_BACKEND: "memory",
       WORKBENCH_OAUTH_PROVIDERS_JSON: JSON.stringify([
         {

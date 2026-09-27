@@ -80,11 +80,6 @@ const fixture = () => {
       },
     },
   } as unknown as Env;
-  env.WORKBENCH_PACKAGE_UPGRADES_ENABLED = "true";
-  env.WORKBENCH_TYPED_STATE_ENABLED = "true";
-  env.WORKBENCH_CONTEXT_ENABLED = "true";
-  env.WORKBENCH_STRUCTURED_MODELS_ENABLED = "true";
-  env.WORKBENCH_USAGE_LIMITS_ENABLED = "true";
   db.prepare(
     "INSERT INTO control_budget_policies (workspace_id,version,limits_json,updated_by_user_id,updated_at) VALUES ('w',1,?,'u','now')",
   ).run(

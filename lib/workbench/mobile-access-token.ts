@@ -7,7 +7,4 @@ export {
 } from "./access-token";
 
 export const loadMobileAccessTokenConfig = (source: NodeJS.ProcessEnv = process.env) =>
-  loadAccessTokenConfig({
-    ...source,
-    WORKBENCH_PUBLIC_API_ENABLED: source.WORKBENCH_MOBILE_CLIENTS_ENABLED,
-  });
+  loadAccessTokenConfig(source, source.WORKBENCH_MOBILE_CLIENTS_ENABLED === "true");

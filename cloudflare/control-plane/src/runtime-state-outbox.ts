@@ -2,7 +2,6 @@ import type { Env } from "./types";
 
 /** Reuses D1 and the existing scheduler. Publication and acknowledgement are one transaction. */
 export const deliverRuntimeStateEvents = async (env: Env) => {
-  if (env.WORKBENCH_TYPED_STATE_ENABLED !== "true") return { delivered: 0, deferred: 0 };
   const pending = await env.DB.prepare(`SELECT o.id FROM control_state_outbox o
     JOIN workspaces w ON w.id = o.workspace_id AND w.status = 'active'
     JOIN users u ON u.id = o.user_id AND u.status = 'active'

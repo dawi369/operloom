@@ -91,12 +91,6 @@ export type Queue<T> = {
 };
 
 export type Env = {
-  WORKBENCH_PUBLIC_API_ENABLED?: string;
-  WORKBENCH_TYPED_STATE_ENABLED?: string;
-  WORKBENCH_CONTEXT_ENABLED?: string;
-  WORKBENCH_STRUCTURED_MODELS_ENABLED?: string;
-  WORKBENCH_USAGE_LIMITS_ENABLED?: string;
-  WORKBENCH_DURABLE_WORKFLOWS_ENABLED?: string;
   DURABLE_WORKFLOWS?: {
     create(options: { id: string; params: { runId: string } }): Promise<{ id: string }>;
     get(id: string): Promise<{
@@ -109,7 +103,6 @@ export type Env = {
       errors: { id: string; code: number; message: string }[];
     }>;
   };
-  WORKBENCH_PACKAGE_UPGRADES_ENABLED?: string;
   WORKBENCH_WORKOS_ISSUER?: string;
   WORKBENCH_WORKOS_JWKS_URL?: string;
   WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS?: string;
@@ -144,8 +137,6 @@ export type Env = {
   WORKBENCH_E2E_EXPORT_PAUSE_MS?: string;
   WORKBENCH_RELEASE_SHA?: string;
   WORKBENCH_DEPLOYMENT_ID?: string;
-  WORKBENCH_SIMULATIONS_ENABLED?: string;
-  WORKBENCH_PROVIDER_OPERATIONS_ENABLED?: string;
   WORKBENCH_CONFORMANCE_MODE?: string;
   WORKBENCH_RETAINED_DATA_ENABLED?: string;
   WORKBENCH_CONNECTIONS_ENABLED?: string;

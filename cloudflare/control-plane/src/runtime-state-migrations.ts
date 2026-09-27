@@ -49,8 +49,6 @@ const authority = `EXISTS (SELECT 1 FROM memberships m
   WHERE m.user_id = ? AND m.workspace_id = ? AND m.status = 'active' AND lower(m.role) IN ('admin','owner'))`;
 type ScopeInput = { packId: string; target: "simulation" | "external"; agentSnapshot: string };
 const migrationScope = async (env: Env, identity: AgentIdentity, input: ScopeInput) => {
-  if (env.WORKBENCH_TYPED_STATE_ENABLED !== "true")
-    fail("runtime_capability_disabled", "Typed state is disabled");
   const authorityBindings = [
     identity.agentId,
     input.agentSnapshot,

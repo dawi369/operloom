@@ -22,11 +22,6 @@ const fail = (code: string, message: string): never => {
   throw Object.assign(new Error(message), { code });
 };
 const hash = (value: unknown) => sha256Hex(runtimeStateCanonicalJson(value));
-export const runtimeUsageCapabilitiesEnabled = (env: Env, capabilities: readonly string[]) =>
-  (!capabilities.includes("models.structured") ||
-    (env.WORKBENCH_STRUCTURED_MODELS_ENABLED === "true" &&
-      env.WORKBENCH_USAGE_LIMITS_ENABLED === "true")) &&
-  (!capabilities.includes("usage.reservations") || env.WORKBENCH_USAGE_LIMITS_ENABLED === "true");
 const table = (kind: "workflow" | "chat") => (kind === "workflow" ? "control_runs" : "chat_runs");
 const metadata = (kind: "workflow" | "chat") =>
   kind === "workflow" ? "data_json" : "metadata_json";
@@ -61,6 +56,17 @@ export type RuntimeUsageReservation = {
   error_code: string | null;
 };
 type UsageRun = { id: string; kind: "workflow" | "chat"; parent: string | null };
+
+/** Applied on first use so every workspace is cost-bounded before an admin tunes limits. */
+export const defaultRuntimeBudgetLimits: RuntimeBudgetLimits = {
+  dailyModelCalls: 500,
+  dailyToolCalls: 2000,
+  dailyTokens: 2_000_000,
+  runModelCalls: 50,
+  runToolCalls: 200,
+  runTokens: 400_000,
+  concurrentOperations: 20,
+};
 
 const resolveRun = async (
   env: Env,
@@ -110,8 +116,6 @@ export const reserveRuntimeUsage = async (
     durableAttempt?: DurableAttemptAuthority;
   },
 ): Promise<{ fresh: boolean; reservation: RuntimeUsageReservation }> => {
-  if (env.WORKBENCH_USAGE_LIMITS_ENABLED !== "true")
-    return fail("runtime_capability_disabled", "Resource reservations are disabled");
   input = { ...input, durableAttempt: input.durableAttempt && { ...input.durableAttempt } };
   await requireAuthority(env, identity);
   await requireDurableAttemptAuthority(env, identity, input.runId, input.durableAttempt);
@@ -173,11 +177,24 @@ export const reserveRuntimeUsage = async (
     root = await resolveRun(env, identity, root.parent, parent ? "chat" : "workflow");
   }
   const attemptGuard = durableAttemptGuard(identity, root.id, input.durableAttempt);
-  const policy = await env.DB.prepare(
-    "SELECT version FROM control_budget_policies WHERE workspace_id = ?",
-  )
-    .bind(identity.scope.workspaceId)
-    .first<{ version: number }>();
+  const readPolicy = () =>
+    env.DB.prepare("SELECT version FROM control_budget_policies WHERE workspace_id = ?")
+      .bind(identity.scope.workspaceId)
+      .first<{ version: number }>();
+  let policy = await readPolicy();
+  if (!policy) {
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO control_budget_policies (workspace_id,version,limits_json,updated_by_user_id,updated_at)
+       VALUES (?,1,?,'system',?)`,
+    )
+      .bind(
+        identity.scope.workspaceId,
+        JSON.stringify(defaultRuntimeBudgetLimits),
+        new Date().toISOString(),
+      )
+      .run();
+    policy = await readPolicy();
+  }
   if (!policy)
     return fail(
       "budget_not_configured",
@@ -374,11 +391,6 @@ export const settleRuntimeUsage = async (
 };
 
 export const handleRuntimeBudgets = async (request: Request, env: Env, identity: AgentIdentity) => {
-  if (env.WORKBENCH_USAGE_LIMITS_ENABLED !== "true")
-    return json(
-      { ok: false, code: "runtime_capability_disabled", error: "Resource budgets are disabled" },
-      { status: 404 },
-    );
   try {
     await requireAuthority(env, identity, true);
     if (new URL(request.url).pathname.endsWith("/workbench/usage")) {

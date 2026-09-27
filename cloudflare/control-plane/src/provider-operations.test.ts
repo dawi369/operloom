@@ -58,7 +58,6 @@ const fixture = async () => {
   };
   const env = {
     WORKBENCH_MUTATIONS_ENABLED: "true",
-    WORKBENCH_TYPED_STATE_ENABLED: "true",
     DB: {
       prepare(sql: string): Statement {
         let values: unknown[] = [];
@@ -159,7 +158,6 @@ const providerFixture = async (signed = false) => {
   const f = await fixture();
   f.dispatch.mockRestore();
   Object.assign(f.env, {
-    WORKBENCH_PROVIDER_OPERATIONS_ENABLED: "true",
     WORKBENCH_CONNECTIONS_ENABLED: "true",
     WORKBENCH_E2E_MODE: "true",
     WORKBENCH_VAULT_BACKEND: "memory",
@@ -472,11 +470,10 @@ describe("credential-isolated provider operations", () => {
     },
   );
 
-  it.each(["disabled", "unknown-operation", "arbitrary-input"])(
+  it.each(["unknown-operation", "arbitrary-input"])(
     "blocks %s before approval admission",
     async (changed) => {
       const { env, request, propose, binding, network, db } = await providerFixture();
-      if (changed === "disabled") env.WORKBENCH_PROVIDER_OPERATIONS_ENABLED = "false";
       if (changed === "unknown-operation")
         binding.action!.providerOperation!.id = "unknown.operation";
       if (changed === "arbitrary-input") {

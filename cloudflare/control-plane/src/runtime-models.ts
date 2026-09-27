@@ -41,14 +41,6 @@ export const createRuntimeModelPort = (
 ): RuntimeModelPort => ({
   async structured(incoming) {
     const request = structuredClone(incoming);
-    if (
-      env.WORKBENCH_STRUCTURED_MODELS_ENABLED !== "true" ||
-      env.WORKBENCH_USAGE_LIMITS_ENABLED !== "true"
-    )
-      return fail(
-        "runtime_capability_disabled",
-        "Structured models require enabled model and resource-budget capabilities",
-      );
     input.signal.throwIfAborted();
     input.context?.assertReady();
     if (

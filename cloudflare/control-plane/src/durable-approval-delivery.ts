@@ -10,8 +10,7 @@ const due = `p.status='approved' AND p.consumed_at IS NULL AND p.expires_at>${cl
 
 export const deliverDurableApprovalWakes = async (env: Env, approvalId?: string) => {
   if (!approvalId) await expireDurableApprovals(env);
-  if (env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED !== "true" || !env.DURABLE_WORKFLOWS)
-    return { selected: 0, delivered: 0 };
+  if (!env.DURABLE_WORKFLOWS) return { selected: 0, delivered: 0 };
   const rows = await env.DB.prepare(`SELECT p.id FROM control_durable_approvals p WHERE ${due}
     AND (? IS NULL OR p.id=?) ORDER BY p.wake_next_at,p.id LIMIT 16`)
     .bind(approvalId ?? null, approvalId ?? null)

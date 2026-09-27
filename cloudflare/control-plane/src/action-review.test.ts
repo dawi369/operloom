@@ -62,7 +62,6 @@ const fixture = async () => {
   };
   const env = {
     WORKBENCH_MUTATIONS_ENABLED: "true",
-    WORKBENCH_TYPED_STATE_ENABLED: "true",
     DB: {
       prepare(sql: string): Statement {
         let values: unknown[] = [];

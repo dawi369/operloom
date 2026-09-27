@@ -34,14 +34,6 @@ export const createSimulationActionPort = (
   return async (incoming: RuntimeSimulationCommit): Promise<RuntimeSimulationReceipt> => {
     const context = input.context;
     signal.throwIfAborted();
-    if (
-      env.WORKBENCH_SIMULATIONS_ENABLED !== "true" ||
-      env.WORKBENCH_TYPED_STATE_ENABLED !== "true"
-    )
-      return fail(
-        "runtime_capability_disabled",
-        "Simulation effects and typed state must be enabled",
-      );
     const plan = structuredClone(incoming);
     if (
       !plan ||

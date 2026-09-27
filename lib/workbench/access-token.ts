@@ -48,9 +48,9 @@ const requiredUrl = (value: string | undefined, name: string) => {
 
 export const loadAccessTokenConfig = (
   source: Readonly<Record<string, string | undefined>>,
+  enabled = true,
 ): AccessTokenConfig => {
   const production = source.NODE_ENV === "production" || source.VERCEL_ENV === "production";
-  const enabled = source.WORKBENCH_PUBLIC_API_ENABLED === "true";
   if (!enabled) {
     return {
       enabled: false,

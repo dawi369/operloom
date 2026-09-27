@@ -19,8 +19,6 @@ export const handlePublicApi = async (
   const requestId = crypto.randomUUID();
   let response: Response;
   try {
-    if (env.WORKBENCH_PUBLIC_API_ENABLED !== "true")
-      throw new WorkbenchAuthError("Public API is not enabled", 404);
     if (request.method === "OPTIONS")
       return withCors(new Response(null, { status: 204 }), request, env);
     const url = new URL(request.url);

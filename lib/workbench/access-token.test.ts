@@ -4,7 +4,6 @@ import { loadAccessTokenConfig, verifyWorkbenchAccessToken } from "./access-toke
 
 const config = loadAccessTokenConfig({
   NODE_ENV: "production",
-  WORKBENCH_PUBLIC_API_ENABLED: "true",
   WORKBENCH_WORKOS_ISSUER: "https://api.workos.com/user_management/client_test",
   WORKBENCH_WORKOS_JWKS_URL: "https://api.workos.com/sso/jwks/client_test",
   WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS: "client_test",

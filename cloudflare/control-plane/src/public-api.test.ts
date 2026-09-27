@@ -4,7 +4,6 @@ import { authenticatePublicApi } from "./public-api-auth";
 import type { Env } from "./types";
 
 const env = {
-  WORKBENCH_PUBLIC_API_ENABLED: "true",
   WORKBENCH_LOCAL_API_ENABLED: "true",
   WORKBENCH_ENVIRONMENT: "local",
   CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: "local-test-token",
@@ -129,7 +128,7 @@ describe("public API boundary", () => {
       }),
     ).rejects.toMatchObject({ status: 503 });
   });
-  it("does not dispatch invalid tokens and is disabled by default", async () => {
+  it("does not dispatch invalid tokens", async () => {
     const dispatch = vi.fn();
     expect(
       (
@@ -140,7 +139,6 @@ describe("public API boundary", () => {
         )
       ).status,
     ).toBe(401);
-    expect((await handlePublicApi(request("/v1/account"), {} as Env, dispatch)).status).toBe(404);
     expect(dispatch).not.toHaveBeenCalled();
   });
   it("supports authenticated browser commands with preflight and request IDs", async () => {

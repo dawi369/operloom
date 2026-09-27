@@ -269,11 +269,7 @@ export const dispatchProviderOperation = async (
   proposalId: string,
   binding: RuntimeToolBinding,
 ): Promise<ActionExecutionResult> => {
-  if (
-    env.WORKBENCH_PROVIDER_OPERATIONS_ENABLED !== "true" ||
-    env.WORKBENCH_CONNECTIONS_ENABLED !== "true" ||
-    env.WORKBENCH_MUTATIONS_ENABLED !== "true"
-  )
+  if (env.WORKBENCH_CONNECTIONS_ENABLED !== "true" || env.WORKBENCH_MUTATIONS_ENABLED !== "true")
     throw new Error("provider_operations_disabled");
   const row = await env.DB.prepare(
     `SELECT * FROM control_action_proposals WHERE id=? AND user_id=? AND workspace_id=? AND agent_id=?`,

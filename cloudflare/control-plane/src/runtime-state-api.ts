@@ -45,8 +45,6 @@ export const handleRuntimeStateMigrationOperation = async (
   migrationId?: string,
   action: "start" | "advance" | "repair" = "start",
 ) => {
-  if (env.WORKBENCH_TYPED_STATE_ENABLED !== "true")
-    return failure(404, "runtime_capability_disabled", "Typed state is disabled");
   const agent = await env.DB.prepare(authoritySql)
     .bind(identity.scope.userId, identity.scope.workspaceId, identity.agentId)
     .first<AgentRow & { role: string }>();
@@ -196,8 +194,6 @@ export const handleRuntimeStateOperation = async (
   resource: "records" | "entries" | "deliveries",
   retryId?: string,
 ) => {
-  if (env.WORKBENCH_TYPED_STATE_ENABLED !== "true")
-    return failure(404, "runtime_capability_disabled", "Typed state is disabled");
   const actor = [identity.scope.userId, identity.scope.workspaceId, identity.agentId];
   const agent = await env.DB.prepare(authoritySql)
     .bind(...actor)

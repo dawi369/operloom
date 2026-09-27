@@ -79,7 +79,6 @@ const fixture = async () => {
     execute(): { success: true; meta: { changes: number } };
   };
   const env = {
-    WORKBENCH_TYPED_STATE_ENABLED: "true",
     DB: {
       prepare(query: string): Statement {
         let values: unknown[] = [];

@@ -88,8 +88,6 @@ const main = async () => {
         "--ip",
         "127.0.0.1",
         "--var",
-        "WORKBENCH_PUBLIC_API_ENABLED:true",
-        "--var",
         `ALLOWED_ORIGINS:${browserOrigin}`,
         "--var",
         "WORKBENCH_LOCAL_API_ENABLED:true",
@@ -103,20 +101,6 @@ const main = async () => {
         "WORKBENCH_E2E_MODE:true",
         "--var",
         "WORKBENCH_RETAINED_DATA_ENABLED:true",
-        "--var",
-        "WORKBENCH_TYPED_STATE_ENABLED:true",
-        "--var",
-        "WORKBENCH_SIMULATIONS_ENABLED:true",
-        "--var",
-        "WORKBENCH_DURABLE_WORKFLOWS_ENABLED:true",
-        "--var",
-        "WORKBENCH_PACKAGE_UPGRADES_ENABLED:true",
-        "--var",
-        "WORKBENCH_CONTEXT_ENABLED:true",
-        "--var",
-        "WORKBENCH_STRUCTURED_MODELS_ENABLED:true",
-        "--var",
-        "WORKBENCH_USAGE_LIMITS_ENABLED:true",
       ],
       { label: "worker-runtime-conformance", cwd: runtimeRoot, stdio: "pipe", maxRssMb: 1536 },
     );
@@ -912,51 +896,6 @@ const main = async () => {
       console.log(
         "Native deployment gate passed: candidate hash compatibility, atomic admission fencing and stale Worker rejection after activation.",
       );
-      if (standalone) {
-        // The deployment artifact deliberately defaults capabilities off. Its
-        // unmodified configuration must reject the live run admitted with local
-        // conformance overrides, through the actual packaged deployment CLI.
-        const inspection = startManagedProcess(
-          "node",
-          [
-            resolve(runtimeRoot, "deploy-durable-runtime.mjs"),
-            "--check",
-            "--local",
-            "--persist-to",
-            state,
-            "--origin",
-            baseUrl,
-          ],
-          {
-            cwd: runtimeRoot,
-            label: "runtime-deployment-inspection",
-            stdio: "pipe",
-            maxRssMb: 2048,
-          },
-        );
-        let output = "";
-        inspection.child.stdout?.on("data", (chunk) => {
-          output += String(chunk);
-        });
-        inspection.child.stderr?.on("data", (chunk) => {
-          output += String(chunk);
-        });
-        const outcome = await inspection.completion;
-        if (outcome.code !== 1 || !output.includes("runtime_capability_disabled"))
-          throw new Error(
-            `Packaged deployment inspection did not reject disabled active handlers: ${output}`,
-          );
-        const check = new DatabaseSync(resolve(state, String(canonicalFile)), { readOnly: true });
-        try {
-          if (check.prepare("SELECT 1 FROM control_durable_deployment_fence").get())
-            throw new Error("Preflight rejection retained the deployment fence");
-        } finally {
-          check.close();
-        }
-        console.log(
-          "Packaged deployment CLI rejected the incompatible candidate and released its preflight fence.",
-        );
-      }
     }
     if (!reviewGate.data.requestHash || reviewGate.data.payload.documentId !== "approved-document")
       throw new Error("Approval lacks its bound review payload");

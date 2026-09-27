@@ -11,7 +11,6 @@ import {
   toPackTemplate,
 } from "./agent-behavior-templates";
 import { resolveAgentBehaviorConfig } from "./agent-records";
-import { runtimeUsageCapabilitiesEnabled } from "./runtime-usage";
 import { demoPackAllowed } from "./demo-policy";
 import { json } from "./http";
 import { runtimeStateCanonicalJson, validateRuntimeStateDefinitions } from "./runtime-state";
@@ -136,8 +135,6 @@ export const handleAgentPackageUpgrade = async (
   env: Env,
   identity: AgentIdentity,
 ) => {
-  if (env.WORKBENCH_PACKAGE_UPGRADES_ENABLED !== "true")
-    return failure(404, "runtime_capability_disabled", "Package upgrades are disabled");
   const parsed = publicUpgradeContracts["POST /workbench/package-upgrades"].request.safeParse(
     await request.json().catch(() => null),
   );
@@ -208,32 +205,6 @@ export const handleAgentPackageUpgrade = async (
       422,
       runtime.reason,
       "The destination runtime is incompatible with this backend",
-    );
-  if (
-    runtime.controlPlane.requirements.capabilities.some((capability) =>
-      capability.startsWith("state."),
-    ) &&
-    env.WORKBENCH_TYPED_STATE_ENABLED !== "true"
-  )
-    return failure(
-      422,
-      "runtime_capability_disabled",
-      "The destination requires enabled typed state",
-    );
-  if (
-    runtime.controlPlane.requirements.capabilities.includes("context.snapshots") &&
-    env.WORKBENCH_CONTEXT_ENABLED !== "true"
-  )
-    return failure(
-      422,
-      "runtime_capability_disabled",
-      "The destination requires enabled scoped context",
-    );
-  if (!runtimeUsageCapabilitiesEnabled(env, runtime.controlPlane.requirements.capabilities))
-    return failure(
-      422,
-      "runtime_capability_disabled",
-      "The destination requires enabled model and resource-budget capabilities",
     );
   try {
     await validateRetainedState(env, identity, runtime.controlPlane.state ?? []);
@@ -400,8 +371,6 @@ export const handleAgentPackageSnapshots = async (
   env: Env,
   identity: AgentIdentity,
 ) => {
-  if (env.WORKBENCH_PACKAGE_UPGRADES_ENABLED !== "true")
-    return failure(404, "runtime_capability_disabled", "Package upgrades are disabled");
   const agent = await env.DB.prepare(authority)
     .bind(...actor(identity))
     .first<UpgradeAgent>();

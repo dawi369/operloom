@@ -79,8 +79,6 @@ const fixture = () => {
       },
     },
   } as unknown as Env;
-  env.WORKBENCH_PACKAGE_UPGRADES_ENABLED = "true";
-  env.WORKBENCH_TYPED_STATE_ENABLED = "true";
   env.WORKBENCH_CONFORMANCE_MODE = "true";
   const current = createAgentBehaviorSnapshotFromTemplate(toPackTemplate(manifest));
   const old = { ...current, version: "0.0.1", pack: { ...current.pack!, version: "0.0.1" } };
@@ -190,11 +188,8 @@ describe("explicit package upgrades", () => {
     expect(counts(db).control_agent_upgrades).toBe(0);
   });
 
-  it("fails closed on disabled upgrades and concurrent different keys", async () => {
+  it("fails closed on concurrent different keys", async () => {
     const { env, db } = fixture();
-    env.WORKBENCH_PACKAGE_UPGRADES_ENABLED = "false";
-    expect((await upgrade(env)).status).toBe(404);
-    env.WORKBENCH_PACKAGE_UPGRADES_ENABLED = "true";
     const results = await Promise.all([
       upgrade(env),
       upgrade(env, { ...input, idempotencyKey: "other" }),

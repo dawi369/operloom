@@ -79,13 +79,6 @@ export const renderEnvironmentConfig = (
       WORKBENCH_CONNECTIONS_ENABLED: String(features.connections),
       WORKBENCH_MUTATIONS_ENABLED: String(features.mutations),
       WORKBENCH_PUSH_ENABLED: "false",
-      WORKBENCH_PACKAGE_UPGRADES_ENABLED: "false",
-      WORKBENCH_CONTEXT_ENABLED: "false",
-      WORKBENCH_STRUCTURED_MODELS_ENABLED: "false",
-      WORKBENCH_USAGE_LIMITS_ENABLED: "false",
-      WORKBENCH_DURABLE_WORKFLOWS_ENABLED: "false",
-      WORKBENCH_SIMULATIONS_ENABLED: "false",
-      WORKBENCH_PROVIDER_OPERATIONS_ENABLED: "false",
       WORKBENCH_VAULT_BACKEND: manifest.vaultBackend,
       ...(isDemo
         ? {

@@ -81,8 +81,6 @@ export const captureRuntimeContext = async (
     return undefined;
   }
   if (!contextIsRequired(runtime)) return undefined;
-  if (env.WORKBENCH_CONTEXT_ENABLED !== "true")
-    return fail("runtime_capability_disabled", "Scoped context is disabled");
   const configurationHash = await sha256Hex(
     runtimeStateCanonicalJson([
       JSON.parse(agent.data_json),
@@ -153,28 +151,21 @@ export const captureRuntimeContext = async (
       .first())
   )
     return fail("context_run_inactive", "Context capture requires an active canonical run");
-  if ((runtime.controlPlane.state?.length ?? 0) > 0 && env.WORKBENCH_TYPED_STATE_ENABLED !== "true")
-    return fail("runtime_capability_disabled", "Context requires enabled typed state");
-  const state =
-    env.WORKBENCH_TYPED_STATE_ENABLED === "true"
-      ? await createRuntimeStatePort(env, identity, {
-          packId: pack.id,
-          target: input.target,
-          definitions: runtime.controlPlane.state ?? [],
-          signal: input.signal,
-          runId: input.runKind === "workflow" ? input.runId : undefined,
-          durableAttempt: input.durableAttempt,
-        })
-      : undefined;
+  const state = await createRuntimeStatePort(env, identity, {
+    packId: pack.id,
+    target: input.target,
+    definitions: runtime.controlPlane.state ?? [],
+    signal: input.signal,
+    runId: input.runKind === "workflow" ? input.runId : undefined,
+    durableAttempt: input.durableAttempt,
+  });
   const evidence = await collectRuntimeContext({
     descriptors: pack.context,
     bindings: runtime.controlPlane.context ?? [],
     scope: { ...identity.scope, agentId: identity.agentId },
     input: input.input,
     signal: input.signal,
-    state: state
-      ? Object.freeze({ get: state.get.bind(state), list: state.list.bind(state) })
-      : undefined,
+    state: Object.freeze({ get: state.get.bind(state), list: state.list.bind(state) }),
   });
   const contentHash = await sha256Hex(
     runtimeStateCanonicalJson(

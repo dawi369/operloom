@@ -18,8 +18,6 @@ export const authenticatePublicApi = async (
   principal: WorkbenchAgentIdentity;
   context: ControlPlaneAuthContext;
 }> => {
-  if (env.WORKBENCH_PUBLIC_API_ENABLED !== "true")
-    throw new WorkbenchAuthError("Public API is not enabled", 404);
   const token = parseAuthoritativeBearer(request.headers.get("authorization"));
   if (!token) throw new WorkbenchAuthError("Bearer authorization is required", 401);
   if (env.WORKBENCH_LOCAL_API_ENABLED === "true") {
@@ -54,7 +52,6 @@ export const authenticatePublicApi = async (
   }
   const config = loadAccessTokenConfig({
     NODE_ENV: "production",
-    WORKBENCH_PUBLIC_API_ENABLED: env.WORKBENCH_PUBLIC_API_ENABLED,
     WORKBENCH_WORKOS_ISSUER: env.WORKBENCH_WORKOS_ISSUER,
     WORKBENCH_WORKOS_JWKS_URL: env.WORKBENCH_WORKOS_JWKS_URL,
     WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS: env.WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS,

@@ -53,11 +53,7 @@ const reconcile = async (env: Env, row: DurableRecovery) => {
       instance = await bounded(() => env.DURABLE_WORKFLOWS!.get(row.instance_id));
     } catch {
       // get() can throw for a never-created instance. A stable create is safe only while D1 is still pending.
-      if (
-        !closed &&
-        row.status === "pending" &&
-        env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED === "true"
-      ) {
+      if (!closed && row.status === "pending") {
         await bounded(() => startDurableWorkflowEngine(env, row));
         await releaseDurableRecovery(env, row, {
           engineStatus: null,
@@ -94,9 +90,7 @@ const reconcile = async (env: Env, row: DurableRecovery) => {
         // Observe the terminal status on a later pass, including a lost termination response.
       } else errorCode = "durable_engine_status_unknown";
     } else if (current.status === "pending" && engineStatus === "unknown") {
-      if (env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED === "true")
-        await bounded(() => startDurableWorkflowEngine(env, row));
-      else errorCode = "runtime_capability_disabled";
+      await bounded(() => startDurableWorkflowEngine(env, row));
     } else if (engineStatus === "unknown") errorCode = "durable_engine_status_unknown";
   } catch {
     // Provider exception text can contain package data or credentials. Retain only this platform code.

@@ -7,7 +7,12 @@ import {
   toPackTemplate,
 } from "./agent-behavior-templates";
 import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
-import { reserveRuntimeUsage, settleRuntimeUsage, handleRuntimeBudgets } from "./runtime-usage";
+import {
+  defaultRuntimeBudgetLimits,
+  reserveRuntimeUsage,
+  settleRuntimeUsage,
+  handleRuntimeBudgets,
+} from "./runtime-usage";
 import { createRuntimeModelPort } from "./runtime-models";
 import { createChatUsageTracker } from "./chat-usage";
 import { captureRuntimeContext } from "./runtime-context";
@@ -92,11 +97,6 @@ const fixture = () => {
       },
     },
   } as unknown as Env;
-  env.WORKBENCH_PACKAGE_UPGRADES_ENABLED = "true";
-  env.WORKBENCH_TYPED_STATE_ENABLED = "true";
-  env.WORKBENCH_CONTEXT_ENABLED = "true";
-  env.WORKBENCH_USAGE_LIMITS_ENABLED = "true";
-  env.WORKBENCH_STRUCTURED_MODELS_ENABLED = "true";
   env.OPENROUTER_API_KEY = "synthetic-test-key";
   env.WORKBENCH_CONFORMANCE_MODE = "true";
   const current = createAgentBehaviorSnapshotFromTemplate(toPackTemplate(manifest));
@@ -302,6 +302,19 @@ describe("resource reservations and structured models", () => {
     await expect(client.budgets.usage({ day: snapshot.day })).rejects.toMatchObject({
       status: 403,
     });
+  });
+  it("applies default workspace limits when no administrator policy exists", async () => {
+    const { env, db } = fixture();
+    run(db);
+    const claim = await reserve(env);
+    expect(claim.fresh).toBe(true);
+    const policy = db
+      .prepare("SELECT version, limits_json, updated_by_user_id FROM control_budget_policies")
+      .get() as { version: number; limits_json: string; updated_by_user_id: string };
+    expect(policy.version).toBe(1);
+    expect(policy.updated_by_user_id).toBe("system");
+    expect(JSON.parse(policy.limits_json)).toEqual(defaultRuntimeBudgetLimits);
+    expect((await configure(env, {}, 1, "tuned")).status).toBe(200);
   });
   it("counts chat follow-up steps and child tools against the same run budget", async () => {
     const { env, db } = fixture();

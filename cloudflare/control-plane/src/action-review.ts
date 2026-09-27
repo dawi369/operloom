@@ -147,11 +147,6 @@ export const createActionReview = async (
 ): Promise<ActionReview> => {
   const proposal = JSON.parse(row.proposal_json) as ActionProposal;
   const reads = validateActionPreconditions(proposal, row);
-  if (reads.length && env.WORKBENCH_TYPED_STATE_ENABLED !== "true")
-    return fail(
-      "runtime_capability_disabled",
-      "Typed state is required for these action preconditions",
-    );
   const agent = await env.DB.prepare(
     "SELECT runtime_revision,data_json FROM agents WHERE id=? AND workspace_id=? AND status='active'",
   )
@@ -323,8 +318,6 @@ export const loadActionReview = async (
     );
   if (Date.parse(review.expires_at) <= Date.now())
     return fail("action_review_expired", "The approval has expired; create a new proposal");
-  if (binding.reads.length && env.WORKBENCH_TYPED_STATE_ENABLED !== "true")
-    return fail("runtime_capability_disabled", "Typed state is required for this reviewed action");
   return review;
 };
 

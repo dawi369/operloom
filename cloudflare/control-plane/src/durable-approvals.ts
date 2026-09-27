@@ -116,8 +116,6 @@ export const decideDurableApproval = async (
   decision: "approved" | "denied",
   reason?: string,
 ) => {
-  if (decision === "approved" && env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED !== "true")
-    return json({ ok: false, code: "runtime_capability_disabled" }, { status: 503 });
   const row = await readDurableApproval(env, identity, id);
   if (!row) return json({ ok: false, code: "approval_not_found" }, { status: 404 });
   try {

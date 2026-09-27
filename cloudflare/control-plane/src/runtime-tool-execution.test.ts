@@ -1,7 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { executeRuntimeToolBinding } from "./runtime-tool-execution";
 import type { AgentIdentity, Env } from "./types";
+
+vi.mock("./runtime-usage", () => ({
+  reserveRuntimeUsage: vi.fn(async () => ({ fresh: true, reservation: { id: "usage-1" } })),
+  settleRuntimeUsage: vi.fn(async () => undefined),
+}));
 
 const identity = {
   scope: { userId: "user-1", workspaceId: "workspace-1" },

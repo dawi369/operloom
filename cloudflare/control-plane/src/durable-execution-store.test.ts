@@ -143,11 +143,6 @@ const fixture = (legacyEngine = false) => {
       },
     },
   } as unknown as Env;
-  env.WORKBENCH_PACKAGE_UPGRADES_ENABLED = "true";
-  env.WORKBENCH_TYPED_STATE_ENABLED = "true";
-  env.WORKBENCH_CONTEXT_ENABLED = "true";
-  env.WORKBENCH_USAGE_LIMITS_ENABLED = "true";
-  env.WORKBENCH_STRUCTURED_MODELS_ENABLED = "true";
   env.OPENROUTER_API_KEY = "synthetic-test-key";
   env.WORKBENCH_CONFORMANCE_MODE = "true";
   const current = createAgentBehaviorSnapshotFromTemplate(toPackTemplate(manifest));
@@ -220,7 +215,6 @@ const engineFixture = (env: Env, initial = "running") => {
   });
   const create = vi.fn(async ({ id }: { id: string }) => ({ id }));
   const get = vi.fn(async () => ({ status, terminate }));
-  env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED = "true";
   const deleteBatch = vi.fn(async (ids: string[]) => ({
     deleted: ids.map((id) => ({ id })),
     errors: [] as { id: string; code: number; message: string }[],
@@ -452,7 +446,6 @@ describe("durable deployment gate", () => {
     const { env } = fixture();
     engineFixture(env);
     Object.assign(env, {
-      WORKBENCH_PUBLIC_API_ENABLED: "true",
       WORKBENCH_LOCAL_API_ENABLED: "true",
       WORKBENCH_ENVIRONMENT: "local",
       CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: "probe-token",
@@ -489,12 +482,6 @@ describe("durable deployment gate", () => {
     expect(
       await (await handleDurableDeploymentProbe(request([simulationPin]), env)).json(),
     ).toEqual({
-      results: [{ ok: false, code: "runtime_capability_disabled" }],
-    });
-    env.WORKBENCH_SIMULATIONS_ENABLED = "true";
-    expect(
-      await (await handleDurableDeploymentProbe(request([simulationPin]), env)).json(),
-    ).toEqual({
       results: [{ ok: true }],
     });
     for (const change of [
@@ -508,9 +495,9 @@ describe("durable deployment gate", () => {
       ).json()) as { results: { ok: boolean }[] };
       expect(result.results[0]!.ok).toBe(false);
     }
-    env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED = "false";
+    env.DURABLE_WORKFLOWS = undefined;
     expect(await (await handleDurableDeploymentProbe(request(), env)).json()).toEqual({
-      results: [{ ok: false, code: "runtime_capability_disabled" }],
+      results: [{ ok: false, code: "durable_binding_missing" }],
     });
     expect((await handleDurableDeploymentProbe(request([{}]), env)).status).toBe(400);
     expect((await handleDurableDeploymentProbe(request("x".repeat(65536)), env)).status).toBe(413);
@@ -1313,7 +1300,7 @@ describe("bounded durable recovery", () => {
     expect(engine.create).toHaveBeenCalledTimes(1);
   });
 
-  it("closes a deadline-expired startup without dispatching work, even with the feature disabled", async () => {
+  it("closes a deadline-expired startup without dispatching work", async () => {
     const { db, env } = fixture();
     const engine = engineFixture(env, "terminated");
     const { execution } = await admitDurableExecution(env, identity, submission);
@@ -1321,7 +1308,6 @@ describe("bounded durable recovery", () => {
     db.exec(
       "DROP TRIGGER immutable_durable_execution; UPDATE control_durable_executions SET deadline='2000-01-01T00:00:00.000Z'",
     );
-    env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED = "false";
     expect(await recoverDurableExecutions(env)).toMatchObject({ closed: 1, deferred: 0 });
     expect(
       db
@@ -1536,7 +1522,6 @@ describe("bounded durable recovery", () => {
 describe("durable execution persistence", () => {
   it("recovers pending startup using one engine identity and accepts a lost create response only after inspection", async () => {
     const { env } = fixture();
-    env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED = "true";
     const { execution } = await admitDurableExecution(env, identity, submission);
     const create = vi.fn(async () => {
       throw new Error("Response lost");
@@ -1958,7 +1943,6 @@ const simulationFixture = async (shortEvidence = false) => {
     });
   }
   const { env, db } = fixture();
-  env.WORKBENCH_SIMULATIONS_ENABLED = "true";
   const runId = await setupRun(env),
     claim = await activeClaim(env, runId, { replaySafe: true, maxAttempts: 2 });
   const durableAttempt = await attemptAuthority(env, runId, claim);
@@ -2008,8 +1992,6 @@ const simulationFixture = async (shortEvidence = false) => {
 describe("simulation action transactions", () => {
   it("runs the package's durable preparation and simulation steps", async () => {
     const { env, db } = fixture();
-    env.WORKBENCH_SIMULATIONS_ENABLED = "true";
-    env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED = "true";
     const runtime = resolvePackRuntime("document-review", "1.0.0");
     if (!runtime.runnable) throw new Error("Expected package");
     const workflow = runtime.controlPlane.workflows.find(
@@ -2122,11 +2104,8 @@ describe("simulation action transactions", () => {
     },
   );
 
-  it("fails closed for disabled simulation, absent evidence, undeclared tools and invalid output", async () => {
-    const { env, db, simulate, plan, context } = await simulationFixture();
-    env.WORKBENCH_SIMULATIONS_ENABLED = "false";
-    await expect(simulate(plan)).rejects.toMatchObject({ code: "runtime_capability_disabled" });
-    env.WORKBENCH_SIMULATIONS_ENABLED = "true";
+  it("fails closed for absent evidence, undeclared tools and invalid output", async () => {
+    const { db, simulate, plan, context } = await simulationFixture();
     await expect(simulate({ ...plan, toolId: "other" })).rejects.toMatchObject({
       code: "action_target_mismatch",
     });
@@ -2619,7 +2598,6 @@ describe("durable context captures", () => {
     "executes the document workflow against post-wait evidence (%j)",
     async ({ changed, requireApproval }) => {
       const { env, db } = fixture();
-      env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED = "true";
       let waited = false;
       const original = controlPlane.context![0]!.resolve;
       vi.spyOn(controlPlane.context![0]!, "resolve").mockImplementation((input) =>
