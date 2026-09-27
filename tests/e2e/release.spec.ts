@@ -148,12 +148,32 @@ test("archived chats are prefetched and remain visible while revalidating", asyn
   expect(archived.ok(), await archived.text()).toBe(true);
 
   let archivedRequests = 0;
+  let archivedSettled = 0;
+  const isArchivedList = (url: string) =>
+    url.includes("/api/workbench/chat-session/threads?status=archived");
   await page.route("**/api/workbench/chat-session/threads?status=archived", async (route) => {
     archivedRequests += 1;
     await route.continue();
   });
+  const settle = (request: { url(): string }) => {
+    if (isArchivedList(request.url())) archivedSettled += 1;
+  };
+  page.on("requestfinished", settle);
+  page.on("requestfailed", settle);
+  const sessionStream = page.waitForResponse((response) =>
+    response.url().includes("/api/workbench/chat-session/stream"),
+  );
   await page.goto("/");
-  await expect.poll(() => archivedRequests).toBeGreaterThan(0);
+  await sessionStream;
+  // The stream's initial snapshot revalidates thread lists; measure the cache after that settles.
+  let previousRequests = -1;
+  await expect(() => {
+    const unchanged = archivedRequests === previousRequests;
+    previousRequests = archivedRequests;
+    expect(archivedRequests).toBeGreaterThan(0);
+    expect(archivedSettled).toBe(archivedRequests);
+    expect(unchanged).toBe(true);
+  }).toPass({ intervals: [500], timeout: 15_000 });
   const requestsAfterPrefetch = archivedRequests;
 
   await page.getByRole("button", { name: "Archived" }).click();
