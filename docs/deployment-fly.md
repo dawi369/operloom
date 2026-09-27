@@ -1,6 +1,6 @@
 # Fly.io Acceptance And Production Deployment
 
-The personal deployment uses the [minimal hosted testing profile](minimal-hosted-testing.md).
+The personal deployment uses the minimal hosted testing profile.
 Separate acceptance and production stacks are optional fork configurations.
 
 Fly is the hosted dev/staging execution runtime. Local development remains the

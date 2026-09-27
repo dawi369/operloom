@@ -52,6 +52,28 @@ export type RuntimeQueryResponse<T extends Record<string, unknown> = Record<stri
   queryId: string;
   output: T;
 };
+export type WebhookEndpoint = {
+  id: string;
+  url: string;
+  eventTypes: string[];
+  status: "active" | "disabled";
+  createdAt: string;
+  updatedAt: string;
+};
+export type WebhookDelivery = {
+  id: string;
+  endpointId: string;
+  eventId: string;
+  eventType: string;
+  status: "pending" | "delivered" | "failed";
+  attempts: number;
+  nextAttemptAt?: string;
+  lastStatusCode?: number;
+  lastErrorCode?: string;
+  deliveredAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
 import type { PublicMessage } from "./messages.js";
 import { findPublicChatContract, type ChatCommandResponse } from "./public-chat-contracts.js";
 import {
@@ -410,6 +432,36 @@ export const createRuntimeClient = (options: RuntimeClientOptions) => {
           body: { input },
           signal,
         }),
+    },
+    webhooks: {
+      list: () => request<{ ok: true; endpoints: WebhookEndpoint[] }>("/webhooks"),
+      /** The signing secret is returned only here. */
+      create: (input: { url: string; eventTypes: string[] }) =>
+        request<{ ok: true; endpoint: WebhookEndpoint; secret: string }>("/webhooks", {
+          method: "POST",
+          body: input,
+        }),
+      disable: (id: string) =>
+        request<{ ok: true; endpoint: WebhookEndpoint }>(`/webhooks/${encodeURIComponent(id)}`, {
+          method: "DELETE",
+        }),
+      deliveries: (
+        id: string,
+        query: { status?: WebhookDelivery["status"]; limit?: number } = {},
+      ) => {
+        const search = new URLSearchParams();
+        if (query.status) search.set("status", query.status);
+        if (query.limit !== undefined) search.set("limit", String(query.limit));
+        const suffix = search.toString() ? `?${search.toString()}` : "";
+        return request<{ ok: true; deliveries: WebhookDelivery[] }>(
+          `/webhooks/${encodeURIComponent(id)}/deliveries${suffix}`,
+        );
+      },
+      retry: (id: string, deliveryId: string) =>
+        request<{ ok: true; deliveryId: string; status: "pending" }>(
+          `/webhooks/${encodeURIComponent(id)}/deliveries/${encodeURIComponent(deliveryId)}/retry`,
+          { method: "POST" },
+        ),
     },
     threads: {
       create: () =>

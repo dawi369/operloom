@@ -557,6 +557,48 @@ CREATE INDEX idx_control_notification_deliveries_pending
 CREATE INDEX idx_control_notification_deliveries_scope
   ON control_notification_deliveries (user_id, workspace_id, created_at DESC);
 
+CREATE TABLE control_webhook_endpoints (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  url TEXT NOT NULL,
+  event_types_json TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('active', 'disabled')),
+  secret_version INTEGER NOT NULL DEFAULT 1,
+  cursor_created_at TEXT NOT NULL,
+  cursor_event_id TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX idx_control_webhook_endpoints_scope
+  ON control_webhook_endpoints (user_id, workspace_id, status);
+
+CREATE TABLE control_webhook_deliveries (
+  id TEXT PRIMARY KEY,
+  endpoint_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'delivered', 'failed')),
+  attempt_count INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at TEXT NOT NULL,
+  lease_expires_at TEXT,
+  last_status_code INTEGER,
+  last_error_code TEXT,
+  delivered_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (endpoint_id, event_id)
+);
+
+CREATE INDEX idx_control_webhook_deliveries_due
+  ON control_webhook_deliveries (status, next_attempt_at);
+
+CREATE INDEX idx_control_webhook_deliveries_endpoint
+  ON control_webhook_deliveries (endpoint_id, created_at DESC);
+
 CREATE TABLE control_connection_capabilities (
   id TEXT PRIMARY KEY,
   token_sha256 TEXT NOT NULL UNIQUE,
@@ -2117,6 +2159,60 @@ BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
 
 CREATE TRIGGER export_fence_control_notification_deliveries_delete
 BEFORE DELETE ON control_notification_deliveries
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id = OLD.workspace_id AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_webhook_endpoints_insert
+BEFORE INSERT ON control_webhook_endpoints
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id = NEW.workspace_id AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_webhook_endpoints_update
+BEFORE UPDATE ON control_webhook_endpoints
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id IN (OLD.workspace_id, NEW.workspace_id) AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_webhook_endpoints_delete
+BEFORE DELETE ON control_webhook_endpoints
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id = OLD.workspace_id AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_webhook_deliveries_insert
+BEFORE INSERT ON control_webhook_deliveries
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id = NEW.workspace_id AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_webhook_deliveries_update
+BEFORE UPDATE ON control_webhook_deliveries
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id IN (OLD.workspace_id, NEW.workspace_id) AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_webhook_deliveries_delete
+BEFORE DELETE ON control_webhook_deliveries
 WHEN EXISTS (
   SELECT 1 FROM control_workspace_write_fences fence
   WHERE fence.workspace_id = OLD.workspace_id AND fence.status = 'active'

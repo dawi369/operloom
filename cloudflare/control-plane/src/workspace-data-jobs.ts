@@ -155,6 +155,8 @@ export const purgeWorkspace = async (env: Env, identity: AgentIdentity, job: Con
   if (!(await purgeDurableEngines(env, identity.scope.workspaceId))) return false;
 
   const tables = [
+    "control_webhook_deliveries",
+    "control_webhook_endpoints",
     "control_notification_deliveries",
     "control_notification_preferences",
     "control_client_devices",

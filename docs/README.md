@@ -1,52 +1,25 @@
 # Operloom documentation
 
-Operloom 1.0 is a developer workbench for chat, trusted agent packs, read-only
-workflows, artifacts, and history. Start here; open the deeper references when
-you need to change a particular boundary.
+Operloom is a workbench for agent systems you own: chat, trusted Runtime
+Modules, typed state, simulations, approvals, monitors and an inspectable
+history. Start here, then open the reference you need.
 
 ## Start and extend
 
-- [Getting started](getting-started.md): local setup and your first report.
+- [Getting started](getting-started.md): local setup and a first run.
 - [Build your first agent](first-agent.md): scaffold and customize a pack.
-- [Architecture](architecture.md): technology choices, ownership, and scaling boundaries.
-- [Forking and upgrades](forking.md): adapt the project and bring in updates.
-- [1.x release contract](release-1.0.md): stable interfaces and compatibility.
+- [Agent packs](agent-packs.md): the package contract, monitors, settings and queries.
+- [Architecture](architecture.md): ownership and scaling boundaries.
+- [Forking and upgrades](forking.md): product identity, default pack and updates.
 
-## Reference
+## Clients
 
-- [Agent packs](agent-packs.md) · [Runtime Module v1](agent-runtime-kit.md) · [Prompt authoring](agent-profile-authoring.md)
-- [Frontend integration](frontend-integration.md) · [Workbench UI](workbench-ui.md)
-- [Tenancy and authorization](tenancy.md) · [Cloudflare control plane](cloudflare-control-plane.md)
-- [Architecture diagrams](diagrams/README.md) · [Decisions](decisions/)
-- [Cold-start deadline case study](case-studies/cold-start-deadline.md): a release bug and its tradeoffs.
+- [Headless runtime](headless-runtime.md): the `/v1` API, `@operloom/client`, state,
+  budgets, durable submission and webhook notifications.
 
 ## Operate
 
-- [Deployment](environment-separation.md) · [Railway](deployment-railway.md) · [Vercel](deployment-vercel.md) · [Fly](deployment-fly.md)
-- [Scale-to-zero public demo](minimal-hosted-testing.md): policy, cost controls, and rollout.
-- [Migrations and retention](migrations-and-retention.md): preserve existing data.
-- [Troubleshooting and resource limits](dev-infrastructure-readiness.md) · [Execution deadlines](runtime-deadlines.md)
-- [Release checklist](release-readiness.md) · [Dependency security](dependency-security.md)
+- [Environments and deployment](environment-separation.md) · [Fly](deployment-fly.md)
+- [Tool runners](fly-tool-runners.md): the signed Node.js runner.
 
-## Runtime delivery
-
-- [Headless runtime](headless-runtime.md): experimental direct API and client.
-- [Delivery evidence](runtime-delivery-status.md): local verification and remaining gates.
-- [Typed-state design](runtime-state-design.md): transaction and lifecycle boundaries.
-- [Simulation actions](runtime-simulation.md): explicit targets, atomic effects and safe replay.
-- [Bound action reviews](action-review-design.md): payload binding, expiry and atomic approval/dispatch admission.
-- [Package upgrades](package-upgrades.md): explicit version changes and immutable snapshot history.
-- [Chat command admission](chat-command-admission.md): pending work, revision fencing and recovery.
-- [Scoped runtime context](runtime-context.md): executable resolvers, evidence, freshness and no-op decisions.
-- [Models and budgets](runtime-models-and-budgets.md): structured calls, atomic reservations, usage and replay.
-- [Durable execution](durable-execution.md): persistence kernel and remaining engine integration gates.
-
-## Future work
-
-[The roadmap](implementation-roadmap.md) separates future work from the stable
-release. Credential brokerage, mutations, and unattended automation are
-experimental and disabled by default; see [advanced acceptance](advanced-production-acceptance.md).
-[Mobile remains WIP](mobile-frontends.md).
-
-The remaining design contracts and [reference-app studies](reference-apps/) are
-background material, not additional setup steps or production guarantees.
+`docs/prompts/` holds prompt fixtures used by tests.

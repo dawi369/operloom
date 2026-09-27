@@ -147,6 +147,8 @@ export const exportCollections: readonly ExportCollection[] = [
   ),
   tenantCollection("control_notification_preferences"),
   tenantCollection("control_notification_deliveries"),
+  tenantCollection("control_webhook_endpoints"),
+  tenantCollection("control_webhook_deliveries"),
 ];
 
 export const workspaceExportOmittedTables = [

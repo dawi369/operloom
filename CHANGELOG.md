@@ -51,3 +51,7 @@ the baseline schema.
   workspace's default agent is created from, and `workspace.maxAgents` caps
   active agents per workspace (`409 agent_limit_reached`). `fork init` accepts
   `--default-pack` and `--max-agents`.
+- Webhook notifications: owners/admins subscribe HTTPS endpoints to
+  control-plane event types (`GET/POST /webhooks`, `DELETE /webhooks/{id}`,
+  `GET /webhooks/{id}/deliveries`, `POST .../deliveries/{id}/retry`). Deliveries
+  are HMAC-signed, retried with backoff for 8 attempts, then marked `failed`.

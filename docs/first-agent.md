@@ -52,6 +52,6 @@ protect runtime boundaries; they do not sandbox arbitrary code you install.
 
 For a working repository example, read
 [Repository Analyst](../agent-packs/repo-analyst/control-plane.ts). For the full
-contract, read [Agent Runtime Kit](agent-runtime-kit.md). For the larger example
-with managed state, connections, and recovery, read the
-[Complex Agent Golden Path](complex-agent-golden-path.md).
+contract, read [Agent packs](agent-packs.md). For a larger example with typed
+state, simulations and approvals, read
+[Complex Operator](../examples/complex-operator/control-plane.ts).

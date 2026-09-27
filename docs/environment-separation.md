@@ -101,7 +101,7 @@ admissions pause during inspection/activation; existing runs continue. D1 reject
 stale Worker admissions after the new generation activates. A failed
 or uncertain upload retains the fence. Keep the reported artifact and use its
 `--resume` or verified `--release` command rather than bypassing the guard with a
-raw deployment. See [deployment compatibility](durable-execution.md#deployment-compatibility-gate).
+raw deployment. See deployment compatibility.
 
 Remote migration is a separate approval phase and requires a same-commit,
 AES-256-GCM encrypted D1 export. The 32-byte base64 encryption key stays in the

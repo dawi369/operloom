@@ -50,7 +50,8 @@ const packageJson = JSON.parse(readRepositoryFile("package.json")) as {
 const documentedCommandFiles = [
   "README.md",
   "CONTRIBUTING.md",
-  "docs/complex-agent-golden-path.md",
+  "docs/getting-started.md",
+  "docs/first-agent.md",
 ];
 const packageManagerBuiltins = new Set(["install", "exec", "dlx"]);
 for (const file of documentedCommandFiles) {
@@ -61,14 +62,6 @@ for (const file of documentedCommandFiles) {
       failures.push(`${file} documents missing package script ${command}`);
     }
   }
-}
-
-const currentTopology = readRepositoryFile("docs/diagrams/current-implementation-topology.mmd");
-if (currentTopology.includes("R2 artifacts planned")) {
-  failures.push("current implementation topology still labels active R2 artifacts as planned");
-}
-if (!currentTopology.includes("R2 artifacts + exports")) {
-  failures.push("current implementation topology must show active R2 artifact/export storage");
 }
 
 if (failures.length > 0) {

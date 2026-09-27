@@ -6,7 +6,7 @@ The v2 simulation action port uses the typed-state transaction for state, immuta
 decisions/effects and delivery receipts. The server selects the simulation scope
 and rechecks tool policy, evidence and attempt authority in the transaction.
 External proposal/dispatch rejects simulation bindings. No additional service or
-table is needed; see [simulation contracts](runtime-simulation.md).
+table is needed; see simulation contracts.
 
 The opt-in `/v1` Worker facade accepts WorkOS bearer tokens and dispatches through
 the same authorization and command handlers as the signed Next facade. Command
@@ -15,7 +15,7 @@ are discarded. The pure verifier is shared with native clients.
 
 Typed-state commits extend D1 with scoped records, declared equality indexes,
 receipts, immutable evidence and outbox intents. All mutations share one batch
-with database-enforced preconditions. See [state design](runtime-state-design.md).
+with database-enforced preconditions. See state design.
 Operator reads and failed-event retry use the same backend authority, with shared
 OpenAPI/Fetch schemas. Retry is conditional on observed attempts and commits its
 audit event in the same D1 batch; simulation/external state targets stay separate.
@@ -27,22 +27,22 @@ Server-owned agent execution revisions are pinned in authenticated identities an
 signed chat claims. D1 checks the pin at run admission/resumption; typed-state
 ports check it on reads and commits. Revision changes reject active work. This
 now supports explicit idle-agent package upgrades with immutable snapshots,
-state/index validation and atomic receipts/audit; see [upgrade design](package-upgrades.md). Pending HTTP
+state/index validation and atomic receipts/audit; see upgrade design. Pending HTTP
 chat commands now register in D1 before acknowledgement and pin the same revision.
 Run admission atomically links a command to one run, and terminal outcomes publish
 durable events. Deadline recovery closes abandoned work without re-executing it.
-See [chat admission](chat-command-admission.md) for the cross-store failure model.
+See chat admission for the cross-store failure model.
 Opt-in v2 context resolvers receive immutable scope/input, read-only typed state
 and cancellation. Schema-validated evidence and run linkage commit atomically in
 D1 under current authority. Chat and workflows use the same collector; required
 stale evidence blocks work, and typed commits recheck expiry atomically. Trust
-comes from manifest declarations. See [scoped context](runtime-context.md).
+comes from manifest declarations. See scoped context.
 Workflow structured model calls use the configured OpenRouter model and schema
 validation, with no automatic provider retry. D1 atomically admits model/tool
 reservations against workspace and canonical root-run budgets. Chat follow-up
 steps use the same admission boundary. Settlement and its durable event share a
 transaction; failed/ambiguous settlement retains the original charge. Evidence
-configuration hashes include the effective model settings. See [models and budgets](runtime-models-and-budgets.md).
+configuration hashes include the effective model settings. See models and budgets.
 The internal durable-execution kernel now records atomic submission/run identity,
 immutable pins, named step attempts and validated outcome receipts in D1. Safe
 retry is explicit and bounded; unknown unsafe attempts cannot redispatch. Its
@@ -73,9 +73,9 @@ in D1 while comparing active handler pins inside the candidate runtime. An
 uncertain upload retains that fence for explicit operator recovery. Hosted
 activation/restart acceptance remains open; request-mode handlers keep their
 original execution semantics.
-See [durable execution](durable-execution.md) for the engine and authority gates.
+See durable execution for the engine and authority gates.
 
-[Delivery evidence](runtime-delivery-status.md) records implemented versus
+Delivery evidence records implemented versus
 verified behavior; [headless runtime](headless-runtime.md) documents the new API.
 
 Operloom is a reusable agent workbench with a conversational control
@@ -232,7 +232,7 @@ to the existing D1 control plane. Approval and dispatch each atomically validate
 current authority against the reviewed payload, policy, credentials and state.
 Bounded scheduler expiry revokes pending work while preserving accepted effects.
 Reviews participate in export and purge; exports omit internal vault references.
-See [review design](action-review-design.md). Provider operation isolation and
+See review design. Provider operation isolation and
 response reconciliation remain separate delivery gates.
 
 ### Credential-isolated operation dispatch
@@ -247,4 +247,4 @@ dispatch acceptance. Recovery without a receipt atomically proves absence and
 fences proposal admission; it cannot race a dispatcher into a false no-effect
 result. The public API exposes redacted receipts separately from action status,
 with shared response schemas for frontend and headless clients. See
-[provider operations](provider-operation-contract.md).
+provider operations.

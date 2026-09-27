@@ -201,7 +201,7 @@ while (migration.status === "running") {
 
 The client supplies no transformation or raw scope. Start pins a reviewed plan
 and both schemas; advance preserves record identity and increments versions.
-See [migration bounds and recovery limits](runtime-state-design.md).
+See migration bounds and recovery limits.
 
 For a failed transformation, deploy a reviewed replacement declaration retaining
 the original schemas/indexes, then explicitly repair the remaining records:
@@ -226,7 +226,30 @@ download, and quarantine/recovery without Next. It does not prove WorkOS hosted
 login, an approved external effect, hosted restore, automatic workflow restart
 or a 24-hour automation soak. The gated native adapter exercises local steps and
 timer waits; explicit-wake process replay is separate from automatic recovery. See
-[delivery evidence](runtime-delivery-status.md) before enabling production access.
+delivery evidence before enabling production access.
+
+## Webhook notifications
+
+Owners/admins subscribe an HTTPS endpoint to their control-plane events (exact
+types, `prefix.*` patterns or `*`). The signing secret is returned once:
+
+```ts
+const { endpoint, secret } = await runtime.webhooks.create({
+  url: "https://hooks.example.com/operloom",
+  eventTypes: ["agent.settings.changed", "run.*"],
+});
+const failed = await runtime.webhooks.deliveries(endpoint.id, { status: "failed" });
+await runtime.webhooks.retry(endpoint.id, failed.deliveries[0].id);
+```
+
+The scheduled tick delivers events at least once, about 30–90 seconds after
+they are recorded. Each POST carries `x-operloom-webhook-id` (dedupe on it),
+`x-operloom-event`, `x-operloom-timestamp` (Unix seconds) and
+`x-operloom-signature: v1=<base64url HMAC-SHA256(secret, "<timestamp>.<raw body>")>`.
+Reject stale timestamps. Non-2xx responses and redirects are retried with
+exponential backoff (1 minute doubling to 1 hour) for 8 attempts, then marked
+`failed`. Disabling an endpoint fails its pending deliveries. Delivery records
+are kept for 30 days.
 
 ## Chat command outcomes
 
@@ -246,7 +269,7 @@ recovery writes. Review a failed outcome before explicitly sending a new key.
 Command outcomes are included in workspace exports and removed on purge.
 
 This provides observable interruption handling, not resumable model execution.
-See [admission and crash boundaries](chat-command-admission.md).
+See admission and crash boundaries.
 
 ## Explicit package upgrades
 
@@ -268,7 +291,7 @@ Persist the command body/key before sending, and reuse both on an ambiguous
 response. GET `/workbench/package-snapshots` supports `beforeRevision` pagination;
 POST `/workbench/package-upgrades` has generated validators/OpenAPI. The installed
 registry determines the destination; clients cannot upload code or prompts.
-Read [compatibility, active-work fences and validation bounds](package-upgrades.md)
+Read compatibility, active-work fences and validation bounds
 before upgrading. Hosted renderers leave this capability disabled.
 
 ## Model/tool budgets
@@ -281,7 +304,7 @@ are enforced before dispatch. Owners/admins inspect `client.budgets.get()` and
 authentication. Listen for `usage.reserved`, `usage.settled` and `budget.updated`
 events, then fetch canonical usage. Workflow structured calls additionally require
 `OPERLOOM_STRUCTURED_MODELS_ENABLED=true` and the package capability declaration.
-See [model/budget semantics](runtime-models-and-budgets.md) and the
+See model/budget semantics and the
 [document-review example](../examples/document-review/README.md) for complete setup.
 
 ## Experimental durable submission
@@ -305,7 +328,7 @@ const accepted = await client.request("/workbench/workflows/document-review.revi
 The HTTP response is `202`; inspect `accepted.run.id` through canonical run history.
 Retry the same key and body after a lost response. Changed content conflicts.
 Cron retries pending engine starts in bounded batches. The feature defaults off;
-[durable execution](durable-execution.md) lists the outstanding hosted restart,
+durable execution lists the outstanding hosted restart,
 handler-retention and engine-lifecycle gates. Request-mode workflows
 continue to use the existing command behavior.
 
@@ -315,7 +338,7 @@ https://<worker-origin>`. It inspects active handler pins inside the frozen
 candidate while D1 fences new admissions, then verifies the deployed identity
 before activating its generation. Existing executions remain resumable. Preserve
 the artifact and its evidence after an uncertain upload; see the
-[deployment recovery commands](durable-execution.md#deployment-compatibility-gate).
+deployment recovery commands.
 
 ### Durable recovery operations
 

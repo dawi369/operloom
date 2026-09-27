@@ -126,6 +126,14 @@ import {
   handleRetryOperatorAlertDelivery,
   handleUpdateOperatorAlert,
 } from "./operator-alerts";
+import {
+  deliverWebhooks,
+  handleCreateWebhook,
+  handleDisableWebhook,
+  handleListWebhookDeliveries,
+  handleListWebhooks,
+  handleRetryWebhookDelivery,
+} from "./webhooks";
 import { handleTriggerWebhookIngress } from "./trigger-webhook";
 import {
   handleCreateTrigger,
@@ -857,6 +865,30 @@ const handleRequest = async (
     if (request.method === "PUT") return handleUpdateAgentSettings(request, env, identity, agentId);
   }
 
+  if (url.pathname === "/webhooks") {
+    if (request.method === "GET") return handleListWebhooks(env, identity);
+    if (request.method === "POST") return handleCreateWebhook(request, env, identity);
+  }
+  const webhookMatch = url.pathname.match(/^\/webhooks\/([^/]+)$/);
+  if (request.method === "DELETE" && webhookMatch?.[1])
+    return handleDisableWebhook(env, identity, decodeURIComponent(webhookMatch[1]));
+  const webhookDeliveriesMatch = url.pathname.match(/^\/webhooks\/([^/]+)\/deliveries$/);
+  if (request.method === "GET" && webhookDeliveriesMatch?.[1])
+    return handleListWebhookDeliveries(
+      env,
+      identity,
+      decodeURIComponent(webhookDeliveriesMatch[1]),
+      url,
+    );
+  const webhookRetryMatch = url.pathname.match(/^\/webhooks\/([^/]+)\/deliveries\/([^/]+)\/retry$/);
+  if (request.method === "POST" && webhookRetryMatch?.[1] && webhookRetryMatch[2])
+    return handleRetryWebhookDelivery(
+      env,
+      identity,
+      decodeURIComponent(webhookRetryMatch[1]),
+      decodeURIComponent(webhookRetryMatch[2]),
+    );
+
   if (request.method === "GET" && url.pathname === "/queries")
     return handleListRuntimeQueries(env, identity);
   const queryMatch = url.pathname.match(/^\/queries\/([^/]+)$/);
@@ -968,6 +1000,7 @@ export default Sentry.withSentry<Env>(
           expireConnectionOAuthStates(env, new Date(controller.scheduledTime)),
           deliverPendingOperatorAlerts(env, { now: new Date(controller.scheduledTime) }),
           sweepNotificationDeliveries(env, new Date(controller.scheduledTime)),
+          deliverWebhooks(env, new Date(controller.scheduledTime)),
           deliverRuntimeStateEvents(env),
           expireChatCommands(env, new Date(controller.scheduledTime)),
           recoverDurableExecutions(env).then((summary) => {

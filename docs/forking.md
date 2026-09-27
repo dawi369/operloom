@@ -1,7 +1,7 @@
 # Forking and upgrades
 
 Start from `v1.0.0`, the supported adoption baseline. Older pre-1.0 tags have
-been retired. The [1.x contract](release-1.0.md) covers documented SDK/client
+been retired. The 1.x contract covers documented SDK/client
 interfaces, Pack API v2, and Runtime Module v1: additive minor releases,
 corrective patches, and explicit migrations for breaking changes.
 
@@ -52,7 +52,7 @@ pnpm operloom pack compile
 ```
 
 Review the release notes and conflicts, then apply the documented
-[forward migrations](migrations-and-retention.md). Never reset retained data
+forward migrations. Never reset retained data
 with `schema.sql`. Regenerate registries instead of editing generated files.
 Run focused checks for your changes; `pnpm fork:check` is the comprehensive gate
 for changes to the core platform. CI should pass before you deploy.

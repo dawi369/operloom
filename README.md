@@ -116,7 +116,7 @@ Start with **Operloom**, the general assistant. **Repository Analyst** adds a
 readiness workflow; **Polymancer · Example** demonstrates read-only research.
 **Swordfish · Preview** is parked, and **Complex Operator** is a conformance fixture.
 
-[First-agent walkthrough →](docs/first-agent.md) · [Extension contract →](docs/agent-runtime-kit.md)
+[First-agent walkthrough →](docs/first-agent.md) · [Pack contract →](docs/agent-packs.md)
 
 ## Adapt and deploy
 
@@ -137,7 +137,6 @@ connections, and mutations have explicit deployment gates.
 A repository scan took milliseconds, but its workflow failed after 30 seconds:
 starting the stopped runner consumed most of the budget. The fix kept the runner
 able to stop when idle and preserved existing agent snapshots.
-[Cold starts, deadlines, and the 1.0 fix →](docs/case-studies/cold-start-deadline.md)
 
 ## Status
 
@@ -146,7 +145,6 @@ read-only workflows, artifacts, and history. Hosted credential brokerage,
 mutations, and unattended automation are **experimental and disabled by default**.
 The scaling boundaries above are architectural; no measured throughput, SLA,
 independent adoption evidence, or future maintenance is promised.
-[1.x compatibility and release scope →](docs/release-1.0.md)
 
 **Mobile is WIP / future work**, preserved on
 [`codex/mobile-wip`](https://github.com/dawi369/operloom/tree/codex/mobile-wip).

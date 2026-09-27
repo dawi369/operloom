@@ -49,6 +49,6 @@ Next, [build your first agent](first-agent.md).
   review History before retrying. Inputs remain available.
 - **An old configuration is rejected:** rerun `pnpm operloom init` to update it.
 
-See [service checks and resource limits](dev-infrastructure-readiness.md),
-[execution deadlines](runtime-deadlines.md), or [hosted sign-in](tenancy.md).
+See service checks and resource limits,
+execution deadlines, or hosted sign-in.
 Do not rebuild a retained database to troubleshoot it.
