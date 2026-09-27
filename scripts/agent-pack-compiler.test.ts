@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -117,16 +118,15 @@ describe("agent pack compiler", () => {
 
   it("loads the configured modules and verifies complete bindings", async () => {
     const modules = await loadAgentModules(process.cwd());
-    expect(modules.map((item) => item.manifest.id)).toEqual([
-      "document-review",
-      "operloom",
-      "repo-analyst",
-      "baby-polymancer",
-      "baby-swordfish",
-      "complex-operator",
-      "resource-allocator",
-      "provider-operation-fixture",
-    ]);
+    // Forks register product packages here, so derive the expectation from the configuration.
+    const config = (await import(pathToFileURL(resolve(process.cwd(), "workbench.config.ts")).href))
+      .default as { modules: { enabled?: boolean }[] };
+    const ids = modules.map((item) => item.manifest.id);
+    expect(ids).toHaveLength(config.modules.filter((entry) => entry.enabled !== false).length);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toEqual(
+      expect.arrayContaining(["document-review", "operloom", "resource-allocator"]),
+    );
     expect(
       modules.every((item) => item.controlPlane.runtimeVersion === item.web.runtimeVersion),
     ).toBe(true);
