@@ -246,3 +246,15 @@ export const handleSwitchChatSessionAgent = async (
     },
   });
 };
+
+/** Moves the coordinator's cached session to an agent on a fresh thread. */
+export const switchChatSessionAgent = (
+  request: Request,
+  env: Env,
+  identity: AgentIdentity,
+  agentId: string,
+) =>
+  coordinatorResponse(request, env, identity, {
+    action: "switchAgent",
+    agentSwitch: { agentId, target: "new_thread" },
+  });

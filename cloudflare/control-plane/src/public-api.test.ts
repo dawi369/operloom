@@ -69,6 +69,32 @@ describe("public API boundary", () => {
     expect(body.error).toContain("Refresh");
     expect(JSON.stringify(body)).not.toContain("private SQL");
   });
+  it("never lets a response be cached and keeps a handler's private directive", async () => {
+    const call = (cacheControl?: string) =>
+      handlePublicApi(request("/v1/me/workbench/data-exports/job/download"), env, async () =>
+        cacheControl
+          ? new Response("zip", { headers: { "cache-control": cacheControl } })
+          : new Response("zip"),
+      );
+    expect((await call()).headers.get("cache-control")).toBe("no-store");
+    expect((await call("max-age=60")).headers.get("cache-control")).toBe("no-store");
+    expect((await call("private, no-store")).headers.get("cache-control")).toBe(
+      "private, no-store",
+    );
+  });
+  it("reports an export fence as a retryable 423 without database details", async () => {
+    const response = await handlePublicApi(
+      request("/v1/me/workbench/retention-policy", { method: "PATCH" }),
+      env,
+      async () => {
+        throw new Error("D1_ERROR: workspace_export_in_progress: UPDATE private SQL");
+      },
+    );
+    expect(response.status).toBe(423);
+    const body = await response.json();
+    expect(body).toMatchObject({ ok: false, code: "workspace_export_in_progress" });
+    expect(JSON.stringify(body)).not.toContain("private SQL");
+  });
   it("retains canonical error codes and retry metadata for independent clients", async () => {
     const response = await handlePublicApi(
       request("/v1/workspaces/w/agents/a/tools/runs", { method: "POST" }),

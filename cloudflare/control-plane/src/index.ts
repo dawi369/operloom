@@ -847,7 +847,7 @@ const handleRequest = async (
 
   const activateAgentMatch = url.pathname.match(/^\/agents\/([^/]+)\/activate$/);
   if (request.method === "POST" && activateAgentMatch?.[1]) {
-    return handleActivateAgent(env, identity, decodeURIComponent(activateAgentMatch[1]));
+    return handleActivateAgent(request, env, identity, decodeURIComponent(activateAgentMatch[1]));
   }
 
   const effectTargetMatch = url.pathname.match(/^\/agents\/([^/]+)\/effect-target$/);
