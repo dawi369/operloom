@@ -125,7 +125,7 @@ const main = async () => {
   const health = await Promise.all([
     readHealth(manifest.web.origin, "/api/health", "operloom"),
     readHealth(manifest.cloudflare.origin, "/health", "operloom-control-plane"),
-    readHealth(manifest.fly.origin, "/health", "operloom-langgraph-runtime"),
+    readHealth(manifest.fly.origin, "/health", "operloom-runner"),
   ]);
   if (new Set(health.map((item) => item.release)).size !== 1) {
     failures.push("hosted services report different releases");

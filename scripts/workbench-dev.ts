@@ -7,7 +7,7 @@ import { diagnoseWorkbench } from "./workbench-doctor-core";
 import { assessLocalNodeRuntime } from "./node-runtime";
 import { readLocalEnvironment } from "./workbench-local-env";
 
-type ServiceName = "frontend" | "langgraph" | "worker" | "runner";
+type ServiceName = "frontend" | "worker" | "runner";
 
 export type LocalWorkbenchService = {
   name: ServiceName;
@@ -38,7 +38,6 @@ export const createLocalWorkbenchConfiguration = (
     throw new Error("Local environment is missing; run pnpm workbench init");
 
   const frontendPort = 3000;
-  const langGraphPort = 2024;
   const workerPort = 8787;
   const runnerPort = 3101;
   const callbackUrl = new URL(required(worker, "WORKBENCH_CALLBACK_URL", ".dev.vars"));
@@ -58,8 +57,6 @@ export const createLocalWorkbenchConfiguration = (
     ...shared,
     ...worker,
     PORT: String(runnerPort),
-    LANGGRAPH_UPSTREAM_URL: `http://127.0.0.1:${langGraphPort}`,
-    LANGGRAPH_PROXY_TOKEN: required(worker, "LANGGRAPH_UPSTREAM_TOKEN", ".dev.vars"),
     WORKBENCH_CALLBACK_ORIGIN: callbackUrl.origin,
     WORKBENCH_CALLBACK_SIGNING_SECRET: required(
       worker,
@@ -92,14 +89,6 @@ export const createLocalWorkbenchConfiguration = (
         env: { ...shared, PORT: String(frontendPort) },
       },
       {
-        name: "langgraph",
-        command: "pnpm",
-        args: ["dev:backend"],
-        port: langGraphPort,
-        healthUrl: `http://127.0.0.1:${langGraphPort}/ok`,
-        env: shared,
-      },
-      {
         name: "worker",
         command: "pnpm",
         args: ["dev:cloudflare"],
@@ -110,7 +99,7 @@ export const createLocalWorkbenchConfiguration = (
       {
         name: "runner",
         command: "pnpm",
-        args: ["start:langgraph-gateway"],
+        args: ["start:runner"],
         port: runnerPort,
         healthUrl: `http://127.0.0.1:${runnerPort}/health`,
         env: runnerEnvironment,

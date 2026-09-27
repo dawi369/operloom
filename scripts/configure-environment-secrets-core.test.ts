@@ -36,10 +36,11 @@ describe("provider secret configuration", () => {
       WORKOS_CLIENT_ID: "client_acceptance",
       NEXT_PUBLIC_WORKOS_REDIRECT_URI: "https://workbench.acceptance.example.test/auth/callback",
       CLOUDFLARE_CONTROL_PLANE_URL: "https://control.acceptance.example.test",
-      LANGGRAPH_API_URL: "https://runner.acceptance.example.test",
     });
+    expect(configuration.webVariables).not.toHaveProperty("LANGGRAPH_API_URL");
     expect(JSON.stringify(configuration.webVariables)).not.toContain("${");
     expect(configuration.flySecrets).not.toHaveProperty("WORKOS_API_KEY");
+    expect(configuration.flySecrets).not.toHaveProperty("OPENROUTER_API_KEY");
     expect(configuration.webSecrets).not.toHaveProperty("OPENROUTER_API_KEY");
     expect(configuration.workerSecrets.WORKOS_API_KEY).toBe(roles.vault);
     expect(configuration.workerSecrets).toHaveProperty("SENTRY_DSN");

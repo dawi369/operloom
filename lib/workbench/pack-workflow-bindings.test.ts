@@ -42,7 +42,7 @@ describe("pack workflow bindings", () => {
     expect(
       resolvePackWorkflowBinding({
         type: "polymancer.market_research",
-        engine: "langgraph",
+        engine: "cloudflare",
         status: "declared",
         description: "Market research",
       }),
@@ -57,7 +57,7 @@ describe("pack workflow bindings", () => {
     expect(
       resolvePackWorkflowBinding({
         type: "swordfish.runtime_research",
-        engine: "langgraph",
+        engine: "cloudflare",
         status: "declared",
         description: "Runtime research",
       }),
@@ -72,7 +72,7 @@ describe("pack workflow bindings", () => {
     expect(
       resolvePackWorkflowBinding({
         type: "example.future_workflow",
-        engine: "langgraph",
+        engine: "cloudflare",
         status: "declared",
         description: "Future workflow",
       }),
@@ -80,7 +80,7 @@ describe("pack workflow bindings", () => {
       runnable: false,
       workflow: {
         type: "example.future_workflow",
-        engine: "langgraph",
+        engine: "cloudflare",
         status: "declared",
         description: "Future workflow",
       },

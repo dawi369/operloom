@@ -1,8 +1,0 @@
-{
-  "node_version": "24",
-  "dependencies": ["."],
-  "graphs": {
-    "agent": "./backend/agent.ts:graph"
-  },
-  "env": ".env.local"
-}

@@ -1,7 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 
 import { evaluateSecurityAudit } from "./security-audit-policy";
 
@@ -32,17 +29,7 @@ try {
   process.exit(1);
 }
 
-const localPatchPath = resolve(process.cwd(), "patches/extract-zip@2.0.1.patch");
-const localPatchSha256 = createHash("sha256").update(readFileSync(localPatchPath)).digest("hex");
-const expectedLocalPatchSha256 = "eaa4a82363cf0ed0cb1f097123ff4f378c93c47032560ae80168ef12d8145759";
-const locallyRemediatedAdvisories = new Set<string>();
-if (localPatchSha256 === expectedLocalPatchSha256) {
-  locallyRemediatedAdvisories.add("GHSA-jmr9-qjv8-65gv");
-  locallyRemediatedAdvisories.add("GHSA-7pqw-9j4j-h8q3");
-}
-const decision = evaluateSecurityAudit(report as { advisories?: unknown }, {
-  locallyRemediatedAdvisories,
-});
+const decision = evaluateSecurityAudit(report as { advisories?: unknown });
 
 for (const advisory of decision.allowed) {
   console.warn(`${advisory.githubAdvisoryId} is constrained or locally remediated.`);

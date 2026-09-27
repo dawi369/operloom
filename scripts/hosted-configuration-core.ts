@@ -28,8 +28,6 @@ export const hostedEnvironmentPolicy = (target: EnvironmentTarget) => {
         "NEXT_PUBLIC_WORKOS_CLIENT_ID",
         "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
         "CLOUDFLARE_CONTROL_PLANE_URL",
-        "LANGGRAPH_API_URL",
-        "NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID",
         "WORKBENCH_ENVIRONMENT",
         "WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE",
         "SENTRY_DSN",
@@ -56,7 +54,6 @@ export const hostedEnvironmentPolicy = (target: EnvironmentTarget) => {
         "WORKBENCH_CALLBACK_SIGNING_SECRET",
         "WORKBENCH_AGENT_CONNECTION_SECRET",
         "WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET",
-        "LANGGRAPH_UPSTREAM_TOKEN",
         "WORKOS_API_KEY",
         "OPENROUTER_API_KEY",
         "SENTRY_DSN",
@@ -86,8 +83,6 @@ export const hostedEnvironmentPolicy = (target: EnvironmentTarget) => {
       required: [
         "WORKBENCH_RUNNER_SIGNING_SECRET",
         "WORKBENCH_CALLBACK_SIGNING_SECRET",
-        "LANGGRAPH_PROXY_TOKEN",
-        "OPENROUTER_API_KEY",
         "SENTRY_DSN",
         "WORKBENCH_CONFORMANCE_MODE",
         "WORKBENCH_RELEASE_SHA",
@@ -191,7 +186,6 @@ export const validateHostedConfiguration = (
   requireValue("web", "WORKBENCH_ENVIRONMENT", manifest.target);
   requireValue("web", "WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE", policy.expected.conformance);
   requireValue("web", "CLOUDFLARE_CONTROL_PLANE_URL", manifest.cloudflare.origin);
-  requireValue("web", "LANGGRAPH_API_URL", manifest.fly.origin);
   requireValue("web", "NEXT_PUBLIC_WORKOS_REDIRECT_URI", `${manifest.web.origin}/auth/callback`);
   return failures;
 };

@@ -26,7 +26,6 @@ flowchart LR
     Control --> Chat
     Control --> Data["D1 + R2\nControl state · audit · artifacts"]
     Control --> Runner["Node.js / Fly\nHeavy tools"]
-    Runner --> Graph["LangGraph\nDelegated graph workflows"]
     Runner -. "Signed results" .-> Control
 ```
 
@@ -41,7 +40,7 @@ flowchart LR
   stays in the pack instead of spreading through the core UI.
 
 **Stack:** Next.js 16, React 19, TypeScript, assistant-ui, Tailwind CSS 4,
-Cloudflare Agents/Workers/Durable Objects/D1/R2, LangGraph, WorkOS, OpenRouter,
+Cloudflare Agents/Workers/Durable Objects/D1/R2, WorkOS, OpenRouter,
 and Sentry. [Architecture, boundaries, and tradeoffs →](docs/architecture.md)
 
 ## Run it locally

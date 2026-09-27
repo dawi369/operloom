@@ -56,9 +56,8 @@ import {
   handleChatBoundarySnapshot,
   handleCreateChatSession,
   handleGetChatSession,
-  handleLangGraphFacade,
   handleLatestChatSession,
-} from "./langgraph-facade";
+} from "./chat-boundary";
 import { executeRuntimeWorkflow, runtimeWorkflowTypeForPath } from "./pack-workflow-runtime";
 import { listRuntimeWorkflows } from "./runtime-workflows";
 import {
@@ -880,10 +879,6 @@ const handleRequest = async (
   );
   if (request.method === "GET" && chatBoundaryMatch?.[1]) {
     return handleChatBoundarySnapshot(env, identity, chatBoundaryMatch[1]);
-  }
-
-  if (url.pathname === "/langgraph" || url.pathname.startsWith("/langgraph/")) {
-    return handleLangGraphFacade(request, env, ctx, identity, url, incomingTrace);
   }
 
   return json({ ok: false, error: "not found" }, { status: 404 });

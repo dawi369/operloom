@@ -1,7 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { Readable } from "node:stream";
-import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 
 import * as Sentry from "@sentry/node";
 
@@ -49,17 +47,14 @@ if (sentryDsn) {
     initialScope: {
       tags: {
         service: "operloom",
-        "runtime.surface": "fly-langgraph",
-        "runtime.target": "gateway",
+        "runtime.surface": "runner",
+        "runtime.target": "runner",
       },
     },
   });
 }
 
 const port = Number(process.env.PORT ?? 3000);
-const langGraphUpstreamUrl = (
-  process.env.LANGGRAPH_UPSTREAM_URL ?? "http://127.0.0.1:2024"
-).replace(/\/$/, "");
 const runnerInvocationPath = "/workbench/tool-runners/invocations";
 const signatureWindowMs = 5 * 60 * 1000;
 const runnerNonces = new Map<string, number>();
@@ -105,8 +100,6 @@ const constantTimeEqual = (a: string, b: string) => {
   return timingSafeEqual(bufA, bufB);
 };
 
-const bearerToken = (value: string) => `Bearer ${value}`;
-
 const firstHeader = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
@@ -122,31 +115,6 @@ const assistantHeaders = (request: IncomingMessage) => {
     }
   }
   return headers;
-};
-
-const isAuthorized = (request: IncomingMessage, token: string) => {
-  const apiKey = Array.isArray(request.headers["x-api-key"])
-    ? request.headers["x-api-key"][0]
-    : request.headers["x-api-key"];
-  const authorization = request.headers.authorization;
-  if (apiKey && constantTimeEqual(apiKey, token)) return true;
-  if (authorization && constantTimeEqual(authorization, bearerToken(token))) return true;
-  return false;
-};
-
-const requireProxyAuth = (request: IncomingMessage, response: ServerResponse) => {
-  const token = process.env.LANGGRAPH_PROXY_TOKEN;
-  if (!token) {
-    json(response, 500, { ok: false, error: "LANGGRAPH_PROXY_TOKEN is not configured" });
-    return false;
-  }
-
-  if (!isAuthorized(request, token)) {
-    json(response, 401, { ok: false, error: "unauthorized" });
-    return false;
-  }
-
-  return true;
 };
 
 const authError = (response: ServerResponse, code: string, message: string, status = 401) => {
@@ -221,22 +189,6 @@ const verifyRunnerSignature = async (
 
   runnerNonces.set(nonce, now + signatureWindowMs);
   return true;
-};
-
-const isLangGraphReady = async () => {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 750);
-
-  try {
-    const response = await fetch(`${langGraphUpstreamUrl}/ok`, {
-      signal: controller.signal,
-    });
-    return response.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timeout);
-  }
 };
 
 type ToolRunnerInvocation = {
@@ -354,7 +306,7 @@ const logCallbackFailure = (
   input: { status: number | string; code: string; message: string },
 ) => {
   console.warn("runner.callback_failed", {
-    component: "langgraph-runtime-gateway",
+    component: "runner",
     event: "runner.callback.failed",
     toolName: typeof invocation.toolName === "string" ? invocation.toolName : undefined,
     runId: payload.runId,
@@ -855,7 +807,7 @@ const handleToolRunnerInvocation = async (
       );
     } catch (error) {
       Sentry.captureException(error, {
-        tags: { "gateway.operation": "runner.invoke" },
+        tags: { "runner.operation": "invoke" },
         extra: {
           errorCode:
             error && typeof error === "object" && "code" in error && typeof error.code === "string"
@@ -880,45 +832,6 @@ const handleToolRunnerInvocation = async (
     }
     return;
   }
-};
-
-const headersToForward = (request: IncomingMessage) => {
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(request.headers)) {
-    if (!value || key === "host" || key === "content-length") continue;
-    if (Array.isArray(value)) {
-      for (const item of value) headers.append(key, item);
-    } else {
-      headers.set(key, value);
-    }
-  }
-  headers.delete("x-api-key");
-  headers.delete("authorization");
-  return headers;
-};
-
-const proxyToLangGraph = async (request: IncomingMessage, response: ServerResponse, url: URL) => {
-  if (!requireProxyAuth(request, response)) return;
-
-  const method = request.method ?? "GET";
-  const body = ["GET", "HEAD"].includes(method) ? undefined : await readBody(request);
-  const upstreamResponse = await fetch(`${langGraphUpstreamUrl}${url.pathname}${url.search}`, {
-    method,
-    headers: headersToForward(request),
-    body,
-  });
-
-  const responseHeaders = new Headers(upstreamResponse.headers);
-  responseHeaders.delete("content-encoding");
-  responseHeaders.delete("content-length");
-  responseHeaders.delete("transfer-encoding");
-
-  response.writeHead(upstreamResponse.status, Object.fromEntries(responseHeaders.entries()));
-  if (upstreamResponse.body) {
-    Readable.fromWeb(upstreamResponse.body as unknown as NodeReadableStream).pipe(response);
-    return;
-  }
-  response.end();
 };
 
 const server = createServer((request, response) => {
@@ -1032,24 +945,14 @@ const server = createServer((request, response) => {
       return;
     }
 
-    if (request.method === "GET" && url.pathname === "/health/live") {
+    if (
+      request.method === "GET" &&
+      (url.pathname === "/health/live" || url.pathname === "/health")
+    ) {
       json(response, 200, {
         ok: true,
-        service: "operloom-langgraph-runtime",
+        service: "operloom-runner",
         version: compiledWorkbenchVersion,
-        gatewayReady: true,
-        release: process.env.WORKBENCH_RELEASE_SHA ?? "development",
-      });
-      return;
-    }
-
-    if (request.method === "GET" && url.pathname === "/health") {
-      const langGraphReady = await isLangGraphReady();
-      json(response, langGraphReady ? 200 : 503, {
-        ok: langGraphReady,
-        service: "operloom-langgraph-runtime",
-        version: compiledWorkbenchVersion,
-        langGraphReady,
         release: process.env.WORKBENCH_RELEASE_SHA ?? "development",
       });
       return;
@@ -1060,25 +963,25 @@ const server = createServer((request, response) => {
       return;
     }
 
-    await proxyToLangGraph(request, response, url);
+    json(response, 404, { ok: false, error: "not found" });
   })().catch((error: unknown) => {
     Sentry.captureException(error, {
-      tags: { "gateway.operation": "request" },
+      tags: { "runner.operation": "request" },
       extra: { status: 500 },
     });
     json(response, 500, {
       ok: false,
-      error: error instanceof Error ? error.message : "runtime gateway request failed",
+      error: error instanceof Error ? error.message : "runner request failed",
     });
   });
 });
 
 server.listen(port, "0.0.0.0", () => {
-  console.log(`LangGraph runtime gateway listening on ${port}`);
+  console.log(`Operloom runner listening on ${port}`);
 });
 
 server.on("error", (error) => {
-  Sentry.captureException(error, { tags: { "gateway.operation": "server" } });
+  Sentry.captureException(error, { tags: { "runner.operation": "server" } });
 });
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) {

@@ -38,5 +38,3 @@ overrides:
   "nanoid@>=4.0.0 <6.0.0": 5.1.16
   undici: 7.29.0
   ws: 8.21.0
-patchedDependencies:
-  extract-zip@2.0.1: patches/extract-zip@2.0.1.patch

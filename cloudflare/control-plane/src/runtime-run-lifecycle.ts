@@ -40,7 +40,7 @@ type StartPackWorkflowInput = {
   toolInput: Record<string, unknown>;
   executionMode: ExecutionMode;
   stage?: string;
-  engine: "cloudflare" | "langgraph";
+  engine: "cloudflare";
   invocation?: WorkflowInvocationContext;
   source?: string;
   intentCreatedSummary?: string;

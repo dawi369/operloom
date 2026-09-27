@@ -40,10 +40,9 @@ Start the complete workbench:
 pnpm workbench dev
 ```
 
-The frontend runs at `http://localhost:3000`, LangGraph at
-`http://localhost:2024`, the Cloudflare Worker at `http://localhost:8787`, and
-the signed runner gateway at `http://localhost:3101`. The supervisor stops the
-complete process set when one required service exits.
+The frontend runs at `http://localhost:3000`, the Cloudflare Worker at
+`http://localhost:8787`, and the signed runner at `http://localhost:3101`. The
+supervisor stops the complete process set when one required service exits.
 
 ## Change Workflow
 
@@ -66,7 +65,7 @@ part of `pnpm verify:fast`.
 - Browser code never chooses tenant scope, user IDs, workspace IDs, or secrets.
 - Vercel derives WorkOS session identity and signs requests to Cloudflare.
 - Cloudflare owns application authorization, durable control state, policy, and audit.
-- Fly/LangGraph receives scoped work only through signed server-side contracts.
+- The Fly runner receives scoped work only through signed server-side contracts.
 - `components/assistant-ui/*` remains reusable; product composition belongs in
   `components/workbench/*`.
 - Mutation-capable tools remain default-off and require retention confirmation,

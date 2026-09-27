@@ -47,7 +47,6 @@ export type WorkbenchEnvironment = {
     agentConnection: string;
     operatorAlertSigning: string;
     workosCookie: string;
-    langgraphProxy: string;
     vault: string;
     openrouter: string;
   };
@@ -182,11 +181,6 @@ export const parseWorkbenchEnvironment = (value: unknown): WorkbenchEnvironment 
       workosCookie: requireString(
         secrets.workosCookie,
         "secretEnvironmentVariables.workosCookie",
-        failures,
-      ),
-      langgraphProxy: requireString(
-        secrets.langgraphProxy,
-        "secretEnvironmentVariables.langgraphProxy",
         failures,
       ),
       vault: requireString(secrets.vault, "secretEnvironmentVariables.vault", failures),

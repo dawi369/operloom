@@ -3,7 +3,7 @@ import { agentRunnerRegistry } from "../generated/agent-runtime/runner";
 import { facadeSignatureHeader, signFacadeRequest } from "../lib/workbench/control-plane-signing";
 import { runSmoke } from "./smoke-utils";
 
-const baseUrl = (process.env.LANGGRAPH_RUNTIME_BASE_URL ?? "http://localhost:3000").replace(
+const baseUrl = (process.env.WORKBENCH_RUNNER_BASE_URL ?? "http://localhost:3000").replace(
   /\/$/,
   "",
 );

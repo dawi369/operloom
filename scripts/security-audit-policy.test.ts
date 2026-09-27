@@ -59,7 +59,7 @@ describe("security audit policy", () => {
     const extractZip = advisory({
       module_name: "extract-zip",
       github_advisory_id: "GHSA-jmr9-qjv8-65gv",
-      findings: [{ paths: [".>@langchain/langgraph-cli>extract-zip"] }],
+      findings: [{ paths: [".>archive-tool>extract-zip"] }],
     });
     expect(evaluateSecurityAudit({ advisories: { extractZip } }).blocked).toHaveLength(1);
     expect(

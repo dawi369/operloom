@@ -67,8 +67,6 @@ export const renderEnvironmentConfig = (
     compatibility_flags: ["nodejs_compat", "nodejs_als"],
     workers_dev: !bootstrap,
     vars: {
-      LANGGRAPH_UPSTREAM_URL: manifest.fly.origin,
-      LANGGRAPH_ASSISTANT_ID: "agent",
       OPENROUTER_MODEL: "openai/gpt-6-luna",
       OPENROUTER_SITE_URL: manifest.web.origin,
       OPENROUTER_APP_NAME: `operloom-${target}-cloudflare-chat`,
@@ -171,14 +169,9 @@ export const renderEnvironmentConfig = (
 primary_region = "fra"
 
 [build]
-dockerfile = "../../../Dockerfile.langgraph"
+dockerfile = "../../../Dockerfile.runner"
 
 [env]
-LANGGRAPH_PORT = "2024"
-LANGGRAPH_UPSTREAM_URL = "http://127.0.0.1:2024"
-OPENROUTER_APP_NAME = "operloom-${target}-runner"
-OPENROUTER_MODEL = "openai/gpt-6-luna"
-OPENROUTER_SITE_URL = "${manifest.fly.origin}"
 WORKBENCH_CONFORMANCE_MODE = "${manifest.conformanceMode}"
 WORKBENCH_CALLBACK_ORIGIN = "${manifest.cloudflare.origin}"
 WORKBENCH_RELEASE_SHA = "${releaseSha}"

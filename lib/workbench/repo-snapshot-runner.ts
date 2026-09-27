@@ -194,7 +194,7 @@ export const runRepoSnapshot = async (input: unknown): Promise<RepoSnapshotResul
             },
           ]
         : []),
-      { kind: "runtime", title: "Runner", value: "fly-langgraph-runtime" },
+      { kind: "runtime", title: "Runner", value: "operloom-runner" },
       ...configFiles
         .slice(0, 8)
         .map((file) => ({ kind: "config" as const, title: "Config file", value: file })),

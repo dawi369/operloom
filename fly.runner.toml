@@ -1,14 +1,10 @@
-app = "assistant-mk1-local-runner"
+app = "operloom-runner"
 primary_region = "fra"
 
 [build]
-dockerfile = "Dockerfile.langgraph"
+dockerfile = "Dockerfile.runner"
 
 [env]
-LANGGRAPH_PORT = "2024"
-LANGGRAPH_UPSTREAM_URL = "http://127.0.0.1:2024"
-OPENROUTER_APP_NAME = "assistant-mk1-local-runner"
-OPENROUTER_SITE_URL = "http://127.0.0.1:3101"
 WORKBENCH_CALLBACK_ORIGIN = "http://127.0.0.1:8787"
 
 [http_service]

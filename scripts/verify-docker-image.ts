@@ -97,7 +97,7 @@ const main = async () => {
       "--tag",
       imageTag,
       "--file",
-      "Dockerfile.langgraph",
+      "Dockerfile.runner",
       ".",
     ]);
     await run("docker", [
@@ -126,7 +126,7 @@ const main = async () => {
       "sh",
       imageTag,
       "-c",
-      'test "$(node -p "process.versions.node.split(\'.\')[0]")" = 24 && test -d /app/.langgraph_api && test -w /app/.langgraph_api',
+      'test "$(node -p "process.versions.node.split(\'.\')[0]")" = 24',
     ]);
     await run("docker", [
       "run",
@@ -145,29 +145,12 @@ const main = async () => {
     ]);
     await run("docker", [
       "run",
-      "--name",
-      containerName,
-      "--cpus=2",
-      "--memory=1g",
-      "--memory-swap=1g",
-      "--rm",
-      "--entrypoint",
-      "pnpm",
-      imageTag,
-      "exec",
-      "langgraphjs",
-      "--help",
-    ]);
-    await run("docker", [
-      "run",
       "--detach",
       "--name",
       containerName,
       "--cpus=2",
       "--memory=1g",
       "--memory-swap=1g",
-      "--env",
-      "OPENROUTER_API_KEY=operloom-health-fixture-not-a-real-key",
       imageTag,
     ]);
     try {
@@ -182,8 +165,8 @@ const main = async () => {
             try {
               const response = await fetch('http://127.0.0.1:3000/health', { signal: AbortSignal.timeout(1000) });
               const health = await response.json();
-              if (response.ok && health.langGraphReady === true) {
-                console.log('Signed runner and LangGraph container readiness verified.');
+              if (response.ok && health.service === 'operloom-runner') {
+                console.log('Signed runner container readiness verified.');
                 return;
               }
             } catch {}

@@ -107,7 +107,6 @@ export const initializeWorkbench = async ({
     readValue(frontend, "WORKBENCH_RUNNER_SIGNING_SECRET"),
     readValue(worker, "WORKBENCH_RUNNER_SIGNING_SECRET"),
   );
-  const langGraphProxyToken = sharedValue(undefined, readValue(worker, "LANGGRAPH_UPSTREAM_TOKEN"));
   const configured = [
     ...writeConfiguredFile(frontendPath, frontend, {
       CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: transportToken,
@@ -123,7 +122,6 @@ export const initializeWorkbench = async ({
         WORKBENCH_AGENT_CONNECTION_SECRET: agentConnectionSecret,
         WORKBENCH_CALLBACK_SIGNING_SECRET: callbackSecret,
         WORKBENCH_RUNNER_SIGNING_SECRET: runnerSigningSecret,
-        LANGGRAPH_UPSTREAM_TOKEN: langGraphProxyToken,
         WORKBENCH_RUNNER_TRANSPORT: "fly",
         WORKBENCH_RUNNER_URL: "http://127.0.0.1:3101/workbench/tool-runners/invocations",
         WORKBENCH_CALLBACK_URL: "http://127.0.0.1:8787/workbench/run-callbacks",
@@ -151,14 +149,11 @@ export const initializeWorkbench = async ({
   });
   if (result.failures.length) throw new Error(result.failures.join("\n"));
 
-  const initializedFrontend = readFileSync(frontendPath, "utf8");
   const initializedWorker = readFileSync(workerPath, "utf8");
   return {
     created,
     configured,
-    needsProviderKey:
-      placeholder(readValue(initializedFrontend, "OPENROUTER_API_KEY")) ||
-      placeholder(readValue(initializedWorker, "OPENROUTER_API_KEY")),
+    needsProviderKey: placeholder(readValue(initializedWorker, "OPENROUTER_API_KEY")),
   };
 };
 
@@ -180,9 +175,7 @@ const main = async () => {
   for (const file of result.created) console.log(`created - ${file}`);
   for (const key of result.configured) console.log(`configured - ${key}`);
   if (result.needsProviderKey) {
-    console.log(
-      "next - set OPENROUTER_API_KEY in .env.local and cloudflare/control-plane/.dev.vars",
-    );
+    console.log("next - set OPENROUTER_API_KEY in cloudflare/control-plane/.dev.vars");
   }
   console.log("next - pnpm workbench dev");
   console.log("next - run pnpm workbench doctor in another terminal");

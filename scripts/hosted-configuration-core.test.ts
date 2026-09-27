@@ -81,7 +81,6 @@ describe("hosted configuration inventory", () => {
       ["WORKBENCH_ENVIRONMENT", "production"],
       ["WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE", "false"],
       ["CLOUDFLARE_CONTROL_PLANE_URL", manifest.cloudflare.origin],
-      ["LANGGRAPH_API_URL", manifest.fly.origin],
       ["NEXT_PUBLIC_WORKOS_REDIRECT_URI", `${manifest.web.origin}/auth/callback`],
     ] as const)
       inventory.web.set(key, value);

@@ -43,9 +43,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# LangGraph API
-.langgraph_api
-
 # Local workbench durable state
 .assistant-mk1/
 

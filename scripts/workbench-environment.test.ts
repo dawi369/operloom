@@ -74,11 +74,9 @@ describe("workbench environment manifests", () => {
     try {
       const rendered = renderEnvironmentConfig("acceptance");
       expect(readFileSync(rendered.flyPath, "utf8")).toContain(
-        'dockerfile = "../../../Dockerfile.langgraph"',
+        'dockerfile = "../../../Dockerfile.runner"',
       );
-      expect(readFileSync(rendered.flyPath, "utf8")).toContain(
-        'OPENROUTER_MODEL = "openai/gpt-6-luna"',
-      );
+      expect(readFileSync(rendered.flyPath, "utf8")).not.toContain("OPENROUTER");
       const worker = readFileSync(rendered.wranglerPath, "utf8");
       expect(worker).toContain("operloom-acceptance-control-plane");
       expect(worker).toContain('"workers_dev": true');

@@ -54,7 +54,7 @@ export type AgentPackTemplateMetadata = {
   }>;
   workflows: Array<{
     type: string;
-    engine?: "cloudflare" | "langgraph" | string;
+    engine?: "cloudflare" | string;
     status?: "declared" | string;
     userInvocable?: boolean;
     description?: string;

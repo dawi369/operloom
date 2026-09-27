@@ -105,7 +105,6 @@ describe("public API boundary", () => {
       "/v1/workbench/workflows/test",
       "/v1/workspaces/w/agents/a/workbench/run-callbacks",
       "/v1/workspaces/w/agents/a/workbench/connection-capabilities/redeem",
-      "/v1/workspaces/w/agents/a/langgraph",
     ]) {
       const dispatch = vi.fn();
       expect((await handlePublicApi(request(path, { method: "POST" }), env, dispatch)).status).toBe(

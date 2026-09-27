@@ -198,7 +198,7 @@ export const validateLocalAgentPack = (pack: LocalAgentPackManifest) => {
   const workflowTypes = new Set(pack.workflows.map((workflow) => workflow.type));
   for (const workflow of pack.workflows) {
     if (!workflow.type.trim()) throw new Error(`Agent pack ${pack.id} workflow type is required.`);
-    if (!["cloudflare", "langgraph"].includes(workflow.engine)) {
+    if (workflow.engine !== "cloudflare") {
       throw new Error(`Agent pack ${pack.id} workflow ${workflow.type} engine is invalid.`);
     }
     if (workflow.status !== "declared") {

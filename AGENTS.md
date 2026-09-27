@@ -1,10 +1,10 @@
 # Operloom Agent Instructions
 
-This repo is a reusable agent workbench built from the assistant-ui LangGraph starter. Treat it as production-oriented application code, not a demo.
+This repo is a reusable agent workbench. Treat it as production-oriented application code, not a demo.
 
 ## Work Style
 
-- Read the repo first: package manager, scripts, env files, LangGraph config, and surrounding UI components.
+- Read the repo first: package manager, scripts, env files, Worker/runner config, and surrounding UI components.
 - Prefer the smallest correct change that fits the current architecture.
 - Use `docs/README.md` as the docs map. Product direction belongs in
   `docs/agent-workbench.md`, the roadmap belongs in
@@ -19,11 +19,9 @@ This repo is a reusable agent workbench built from the assistant-ui LangGraph st
 
 - `app/assistant.tsx` is the frontend runtime integration seam.
 - `components/assistant-ui/*` should stay reusable and mostly product-agnostic.
-- `backend/agent.ts` is the LangGraph graph/provider seam.
-- `app/api/[..._path]/route.ts` proxies browser requests to the LangGraph API.
 - `app/api/external-signals/[publicId]/route.ts` is the signed facade for per-trigger Agent Pack webhooks; the unscoped legacy route is retired.
 - Cloudflare owns normal chat, authorization, durable run/control state, policy, and audit.
-- Use the signed Node.js runner for process/heavy tools; use LangGraph only for delegated graph orchestration. Read `docs/architecture.md` before moving ownership across these boundaries.
+- Use the signed Node.js runner (`runner/server.ts`) for process/heavy tools. Read `docs/architecture.md` before moving ownership across these boundaries.
 - Native clients are WIP on `codex/mobile-wip`; main targets the web workbench and shared client contracts.
 - Preserve existing signed header and provider resource identities during branding changes; see `docs/operloom-release.md`.
 
@@ -56,7 +54,7 @@ For Fly staging work, deploy only after local checks pass and then smoke the hos
 
 - Do not run destructive Git commands unless explicitly requested.
 - Do not echo secrets into logs, docs, commits, or chat.
-- Before adding persistence, volumes, queues, or new service dependencies, document why the existing Cloudflare and LangGraph primitives are insufficient.
+- Before adding persistence, volumes, queues, or new service dependencies, document why the existing Cloudflare and runner primitives are insufficient.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

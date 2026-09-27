@@ -284,7 +284,7 @@ export const responseSchemas = {
           .object({
             type: z.string().min(1),
             label: z.string(),
-            engine: z.enum(["cloudflare", "langgraph"]),
+            engine: z.enum(["cloudflare"]),
             inputSchema: jsonObject,
             outputSchema: jsonObject,
             toolIds: z.array(z.string()),

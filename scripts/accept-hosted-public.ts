@@ -45,8 +45,8 @@ const main = async () => {
     await readHealth(web, "/api/health/facade", "operloom-facade"),
     await readHealth(cloudflare, "/health/live", "operloom-control-plane"),
     await readHealth(cloudflare, "/health", "operloom-control-plane"),
-    await readHealth(fly, "/health/live", "operloom-langgraph-runtime"),
-    await readHealth(fly, "/health", "operloom-langgraph-runtime"),
+    await readHealth(fly, "/health/live", "operloom-runner"),
+    await readHealth(fly, "/health", "operloom-runner"),
   ];
   const commit = process.env.GITHUB_SHA?.trim() ?? "";
   const report = {

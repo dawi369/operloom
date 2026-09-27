@@ -34,7 +34,7 @@ describe("Docker build context policy", () => {
   });
 
   it("builds runtime-neutral workspace dependencies inside the image", () => {
-    const dockerfile = readFileSync(new URL("../Dockerfile.langgraph", import.meta.url), "utf8");
+    const dockerfile = readFileSync(new URL("../Dockerfile.runner", import.meta.url), "utf8");
     expect(dockerfile).toContain("COPY packages/observability/package.json");
     expect(dockerfile).toContain("RUN pnpm observability:build && pnpm agent-sdk:build");
     expect(dockerfile).toContain("/app/packages/observability/dist");

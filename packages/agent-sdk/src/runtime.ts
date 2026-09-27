@@ -231,7 +231,7 @@ export type RuntimeWorkflowBinding = {
   type: string;
   /** v2 only. Default simulation preserves existing package state scopes. */
   stateTarget?: "simulation" | "external";
-  engine: "cloudflare" | "langgraph";
+  engine: "cloudflare";
   label: string;
   runDisplayName?: string;
   description: string;

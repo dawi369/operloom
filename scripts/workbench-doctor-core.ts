@@ -74,7 +74,6 @@ export const diagnoseWorkbench = async ({
     requireValue(worker, key, "cloudflare/control-plane/.dev.vars");
   }
   if (!allowMissingProviderKey) {
-    requireValue(frontend, "OPENROUTER_API_KEY", ".env.local");
     requireValue(worker, "OPENROUTER_API_KEY", "cloudflare/control-plane/.dev.vars");
   }
   if (frontend.WORKBENCH_ALLOW_LOCAL_DEV_IDENTITY !== "true") {
@@ -88,7 +87,6 @@ export const diagnoseWorkbench = async ({
     failures.push("frontend and Worker control-plane tokens do not match");
   }
   if (worker.WORKBENCH_RUNNER_TRANSPORT === "fly") {
-    requireValue(worker, "LANGGRAPH_UPSTREAM_TOKEN", "cloudflare/control-plane/.dev.vars");
     requireValue(worker, "WORKBENCH_RUNNER_URL", "cloudflare/control-plane/.dev.vars");
     requireValue(worker, "WORKBENCH_RUNNER_SIGNING_SECRET", "cloudflare/control-plane/.dev.vars");
     requireValue(worker, "WORKBENCH_CALLBACK_URL", "cloudflare/control-plane/.dev.vars");
@@ -174,23 +172,13 @@ export const diagnoseWorkbench = async ({
         failures.push(`local identity validation returned HTTP ${workspace.status}`);
       else checks.push("local user, workspace, membership, agent, and preferences validated");
 
-      const langGraphOrigin = (worker.LANGGRAPH_UPSTREAM_URL || "http://127.0.0.1:2024").replace(
-        /\/$/,
-        "",
-      );
-      const langGraph = await fetch(`${langGraphOrigin}/ok`, {
-        signal: AbortSignal.timeout(5_000),
-      });
-      if (!langGraph.ok) failures.push(`LangGraph health returned HTTP ${langGraph.status}`);
-      else checks.push("LangGraph runtime is reachable");
-
       if (worker.WORKBENCH_RUNNER_TRANSPORT === "fly" && worker.WORKBENCH_RUNNER_URL) {
         const runnerOrigin = new URL(worker.WORKBENCH_RUNNER_URL).origin;
         const runner = await fetch(`${runnerOrigin}/health`, {
           signal: AbortSignal.timeout(5_000),
         });
         if (!runner.ok) failures.push(`signed runner health returned HTTP ${runner.status}`);
-        else checks.push("signed runner gateway and LangGraph dependency are reachable");
+        else checks.push("signed runner is reachable");
       }
     } catch {
       failures.push("A local service is unreachable; start pnpm workbench dev or use --offline");

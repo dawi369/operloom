@@ -1,6 +1,5 @@
 node_modules
 .next
-.langgraph_api
 .git
 .env*
 !.env.example

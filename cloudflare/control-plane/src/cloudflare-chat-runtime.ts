@@ -916,7 +916,7 @@ export const handleCloudflareRunStream = async (
           ls_model_name: model,
           runtime_config: runtimeConfig,
           behavior_config: behaviorConfig,
-          langgraph_node: "cloudflare-simple-chat",
+          runtime_node: "cloudflare-simple-chat",
           agent: agentMetadata,
         };
 

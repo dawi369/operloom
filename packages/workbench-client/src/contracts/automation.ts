@@ -4,7 +4,7 @@ export type WorkbenchWorkflowDescriptor = {
   type: string;
   label: string;
   description?: string;
-  engine: "cloudflare" | "langgraph";
+  engine: "cloudflare";
   inputSchema: Record<string, unknown>;
   outputSchema: Record<string, unknown>;
   toolIds: string[];

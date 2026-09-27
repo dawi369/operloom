@@ -9,8 +9,8 @@ describe("public application health", () => {
 
   it("reports release identity without configuration or tenant data", async () => {
     vi.stubEnv("VERCEL_GIT_COMMIT_SHA", "a".repeat(40));
-    vi.stubEnv("LANGGRAPH_API_URL", "https://internal.example.test");
-    vi.stubEnv("NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID", "private-assistant");
+    vi.stubEnv("CLOUDFLARE_CONTROL_PLANE_URL", "https://internal.example.test");
+    vi.stubEnv("NEXT_PUBLIC_WORKOS_CLIENT_ID", "private-client");
 
     const response = GET();
 

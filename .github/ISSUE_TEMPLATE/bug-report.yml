@@ -34,7 +34,7 @@ body:
       options:
         - Vercel / Next.js
         - Cloudflare Worker / Agents / D1
-        - Fly / LangGraph / runner
+        - Fly / runner
         - Local development
         - Documentation or packaging
     validations:

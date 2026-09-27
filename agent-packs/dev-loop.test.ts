@@ -232,7 +232,7 @@ describe("agent pack developer loop", () => {
       workflows: [
         {
           type: "missing.workflow",
-          engine: "langgraph",
+          engine: "cloudflare",
           status: "declared",
           userInvocable: true,
           description: "Missing route binding for test.",

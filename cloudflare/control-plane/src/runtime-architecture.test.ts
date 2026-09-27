@@ -30,15 +30,15 @@ describe("runtime extension architecture", () => {
     }
   });
 
-  it("keeps gateway and Admin/model dispatch generic", () => {
-    const gateway = read("scripts/langgraph-runtime-gateway.ts");
+  it("keeps runner and Admin/model dispatch generic", () => {
+    const runner = read("runner/server.ts");
     const dispatchers = [
       read("cloudflare/control-plane/src/runtime-admin-tool.ts"),
       read("cloudflare/control-plane/src/runtime-admin-execution.ts"),
       read("cloudflare/control-plane/src/model-tools.ts"),
     ];
     for (const concreteToolId of ["repo.snapshot", "url.inspect", "polymarket.market.search"]) {
-      expect(gateway).not.toContain(concreteToolId);
+      expect(runner).not.toContain(concreteToolId);
       for (const dispatcher of dispatchers) expect(dispatcher).not.toContain(concreteToolId);
     }
   });
@@ -65,11 +65,8 @@ describe("runtime extension architecture", () => {
   });
 
   it("keeps extension execution modules bounded", () => {
-    const modules = [
-      ...walk("cloudflare/control-plane/src"),
-      "scripts/langgraph-runtime-gateway.ts",
-    ].filter((path) =>
-      /(?:runtime|tool-(?:execution|approvals|policy-admin)|langgraph-runtime-gateway)\.ts$/.test(
+    const modules = [...walk("cloudflare/control-plane/src"), "runner/server.ts"].filter((path) =>
+      /(?:runtime|tool-(?:execution|approvals|policy-admin)|runner\/server)\.ts$/.test(
         relative(root, join(root, path)),
       ),
     );
@@ -146,8 +143,8 @@ describe("runtime extension architecture", () => {
         /\b(access_token|refresh_token|client_secret|api_key_value|credential_value)\b/i,
       );
     }
-    const gateway = read("scripts/langgraph-runtime-gateway.ts");
-    expect(gateway).not.toMatch(/accessToken\??:|refreshToken\??:|apiKey\??:|credential\??:/);
+    const runner = read("runner/server.ts");
+    expect(runner).not.toMatch(/accessToken\??:|refreshToken\??:|apiKey\??:|credential\??:/);
     const runnerInvocation = read("cloudflare/control-plane/src/tool-runner.ts");
     expect(runnerInvocation).toContain("connectionCapability");
     expect(runnerInvocation).not.toMatch(
@@ -285,10 +282,10 @@ describe("runtime extension architecture", () => {
     expect(read("cloudflare/control-plane/wrangler.jsonc")).not.toMatch(
       /acceptance|production|workers\.dev|fly\.dev|vercel\.app/,
     );
-    expect(read("fly.langgraph.toml")).not.toMatch(/acceptance|production|workers\.dev|fly\.dev/);
-    const gateway = read("scripts/langgraph-runtime-gateway.ts");
-    expect(gateway).toContain("WORKBENCH_CALLBACK_ORIGIN");
-    expect(gateway).toContain("callbackUrl.origin !== allowedCallbackOrigin");
+    expect(read("fly.runner.toml")).not.toMatch(/acceptance|production|workers\.dev|fly\.dev/);
+    const runner = read("runner/server.ts");
+    expect(runner).toContain("WORKBENCH_CALLBACK_ORIGIN");
+    expect(runner).toContain("callbackUrl.origin !== allowedCallbackOrigin");
     const client = readMatching("lib/workbench/control-plane-client", /\.ts$/);
     expect(client).toContain("baseUrl && (token || signingSecret)");
     const webhook = read("app/api/external-signals/[publicId]/route.ts");

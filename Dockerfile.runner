@@ -3,7 +3,6 @@ FROM node:24-bookworm-slim AS sdk-builder
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches patches
 COPY packages/agent-sdk/package.json packages/agent-sdk/package.json
 COPY packages/observability/package.json packages/observability/package.json
 COPY packages/workbench-client/package.json packages/workbench-client/package.json
@@ -23,8 +22,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
-ENV LANGGRAPH_PORT=2024
-ENV LANGGRAPH_UPSTREAM_URL=http://127.0.0.1:2024
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ripgrep \
@@ -32,7 +29,6 @@ RUN apt-get update \
 
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches patches
 COPY packages/agent-sdk/package.json packages/agent-sdk/package.json
 COPY packages/observability/package.json packages/observability/package.json
 COPY packages/workbench-client/package.json packages/workbench-client/package.json
@@ -46,9 +42,8 @@ RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 COPY --chown=node:node . .
 COPY --from=sdk-builder --chown=node:node /app/packages/agent-sdk/dist /app/packages/agent-sdk/dist
 COPY --from=sdk-builder --chown=node:node /app/packages/observability/dist /app/packages/observability/dist
-RUN mkdir -p /app/.langgraph_api && chown node:node /app/.langgraph_api
 
 USER node
 
 EXPOSE 3000
-CMD ["pnpm", "start:langgraph-runtime"]
+CMD ["pnpm", "start:runner"]
