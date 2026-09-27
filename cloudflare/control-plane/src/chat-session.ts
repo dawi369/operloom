@@ -47,15 +47,15 @@ const coordinatorResponse = async (
     };
   },
 ) => {
-  if (!env.WorkbenchSessionAgent) {
+  if (!env.SessionAgent) {
     return internalErrorResponse(
-      "WorkbenchSessionAgent binding is not configured",
-      new Error("WorkbenchSessionAgent binding is not configured"),
+      "SessionAgent binding is not configured",
+      new Error("SessionAgent binding is not configured"),
     );
   }
 
   const name = await sessionCoordinatorName(identity);
-  const stub = env.WorkbenchSessionAgent.get(env.WorkbenchSessionAgent.idFromName(name));
+  const stub = env.SessionAgent.get(env.SessionAgent.idFromName(name));
   const response = await stub.fetch("https://session-agent.internal/session", {
     method: "POST",
     body: JSON.stringify({
@@ -103,10 +103,10 @@ export const handleChatSessionStream = async (
   env: Env,
   identity: AgentIdentity,
 ) => {
-  if (!env.WorkbenchSessionAgent) {
+  if (!env.SessionAgent) {
     return internalErrorResponse(
-      "WorkbenchSessionAgent binding is not configured",
-      new Error("WorkbenchSessionAgent binding is not configured"),
+      "SessionAgent binding is not configured",
+      new Error("SessionAgent binding is not configured"),
     );
   }
 
@@ -116,7 +116,7 @@ export const handleChatSessionStream = async (
     url.searchParams.get("after")?.trim() ||
     request.headers.get("Last-Event-ID")?.trim() ||
     undefined;
-  const stub = env.WorkbenchSessionAgent.get(env.WorkbenchSessionAgent.idFromName(name));
+  const stub = env.SessionAgent.get(env.SessionAgent.idFromName(name));
   const response = await stub.fetch("https://session-agent.internal/session", {
     method: "POST",
     body: JSON.stringify({

@@ -13,7 +13,7 @@ export async function POST(
   if (!/^hook-[A-Za-z0-9-]{8,160}$/.test(publicId)) {
     return NextResponse.json({ ok: false, error: "Trigger webhook not found" }, { status: 404 });
   }
-  const baseUrl = process.env.CLOUDFLARE_CONTROL_PLANE_URL?.trim().replace(/\/$/, "");
+  const baseUrl = process.env.OPERLOOM_BACKEND_URL?.trim().replace(/\/$/, "");
   if (!baseUrl) {
     return NextResponse.json(
       { ok: false, error: "Webhook ingress is unavailable" },
@@ -37,7 +37,7 @@ export async function POST(
       "content-type": "application/json",
       // The Worker requires the sender's key to deduplicate deliveries.
       "idempotency-key": request.headers.get("idempotency-key")?.trim() ?? "",
-      "x-assistant-mk1-trigger-secret": triggerSecret,
+      "x-operloom-trigger-secret": triggerSecret,
     },
     body,
   });

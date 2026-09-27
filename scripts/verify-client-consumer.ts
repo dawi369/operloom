@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSy
 import { relative, resolve } from "node:path";
 
 const root = process.cwd();
-const output = resolve(root, "output/workbench-client-consumer");
+const output = resolve(root, "output/client-consumer");
 const consumer = resolve(output, "consumer");
 const viteConsumer = resolve(output, "vite-consumer");
 const run = (command: string, args: string[], cwd: string) => {
@@ -23,10 +23,10 @@ const archive = (prefix: string) => {
 
 rmSync(output, { recursive: true, force: true });
 mkdirSync(consumer, { recursive: true });
-run("pnpm", ["pack", "--pack-destination", output], resolve(root, "packages/workbench-client"));
-run("pnpm", ["pack", "--pack-destination", output], resolve(root, "packages/workbench-react"));
-const clientArchive = archive("operloom-workbench-client-");
-const reactArchive = archive("operloom-workbench-react-");
+run("pnpm", ["pack", "--pack-destination", output], resolve(root, "packages/client"));
+run("pnpm", ["pack", "--pack-destination", output], resolve(root, "packages/react"));
+const clientArchive = archive("operloom-client-");
+const reactArchive = archive("operloom-react-");
 for (const packageArchive of [clientArchive, reactArchive]) {
   const entries = run("tar", ["-tzf", packageArchive], root).split("\n");
   if (entries.some((entry) => entry.startsWith("package/src/"))) {
@@ -43,11 +43,11 @@ writeFileSync(
   resolve(consumer, "package.json"),
   `${JSON.stringify(
     {
-      name: "workbench-client-zero-context-consumer",
+      name: "client-zero-context-consumer",
       private: true,
       type: "module",
       dependencies: {
-        "@operloom/workbench-client": `file:${relative(consumer, clientArchive)}`,
+        "@operloom/client": `file:${relative(consumer, clientArchive)}`,
       },
     },
     null,
@@ -57,7 +57,7 @@ writeFileSync(
 run("pnpm", ["install", "--ignore-workspace", "--prefer-offline"], consumer);
 writeFileSync(
   resolve(consumer, "consumer.ts"),
-  `import { createWorkbenchClient, createRuntimeClient, workbenchChatProtocolVersion } from "@operloom/workbench-client";
+  `import { createWorkbenchClient, createRuntimeClient, workbenchChatProtocolVersion } from "@operloom/client";
 
 const client = createWorkbenchClient({ baseUrl: "https://example.invalid", client: { platform: "ios", version: "test" }, fetch });
 void [client, workbenchChatProtocolVersion];
@@ -94,7 +94,7 @@ writeFileSync(
 run("pnpm", ["exec", "tsc", "-p", "tsconfig.json"], consumer);
 writeFileSync(
   resolve(consumer, "runtime.mjs"),
-  `import { createWorkbenchClient, createRuntimeClient } from "@operloom/workbench-client";
+  `import { createWorkbenchClient, createRuntimeClient } from "@operloom/client";
 
 const response = (body, requestId) => new Response(JSON.stringify(body), {
   headers: { "content-type": "application/json", "x-request-id": requestId },
@@ -135,22 +135,11 @@ try {
 run("node", ["runtime.mjs"], consumer);
 run(
   "pnpm",
-  [
-    "--filter",
-    "@operloom/workbench-client-vite-consumer",
-    "deploy",
-    "--prod",
-    "--legacy",
-    viteConsumer,
-  ],
+  ["--filter", "@operloom/client-vite-consumer", "deploy", "--prod", "--legacy", viteConsumer],
   root,
 );
-const deployedViteClient = realpathSync(
-  resolve(viteConsumer, "node_modules/@operloom/workbench-client"),
-);
-const deployedViteReact = realpathSync(
-  resolve(viteConsumer, "node_modules/@operloom/workbench-react"),
-);
+const deployedViteClient = realpathSync(resolve(viteConsumer, "node_modules/@operloom/client"));
+const deployedViteReact = realpathSync(resolve(viteConsumer, "node_modules/@operloom/react"));
 if (
   !deployedViteClient.startsWith(viteConsumer) ||
   readdirSync(deployedViteClient).includes("src") ||
@@ -161,6 +150,6 @@ if (
 }
 run("pnpm", ["run", "build"], viteConsumer);
 const manifest = JSON.parse(
-  readFileSync(resolve(root, "packages/workbench-client/package.json"), "utf8"),
+  readFileSync(resolve(root, "packages/client/package.json"), "utf8"),
 ) as { name: string };
 console.log(`${manifest.name} packed zero-context Vite consumer verified.`);

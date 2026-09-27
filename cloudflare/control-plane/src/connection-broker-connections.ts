@@ -66,7 +66,7 @@ export const handleStoreConnectionCredential = async (
       { ok: false, error: "Credential must be bounded non-empty text." },
       { status: 400 },
     );
-  if (descriptor.credentialClass === "oauth2" && env.WORKBENCH_E2E_MODE !== "true") {
+  if (descriptor.credentialClass === "oauth2" && env.OPERLOOM_E2E_MODE !== "true") {
     return json(
       {
         ok: false,

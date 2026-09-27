@@ -295,7 +295,7 @@ export const admitDurableExecution = async (
         deadline,
         now,
         now,
-        env.WORKBENCH_DEPLOYMENT_ID ?? "",
+        env.OPERLOOM_DEPLOYMENT_ID ?? "",
         ...scope(identity),
         identity.agentRevision ?? 0,
         agent.data_json,

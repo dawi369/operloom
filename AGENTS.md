@@ -6,10 +6,8 @@ This repo is a reusable agent workbench. Treat it as production-oriented applica
 
 - Read the repo first: package manager, scripts, env files, Worker/runner config, and surrounding UI components.
 - Prefer the smallest correct change that fits the current architecture.
-- Use `docs/README.md` as the docs map. Product direction belongs in
-  `docs/agent-workbench.md`, the roadmap belongs in
-  `docs/implementation-roadmap.md`, and reference app pressure belongs in
-  `docs/reference-apps/*`.
+- Use `docs/README.md` as the docs map. `CHANGELOG.md` records what is verified.
+- There are no production users yet; breaking changes are acceptable when they simplify the platform.
 - Keep provider secrets server-side. Never add model provider keys to `NEXT_PUBLIC_*`.
 - Use pnpm for dependency commands; this repo tracks `pnpm-lock.yaml`.
 - Avoid unrelated refactors, formatting churn, and new dependencies unless the existing stack cannot solve the problem.
@@ -19,11 +17,12 @@ This repo is a reusable agent workbench. Treat it as production-oriented applica
 
 - `app/assistant.tsx` is the frontend runtime integration seam.
 - `components/assistant-ui/*` should stay reusable and mostly product-agnostic.
-- `app/api/external-signals/[publicId]/route.ts` is the signed facade for per-trigger Agent Pack webhooks; the unscoped legacy route is retired.
+- `app/api/external-signals/[publicId]/route.ts` forwards per-trigger webhooks; the Worker verifies each trigger secret.
+- The Worker serves only `/v1` to the network. The web console is a `/v1` client (`/v1/me`) using the signed-in WorkOS access token; never add identity headers or facade routes.
 - Cloudflare owns normal chat, authorization, durable run/control state, policy, and audit.
 - Use the signed Node.js runner (`runner/server.ts`) for process/heavy tools. Read `docs/architecture.md` before moving ownership across these boundaries.
-- Native clients are WIP on `codex/mobile-wip`; main targets the web workbench and shared client contracts.
-- Preserve existing signed header and provider resource identities during branding changes; see `docs/operloom-release.md`.
+- Native clients are WIP on `codex/mobile-wip`; main targets the web console and shared client contracts.
+- Product-specific code belongs in forks (see `docs/forking.md`); keep main product-neutral.
 
 ## Local resource safety
 

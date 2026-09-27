@@ -229,7 +229,7 @@ A Runtime Module v2 inline external action can declare
 `action.execute` or `action.reconcile` callback. The approved preview is the
 operation input; the platform chooses the request identity and credential. V1
 callback actions remain supported. The backend flag
-`WORKBENCH_PROVIDER_OPERATIONS_ENABLED` defaults to false. Registry installation
+`OPERLOOM_PROVIDER_OPERATIONS_ENABLED` defaults to false. Registry installation
 is a reviewed platform change; packages cannot register signing handlers.
 
 The initial capacity-service contracts and remaining acceptance gates are in

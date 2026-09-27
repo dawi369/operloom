@@ -23,7 +23,7 @@ export const issueFlyConnectionCapability = async (
     timeoutMs: number;
   },
 ): Promise<FlyConnectionCapabilityEnvelope> => {
-  const callbackUrl = env.WORKBENCH_CALLBACK_URL?.trim();
+  const callbackUrl = env.OPERLOOM_CALLBACK_URL?.trim();
   if (!callbackUrl) throw new Error("connection_broker_url_not_configured");
   const row = await env.DB.prepare(
     `SELECT provider_id, status FROM control_connections

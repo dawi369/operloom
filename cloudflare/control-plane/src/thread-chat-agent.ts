@@ -10,7 +10,7 @@ import {
   readChatCommand,
   reserveChatCommand,
 } from "./chat-command-admission";
-import { toPublicMessage } from "../../../packages/workbench-client/src/messages";
+import { toPublicMessage } from "../../../packages/client/src/messages";
 import { registerRuntimeDeadline } from "./runtime-watchdog";
 import {
   assertUsableChatCompletion,
@@ -63,8 +63,8 @@ import { ChatTurnReceipts } from "./thread-chat-receipts";
 import type { AgentRow, Env, WorkerExecutionContext } from "./types";
 
 const getRequiredSecret = (env: Env) => {
-  const secret = env.WORKBENCH_AGENT_CONNECTION_SECRET?.trim();
-  if (!secret) throw new Error("WORKBENCH_AGENT_CONNECTION_SECRET is not configured");
+  const secret = env.OPERLOOM_AGENT_CONNECTION_SECRET?.trim();
+  if (!secret) throw new Error("OPERLOOM_AGENT_CONNECTION_SECRET is not configured");
   return secret;
 };
 
@@ -176,7 +176,7 @@ const runtimeChatContextInput = (messages: UIMessage[]) => ({
   })),
 });
 
-export class WorkbenchThreadChatAgent extends AIChatAgent<Env> {
+export class ThreadChatAgent extends AIChatAgent<Env> {
   maxPersistedMessages = 100;
   private agentConfigCache: ResolvedAgentChatConfig | null = null;
   private commandInvocation = new AsyncLocalStorage<{
@@ -517,7 +517,7 @@ export class WorkbenchThreadChatAgent extends AIChatAgent<Env> {
         url.pathname === "/internal/lifecycle-freeze" ||
         url.pathname === "/internal/lifecycle-unfreeze")
     ) {
-      const provided = request.headers.get("x-workbench-lifecycle-secret")?.trim();
+      const provided = request.headers.get("x-operloom-lifecycle-secret")?.trim();
       if (!provided || provided !== getRequiredSecret(this.getEnv())) {
         return jsonResponse({ ok: false, error: "Lifecycle authorization failed" }, 401);
       }
@@ -589,7 +589,7 @@ export class WorkbenchThreadChatAgent extends AIChatAgent<Env> {
       return this.handleProgrammaticSubmit(request);
     }
     if (request.method === "POST" && url.pathname === "/internal/thread-cancel") {
-      const provided = request.headers.get("x-workbench-agent-secret")?.trim();
+      const provided = request.headers.get("x-operloom-agent-secret")?.trim();
       if (!provided || provided !== getRequiredSecret(this.getEnv())) {
         return jsonResponse({ ok: false, error: "Agent cancellation authorization failed" }, 401);
       }
@@ -649,7 +649,7 @@ export class WorkbenchThreadChatAgent extends AIChatAgent<Env> {
     const tokenVerifyStartedAtMs = Date.now();
     const claims = await this.verifyScopedClaims(getTokenFromBody(requestBody));
     const tokenVerifyEndedAtMs = Date.now();
-    if (this.getEnv().WORKBENCH_E2E_MODE === "true") {
+    if (this.getEnv().OPERLOOM_E2E_MODE === "true") {
       const identity = claimsToIdentity(claims);
       const run = await createAllowedChatRunBoundary(this.getEnv(), identity, {
         sessionId: claims.sessionId,

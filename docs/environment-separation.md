@@ -30,18 +30,18 @@ Replace `TARGET` with `ACCEPTANCE`, `PRODUCTION`, or `DEMO`. Vercel targets use
 the Vercel identifiers; the demo uses the Railway identifiers.
 
 ```text
-WORKBENCH_TARGET_D1_DATABASE_ID
-WORKBENCH_TARGET_CLOUDFLARE_ORIGIN
-WORKBENCH_TARGET_FLY_ORIGIN
-WORKBENCH_TARGET_VERCEL_ORG_ID
-WORKBENCH_TARGET_VERCEL_PROJECT_ID
-WORKBENCH_TARGET_RAILWAY_PROJECT_ID
-WORKBENCH_TARGET_RAILWAY_ENVIRONMENT_ID
-WORKBENCH_TARGET_RAILWAY_SERVICE_ID
-WORKBENCH_TARGET_WEB_ORIGIN
-WORKBENCH_TARGET_WORKOS_APPLICATION_ID
-WORKBENCH_TARGET_WORKSPACE_ID                  # acceptance
-WORKBENCH_PRODUCTION_ACCEPTANCE_WORKSPACE_ID  # isolated production acceptance
+OPERLOOM_TARGET_D1_DATABASE_ID
+OPERLOOM_TARGET_CLOUDFLARE_ORIGIN
+OPERLOOM_TARGET_FLY_ORIGIN
+OPERLOOM_TARGET_VERCEL_ORG_ID
+OPERLOOM_TARGET_VERCEL_PROJECT_ID
+OPERLOOM_TARGET_RAILWAY_PROJECT_ID
+OPERLOOM_TARGET_RAILWAY_ENVIRONMENT_ID
+OPERLOOM_TARGET_RAILWAY_SERVICE_ID
+OPERLOOM_TARGET_WEB_ORIGIN
+OPERLOOM_TARGET_WORKOS_APPLICATION_ID
+OPERLOOM_TARGET_WORKSPACE_ID                  # acceptance
+OPERLOOM_PRODUCTION_ACCEPTANCE_WORKSPACE_ID  # isolated production acceptance
 ```
 
 The target-specific facade, runner, callback, Agent connection, alert receiver,
@@ -149,9 +149,9 @@ are durable without recording environment values:
 pnpm release:evidence:run -- --target acceptance --kind repository.release-check \
   -- pnpm release:check
 pnpm release:evidence:run -- --target acceptance --kind hosted.data-lifecycle \
-  -- env WORKBENCH_HOSTED_DATA_LIFECYCLE_MODE=true pnpm acceptance:hosted:data-lifecycle
+  -- env OPERLOOM_HOSTED_DATA_LIFECYCLE_MODE=true pnpm acceptance:hosted:data-lifecycle
 pnpm release:evidence:run -- --target acceptance --kind hosted.alert-outage-redelivery \
-  -- env WORKBENCH_HOSTED_ALERT_REDELIVERY_MODE=true pnpm acceptance:hosted:alert-redelivery
+  -- env OPERLOOM_HOSTED_ALERT_REDELIVERY_MODE=true pnpm acceptance:hosted:alert-redelivery
 pnpm release:evidence:collect -- --target acceptance
 ```
 
@@ -165,8 +165,8 @@ Start the acceptance soak, retain its state artifact, and finish it no earlier
 than 24 elapsed hours later against the same SHA:
 
 ```bash
-WORKBENCH_HOSTED_SOAK_MODE=true pnpm acceptance:hosted:soak -- --phase start
-WORKBENCH_HOSTED_SOAK_MODE=true pnpm acceptance:hosted:soak -- --phase finish \
+OPERLOOM_HOSTED_SOAK_MODE=true pnpm acceptance:hosted:soak -- --phase start
+OPERLOOM_HOSTED_SOAK_MODE=true pnpm acceptance:hosted:soak -- --phase finish \
   --state output/release/<full-sha>/soak-24h-state.json
 pnpm release:evidence:record -- --target acceptance --kind hosted.soak-24h \
   --input output/release/<full-sha>/soak-24h.json \

@@ -1,4 +1,4 @@
-import { workbenchChatProtocolVersion } from "@operloom/workbench-client";
+import { workbenchChatProtocolVersion } from "@operloom/client";
 
 import { toAgentSummary, toAgentRuntimeMetadata } from "./agent-records";
 import { signAgentConnectionClaims } from "./agent-connection-token";
@@ -92,7 +92,7 @@ export type CoordinatorRequest = {
 };
 
 export type SessionContext = {
-  agentName: "workbench-thread-chat-agent";
+  agentName: "thread-chat-agent";
   instanceName: string;
   userId: string;
   threadId: string;
@@ -163,8 +163,8 @@ export const normalizeAgentSwitchTarget = (target: unknown): AgentSwitchTarget =
   target === "new_thread" ? "new_thread" : "current_thread";
 
 export const getRequiredSecret = (env: Env) => {
-  const secret = env.WORKBENCH_AGENT_CONNECTION_SECRET?.trim();
-  if (!secret) throw new Error("WORKBENCH_AGENT_CONNECTION_SECRET is not configured");
+  const secret = env.OPERLOOM_AGENT_CONNECTION_SECRET?.trim();
+  if (!secret) throw new Error("OPERLOOM_AGENT_CONNECTION_SECRET is not configured");
   return secret;
 };
 
@@ -497,7 +497,7 @@ export const sessionContext = async (
   identity: AgentIdentity,
   input: { thread: ChatThreadRow; agent: AgentRow; accountId?: string; accountSource?: string },
 ): Promise<SessionContext> => ({
-  agentName: "workbench-thread-chat-agent",
+  agentName: "thread-chat-agent",
   instanceName: await resolveThreadAgentInstanceName(input.thread),
   userId: identity.scope.userId,
   threadId: input.thread.thread_id,

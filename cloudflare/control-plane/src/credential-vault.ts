@@ -153,8 +153,8 @@ export const createMemoryCredentialVault = (): CredentialVault => ({
 });
 
 export const resolveCredentialVault = (env: Env): CredentialVault => {
-  if (env.WORKBENCH_VAULT_BACKEND === "memory") {
-    if (env.WORKBENCH_E2E_MODE !== "true") throw new Error("insecure_vault_backend_forbidden");
+  if (env.OPERLOOM_VAULT_BACKEND === "memory") {
+    if (env.OPERLOOM_E2E_MODE !== "true") throw new Error("insecure_vault_backend_forbidden");
     return createMemoryCredentialVault();
   }
   if ((connectionsEnabled(env) || pushEnabled(env)) && !env.WORKOS_API_KEY?.trim())

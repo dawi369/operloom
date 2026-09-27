@@ -2,148 +2,148 @@
   "schemaVersion": 2,
   "runtimeSchemas": [
     {
-      "path": "workbench-client/src/response-schemas.ts",
+      "path": "client/src/response-schemas.ts",
       "sha256": "3aaa9ddc1e307caad7088b22d5ce51135a6833ade7699d59cf3a44fdfefc4a76"
     },
     {
-      "path": "workbench-client/src/validation.ts",
+      "path": "client/src/validation.ts",
       "sha256": "8dfc6ca9b87221776b50950df2ef5ac5d5048f7c935322e981c238016897482e"
     },
     {
-      "path": "workbench-client/src/public-chat-contracts.ts",
+      "path": "client/src/public-chat-contracts.ts",
       "sha256": "29ffce613a7bc87cd789d98b538bcaf9cc2d786d6c7374e53c705ea592bc4e1d"
     },
     {
-      "path": "workbench-client/src/public-context-contracts.ts",
+      "path": "client/src/public-context-contracts.ts",
       "sha256": "48825594a5f4059837ca20a322cef9bdd8ff96216060666cb7cb54cdcbdaa884"
     },
     {
-      "path": "workbench-client/src/public-budget-contracts.ts",
+      "path": "client/src/public-budget-contracts.ts",
       "sha256": "54ff7807cdb0b242afafd10913537c7950cae5040b89fa01439d11b9edfa7221"
     },
     {
-      "path": "workbench-client/src/public-state-contracts.ts",
+      "path": "client/src/public-state-contracts.ts",
       "sha256": "fd735f71dd9c274e8ff74b4e3125978db058dca7c0aa863714996ab8616383f4"
     },
     {
-      "path": "workbench-client/src/public-upgrade-contracts.ts",
+      "path": "client/src/public-upgrade-contracts.ts",
       "sha256": "5f3ba272a9ad7c2b693a2f8a963f60052e08f086e326f3c0755feb4bcf8f7d20"
     },
     {
-      "path": "workbench-client/src/messages.ts",
+      "path": "client/src/messages.ts",
       "sha256": "e4a769fe32b966c7ea07b5ebb904324186c95997f0067c890599556933031a17"
     },
     {
-      "path": "workbench-client/src/public-action-contracts.ts",
+      "path": "client/src/public-action-contracts.ts",
       "sha256": "c38abed0cab795b20405f2a4d796968d229999a81bd918c05a0714f039d72552"
     }
   ],
   "packages": [
     {
-      "name": "@operloom/workbench-client",
+      "name": "@operloom/client",
       "version": "2.0.0",
       "files": [
         {
-          "path": "workbench-client/dist/chat.d.ts",
+          "path": "client/dist/chat.d.ts",
           "sha256": "e13d838089d932bc367dd6c80d8965aaafbb7245943ab0efc10b396e6f79d75d"
         },
         {
-          "path": "workbench-client/dist/client.d.ts",
+          "path": "client/dist/client.d.ts",
           "sha256": "b7067d75d148e21bbf176052a88e2e6aaeaf97d712007c2019b82e4c4ceccbc3"
         },
         {
-          "path": "workbench-client/dist/contracts/agents-chat.d.ts",
+          "path": "client/dist/contracts/agents-chat.d.ts",
           "sha256": "388d8c171338b4abd8605c77971a7ffe273d7ce89710212f2bc6537431c434b9"
         },
         {
-          "path": "workbench-client/dist/contracts/automation.d.ts",
+          "path": "client/dist/contracts/automation.d.ts",
           "sha256": "d40703a2d9e62002365e007a85252293c8c8ae93111c76225e7c684c45df4c11"
         },
         {
-          "path": "workbench-client/dist/contracts/execution.d.ts",
+          "path": "client/dist/contracts/execution.d.ts",
           "sha256": "f8ea31d2abd78a1bc5c685b558eefce54c9784096a28f7376ef89c0c7a6a3a4a"
         },
         {
-          "path": "workbench-client/dist/contracts/index.d.ts",
+          "path": "client/dist/contracts/index.d.ts",
           "sha256": "8c74a1eb39f057d677dbf478266cf166bcd4f851cd5137f7ce55954eedb04b98"
         },
         {
-          "path": "workbench-client/dist/contracts/lifecycle-authority.d.ts",
+          "path": "client/dist/contracts/lifecycle-authority.d.ts",
           "sha256": "f00761a5e3fe885de82d40abd26f5c2190b0b77413dbc54bef1c419e23337b88"
         },
         {
-          "path": "workbench-client/dist/contracts/tenancy.d.ts",
+          "path": "client/dist/contracts/tenancy.d.ts",
           "sha256": "9bef5db753655e03f87611f67e04f423913983ecbdc10145050ccfc7a8afb1a8"
         },
         {
-          "path": "workbench-client/dist/core-contracts.d.ts",
+          "path": "client/dist/core-contracts.d.ts",
           "sha256": "f0a670f350b916fb5f83807bfb994918b2fdcd3483684d458d698520a8095cf2"
         },
         {
-          "path": "workbench-client/dist/fetch-chat-transport.d.ts",
+          "path": "client/dist/fetch-chat-transport.d.ts",
           "sha256": "0711e5ce2872cc8e10c47da836527cb6f2000e2b2bdae381d13c803946208528"
         },
         {
-          "path": "workbench-client/dist/index.d.ts",
+          "path": "client/dist/index.d.ts",
           "sha256": "07a7ecf7e2b94ec07df8f091b097c9ccc8ea3ec1528353b326514ad127cae29f"
         },
         {
-          "path": "workbench-client/dist/messages.d.ts",
+          "path": "client/dist/messages.d.ts",
           "sha256": "a8587216b4ae73ee788ef5a56855eb8fb1674ea278272a87a2ee6ed41f1af43d"
         },
         {
-          "path": "workbench-client/dist/public-action-contracts.d.ts",
+          "path": "client/dist/public-action-contracts.d.ts",
           "sha256": "0ca965b9721ef5eb2bd9d08d643968f8d0a2ebb704ff96aae0a207e8301f3ef7"
         },
         {
-          "path": "workbench-client/dist/public-api.d.ts",
+          "path": "client/dist/public-api.d.ts",
           "sha256": "354234421bc2ba7cf6406aa45ac6e4a7185a4b1f001ce4a6221b27e97626927e"
         },
         {
-          "path": "workbench-client/dist/public-budget-contracts.d.ts",
+          "path": "client/dist/public-budget-contracts.d.ts",
           "sha256": "0a0b5fb94d7508d13b908134f1b2a62e943bed5e3e128774e6c4bdb1316ec85a"
         },
         {
-          "path": "workbench-client/dist/public-chat-contracts.d.ts",
+          "path": "client/dist/public-chat-contracts.d.ts",
           "sha256": "138a849b5d9deef08c80d4480d779a5a30b48129433f0a11e4c3138eef86f654"
         },
         {
-          "path": "workbench-client/dist/public-context-contracts.d.ts",
+          "path": "client/dist/public-context-contracts.d.ts",
           "sha256": "4b3d0073141ad4734cb4e2d05f8e7e1e98176a4c0606a8bcdd498ca24ac4d411"
         },
         {
-          "path": "workbench-client/dist/public-state-contracts.d.ts",
+          "path": "client/dist/public-state-contracts.d.ts",
           "sha256": "32689d48fc7854daef305b1763a8741173718e14cd8baab0af46c7c8cb98aa9d"
         },
         {
-          "path": "workbench-client/dist/public-upgrade-contracts.d.ts",
+          "path": "client/dist/public-upgrade-contracts.d.ts",
           "sha256": "4ad9a39c0716b2e2ee2a235ced8790a81ada1737ef014121dfc14c57711a6271"
         },
         {
-          "path": "workbench-client/dist/realtime.d.ts",
+          "path": "client/dist/realtime.d.ts",
           "sha256": "33c0f30b9f9c99f25baa4329a000667169404ce10fd1410f60e6960f23163de2"
         },
         {
-          "path": "workbench-client/dist/response-schemas.d.ts",
+          "path": "client/dist/response-schemas.d.ts",
           "sha256": "efb4770c936098fed65932bc48af8949a6b4fec9328d89e1a6e44e29f112b355"
         },
         {
-          "path": "workbench-client/dist/runtime-client.d.ts",
+          "path": "client/dist/runtime-client.d.ts",
           "sha256": "7dba7a58aeffb04c0caf8f09316150c74e937678fe97ce70a60dc78c6e7894c1"
         },
         {
-          "path": "workbench-client/dist/validation.d.ts",
+          "path": "client/dist/validation.d.ts",
           "sha256": "6f672c8a8d28f1ddd38b61b8123e84e2ce50046b3bb0baf4bd95ff8c44c0f917"
         }
       ]
     },
     {
-      "name": "@operloom/workbench-react",
+      "name": "@operloom/react",
       "version": "2.0.0",
       "files": [
         {
-          "path": "workbench-react/dist/index.d.ts",
-          "sha256": "fc027c06e56ca08416dbb7d8310617d11a850274770da696e4b04a8358d926df"
+          "path": "react/dist/index.d.ts",
+          "sha256": "8d0363327964b5621f7af06becb7ee19df66d7bca2e82e69d3c4b4de123e6225"
         }
       ]
     }

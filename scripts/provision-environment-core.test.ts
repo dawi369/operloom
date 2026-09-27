@@ -10,36 +10,36 @@ describe("environment provisioning helpers", () => {
     expect(
       provisionResourceExists(
         "cloudflare-d1",
-        '[{"name":"assistant_mk1_acceptance"}]',
-        "assistant_mk1_acceptance",
+        '[{"name":"operloom_acceptance"}]',
+        "operloom_acceptance",
       ),
     ).toBe(true);
     expect(
       provisionResourceExists(
         "cloudflare-queue",
-        "assistant-mk1-production-control-plane-notifications\n",
-        "assistant-mk1-production-control-plane-notifications",
+        "operloom-production-control-plane-notifications\n",
+        "operloom-production-control-plane-notifications",
       ),
     ).toBe(true);
     expect(
       provisionResourceExists(
         "cloudflare-r2",
-        "name: assistant-mk1-acceptance-artifacts-old\n",
-        "assistant-mk1-acceptance-artifacts",
+        "name: operloom-acceptance-artifacts-old\n",
+        "operloom-acceptance-artifacts",
       ),
     ).toBe(false);
     expect(
       provisionResourceExists(
         "fly-app",
-        '[{"Name":"assistant-mk1-acceptance-runner"}]',
-        "assistant-mk1-acceptance-runner",
+        '[{"Name":"operloom-acceptance-runner"}]',
+        "operloom-acceptance-runner",
       ),
     ).toBe(true);
     expect(
       provisionResourceExists(
         "vercel-project",
-        "  assistant-mk1-acceptance   https://example.invalid\n",
-        "assistant-mk1-acceptance",
+        "  operloom-acceptance   https://example.invalid\n",
+        "operloom-acceptance",
       ),
     ).toBe(true);
   });
@@ -47,12 +47,12 @@ describe("environment provisioning helpers", () => {
   it("keeps provider failures bounded and actionable", () => {
     const message = describeProvisionCommandFailure({
       command: "vercel",
-      args: ["project", "add", "assistant-mk1-acceptance", "--non-interactive"],
+      args: ["project", "add", "operloom-acceptance", "--non-interactive"],
       status: 1,
       stdout: "",
       stderr: `unsupported option ${"x".repeat(600)}`,
     });
-    expect(message).toContain("vercel project add assistant-mk1-acceptance --non-interactive");
+    expect(message).toContain("vercel project add operloom-acceptance --non-interactive");
     expect(message.length).toBeLessThan(600);
   });
 });

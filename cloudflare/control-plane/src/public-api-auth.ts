@@ -24,10 +24,10 @@ export const authenticatePublicApi = async (
 }> => {
   const token = parseAuthoritativeBearer(request.headers.get("authorization"));
   if (!token) throw new WorkbenchAuthError("Bearer authorization is required", 401);
-  if (env.WORKBENCH_LOCAL_API_ENABLED === "true") {
+  if (env.OPERLOOM_LOCAL_API_ENABLED === "true") {
     const hostname = new URL(request.url).hostname;
     if (
-      env.WORKBENCH_ENVIRONMENT !== "local" ||
+      env.OPERLOOM_ENVIRONMENT !== "local" ||
       !["127.0.0.1", "localhost", "[::1]"].includes(hostname)
     ) {
       throw new WorkbenchAuthError(
@@ -35,13 +35,13 @@ export const authenticatePublicApi = async (
         503,
       );
     }
-    const expected = env.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN;
+    const expected = env.OPERLOOM_LOCAL_API_TOKEN;
     if (!expected || (await sha256Hex(token)) !== (await sha256Hex(expected)))
       throw new WorkbenchAuthError("Invalid local access token", 401);
     const requestedUserId = request.headers.get(localUserHeader);
     if (requestedUserId !== null && !localUserIdPattern.test(requestedUserId))
       throw new WorkbenchAuthError("Invalid local user", 400);
-    const userId = requestedUserId ?? (env.WORKBENCH_LOCAL_API_USER_ID?.trim() || "operloom-local");
+    const userId = requestedUserId ?? (env.OPERLOOM_LOCAL_API_USER_ID?.trim() || "operloom-local");
     const accountId = `local-api:${userId}`;
     return {
       context: { mode: "local_api" },
@@ -59,9 +59,9 @@ export const authenticatePublicApi = async (
   }
   const config = loadAccessTokenConfig({
     NODE_ENV: "production",
-    WORKBENCH_WORKOS_ISSUER: env.WORKBENCH_WORKOS_ISSUER,
-    WORKBENCH_WORKOS_JWKS_URL: env.WORKBENCH_WORKOS_JWKS_URL,
-    WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS: env.WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS,
+    OPERLOOM_WORKOS_ISSUER: env.OPERLOOM_WORKOS_ISSUER,
+    OPERLOOM_WORKOS_JWKS_URL: env.OPERLOOM_WORKOS_JWKS_URL,
+    OPERLOOM_WORKOS_ALLOWED_CLIENT_IDS: env.OPERLOOM_WORKOS_ALLOWED_CLIENT_IDS,
   });
   return {
     principal: await verifyWorkbenchAccessToken(token, config),
@@ -84,23 +84,22 @@ export const publicApiCommandRequest = (
     if (value !== null) headers.set(name, value);
   }
   const { principal } = input;
-  headers.set("x-assistant-mk1-user-id", principal.scope.userId);
-  headers.set("x-assistant-mk1-account-id", principal.accountId);
-  headers.set("x-assistant-mk1-account-source", principal.accountSource);
+  headers.set("x-operloom-user-id", principal.scope.userId);
+  headers.set("x-operloom-account-id", principal.accountId);
+  headers.set("x-operloom-account-source", principal.accountSource);
   if (input.target) {
-    headers.set("x-assistant-mk1-workspace-id", input.target.workspaceId);
-    headers.set("x-assistant-mk1-agent-id", input.target.agentId);
+    headers.set("x-operloom-workspace-id", input.target.workspaceId);
+    headers.set("x-operloom-agent-id", input.target.agentId);
   }
   // Profile fields come only from verified token claims and seed the user bootstrap.
-  if (principal.userEmail) headers.set("x-assistant-mk1-user-email", principal.userEmail);
-  if (principal.userName) headers.set("x-assistant-mk1-user-name", principal.userName);
-  if (principal.membershipRole)
-    headers.set("x-assistant-mk1-membership-role", principal.membershipRole);
+  if (principal.userEmail) headers.set("x-operloom-user-email", principal.userEmail);
+  if (principal.userName) headers.set("x-operloom-user-name", principal.userName);
+  if (principal.membershipRole) headers.set("x-operloom-membership-role", principal.membershipRole);
   if (principal.membershipRoles)
-    headers.set("x-assistant-mk1-membership-roles", JSON.stringify(principal.membershipRoles));
+    headers.set("x-operloom-membership-roles", JSON.stringify(principal.membershipRoles));
   if (principal.membershipPermissions)
     headers.set(
-      "x-assistant-mk1-membership-permissions",
+      "x-operloom-membership-permissions",
       JSON.stringify(principal.membershipPermissions),
     );
   const url = new URL(request.url);

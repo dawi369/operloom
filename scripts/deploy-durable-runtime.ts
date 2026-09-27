@@ -82,7 +82,7 @@ const main = async () => {
           status,
           origin: origin.origin,
           databaseId: database.database_id,
-          release: config.vars?.WORKBENCH_RELEASE_SHA ?? null,
+          release: config.vars?.OPERLOOM_RELEASE_SHA ?? null,
           at: new Date().toISOString(),
         },
         null,
@@ -160,7 +160,7 @@ const main = async () => {
           response.ok &&
           body.ok &&
           body.deploymentId === deploymentId &&
-          body.release === (config.vars?.WORKBENCH_RELEASE_SHA ?? "development")
+          body.release === (config.vars?.OPERLOOM_RELEASE_SHA ?? "development")
         )
           return;
       } catch {
@@ -186,7 +186,7 @@ const main = async () => {
       ...db,
       migrations_dir: resolve(root, db.migrations_dir ?? "migrations"),
     })),
-    vars: { ...config.vars, WORKBENCH_DEPLOYMENT_ID: deploymentId },
+    vars: { ...config.vars, OPERLOOM_DEPLOYMENT_ID: deploymentId },
   };
   writeFileSync(deployConfig, JSON.stringify(candidate), { mode: 0o600 });
   record("prepared");
@@ -213,9 +213,9 @@ const main = async () => {
             triggers: {},
             vars: {
               ...candidate.vars,
-              WORKBENCH_ENVIRONMENT: "local",
-              WORKBENCH_LOCAL_API_ENABLED: "true",
-              CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: token,
+              OPERLOOM_ENVIRONMENT: "local",
+              OPERLOOM_LOCAL_API_ENABLED: "true",
+              OPERLOOM_LOCAL_API_TOKEN: token,
             },
           }),
           { mode: 0o600 },

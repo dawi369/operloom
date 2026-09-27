@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildDistributionManifest, validatePackageArchive } from "./pack-workbench-client";
+import { buildDistributionManifest, validatePackageArchive } from "./pack-client";
 
 const validArchive = {
   entries: ["package/dist/index.js", "package/dist/index.d.ts", "package/README.md"],

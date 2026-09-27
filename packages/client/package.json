@@ -1,5 +1,5 @@
 {
-  "name": "@operloom/workbench-client",
+  "name": "@operloom/client",
   "version": "2.0.0",
   "private": true,
   "description": "Platform-neutral client contracts for Operloom frontends.",

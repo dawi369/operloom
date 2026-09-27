@@ -15,11 +15,9 @@ describe("hosted configuration inventory", () => {
     expect(parseVercelEnvironmentInventory("WORKOS_API_KEY Encrypted Production now")).toEqual(
       new Map([["WORKOS_API_KEY", null]]),
     );
-    expect(
-      parseRailwayEnvironmentInventory('{"WORKBENCH_ENVIRONMENT":"demo","PORT":3000}'),
-    ).toEqual(
+    expect(parseRailwayEnvironmentInventory('{"OPERLOOM_ENVIRONMENT":"demo","PORT":3000}')).toEqual(
       new Map([
-        ["WORKBENCH_ENVIRONMENT", "demo"],
+        ["OPERLOOM_ENVIRONMENT", "demo"],
         ["PORT", null],
       ]),
     );
@@ -63,34 +61,34 @@ describe("hosted configuration inventory", () => {
       ]),
     ) as Record<"web" | "cloudflare" | "fly", Map<string, string | null>>;
     for (const [key, value] of [
-      ["WORKBENCH_VAULT_BACKEND", "workos"],
-      ["WORKBENCH_CONFORMANCE_MODE", "false"],
-      ["WORKBENCH_RETAINED_DATA_ENABLED", "true"],
-      ["WORKBENCH_CONNECTIONS_ENABLED", "true"],
-      ["WORKBENCH_MUTATIONS_ENABLED", "false"],
-      ["WORKBENCH_PUSH_ENABLED", "false"],
-      ["WORKBENCH_RELEASE_SHA", "a".repeat(40)],
+      ["OPERLOOM_VAULT_BACKEND", "workos"],
+      ["OPERLOOM_CONFORMANCE_MODE", "false"],
+      ["OPERLOOM_RETAINED_DATA_ENABLED", "true"],
+      ["OPERLOOM_CONNECTIONS_ENABLED", "true"],
+      ["OPERLOOM_MUTATIONS_ENABLED", "false"],
+      ["OPERLOOM_PUSH_ENABLED", "false"],
+      ["OPERLOOM_RELEASE_SHA", "a".repeat(40)],
     ] as const)
       inventory.cloudflare.set(key, value);
     for (const [key, value] of [
-      ["WORKBENCH_CONFORMANCE_MODE", "false"],
-      ["WORKBENCH_RELEASE_SHA", "a".repeat(40)],
+      ["OPERLOOM_CONFORMANCE_MODE", "false"],
+      ["OPERLOOM_RELEASE_SHA", "a".repeat(40)],
     ] as const)
       inventory.fly.set(key, value);
     for (const [key, value] of [
-      ["WORKBENCH_ENVIRONMENT", "production"],
-      ["WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE", "false"],
-      ["CLOUDFLARE_CONTROL_PLANE_URL", manifest.cloudflare.origin],
+      ["OPERLOOM_ENVIRONMENT", "production"],
+      ["OPERLOOM_OPERATOR_ALERT_CONFORMANCE_MODE", "false"],
+      ["OPERLOOM_BACKEND_URL", manifest.cloudflare.origin],
       ["NEXT_PUBLIC_WORKOS_REDIRECT_URI", `${manifest.web.origin}/auth/callback`],
     ] as const)
       inventory.web.set(key, value);
     expect(validateHostedConfiguration(manifest, inventory, "a".repeat(40))).toEqual([]);
-    inventory.web.set("CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN", null);
-    inventory.cloudflare.set("WORKBENCH_MUTATIONS_ENABLED", "true");
+    inventory.web.set("OPERLOOM_LOCAL_API_TOKEN", null);
+    inventory.cloudflare.set("OPERLOOM_MUTATIONS_ENABLED", "true");
     expect(validateHostedConfiguration(manifest, inventory, "a".repeat(40))).toEqual(
       expect.arrayContaining([
-        "web contains forbidden CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN",
-        "cloudflare WORKBENCH_MUTATIONS_ENABLED does not match the manifest policy",
+        "web contains forbidden OPERLOOM_LOCAL_API_TOKEN",
+        "cloudflare OPERLOOM_MUTATIONS_ENABLED does not match the manifest policy",
       ]),
     );
   });

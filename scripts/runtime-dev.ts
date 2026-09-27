@@ -16,9 +16,9 @@ export const runtimeDevCommand = (port = 8787) => ({
     "--port",
     String(port),
     "--var",
-    "WORKBENCH_LOCAL_API_ENABLED:true",
+    "OPERLOOM_LOCAL_API_ENABLED:true",
     "--var",
-    "WORKBENCH_ENVIRONMENT:local",
+    "OPERLOOM_ENVIRONMENT:local",
   ],
 });
 

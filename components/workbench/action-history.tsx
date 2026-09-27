@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { CloudflareActionsResponse } from "@operloom/workbench-client/contracts/lifecycle-authority";
+import type { CloudflareActionsResponse } from "@operloom/client/contracts/lifecycle-authority";
 import { Button } from "@/components/ui/button";
 import { StatusPill } from "@/components/workbench/dev-monitor-primitives";
 

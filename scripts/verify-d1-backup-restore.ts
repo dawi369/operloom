@@ -12,7 +12,7 @@ type D1Result<Row> = Array<{ results: Row[]; success: boolean }>;
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const configPath = join(repoRoot, "cloudflare/control-plane/wrangler.jsonc");
 const migrationsPath = join(repoRoot, "cloudflare/control-plane/migrations");
-const database = "assistant_mk1_local";
+const database = "operloom_local";
 
 const wrangler = (args: string[]) =>
   execFileSync("pnpm", ["exec", "wrangler", ...args], {

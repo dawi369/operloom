@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import ts from "typescript";
 import { startManagedProcess } from "./managed-process";
-import { createRuntimeClient } from "../packages/workbench-client/src/runtime-client";
+import { createRuntimeClient } from "../packages/client/src/runtime-client";
 
 const main = async () => {
   const root = process.cwd();
@@ -108,17 +108,17 @@ const main = async () => {
       db.migrations_dir = resolve(root, "cloudflare/control-plane/migrations");
     config.vars = {
       ...config.vars,
-      WORKBENCH_LOCAL_API_ENABLED: "true",
-      WORKBENCH_ENVIRONMENT: "local",
-      CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: token,
-      WORKBENCH_AGENT_CONNECTION_SECRET: "provider-conformance-agent-secret-000001",
-      WORKBENCH_E2E_MODE: "true",
-      WORKBENCH_CONFORMANCE_MODE: "true",
-      WORKBENCH_RETAINED_DATA_ENABLED: "true",
-      WORKBENCH_CONNECTIONS_ENABLED: "true",
-      WORKBENCH_MUTATIONS_ENABLED: "true",
-      WORKBENCH_VAULT_BACKEND: "memory",
-      WORKBENCH_OAUTH_PROVIDERS_JSON: JSON.stringify([
+      OPERLOOM_LOCAL_API_ENABLED: "true",
+      OPERLOOM_ENVIRONMENT: "local",
+      OPERLOOM_LOCAL_API_TOKEN: token,
+      OPERLOOM_AGENT_CONNECTION_SECRET: "provider-conformance-agent-secret-000001",
+      OPERLOOM_E2E_MODE: "true",
+      OPERLOOM_CONFORMANCE_MODE: "true",
+      OPERLOOM_RETAINED_DATA_ENABLED: "true",
+      OPERLOOM_CONNECTIONS_ENABLED: "true",
+      OPERLOOM_MUTATIONS_ENABLED: "true",
+      OPERLOOM_VAULT_BACKEND: "memory",
+      OPERLOOM_OAUTH_PROVIDERS_JSON: JSON.stringify([
         {
           id: "capacity-service",
           actionUrl: `${providerOrigin}/bearer/allocations`,
@@ -136,7 +136,7 @@ const main = async () => {
     const common = ["--config", configPath, "--local", "--persist-to", state];
     migrate = startManagedProcess(
       "pnpm",
-      ["exec", "wrangler", "d1", "migrations", "apply", "assistant_mk1_local", ...common],
+      ["exec", "wrangler", "d1", "migrations", "apply", "operloom_local", ...common],
       { cwd: root, label: "provider-migrations", stdio: "pipe", maxRssMb: 1536 },
     );
     migrate.child.stdout?.on("data", capture);

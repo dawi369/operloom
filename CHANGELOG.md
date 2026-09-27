@@ -11,7 +11,7 @@ the baseline schema.
   `state.migrations`, `context.snapshots`, `models.structured`,
   `usage.reservations`). The v1 module contract, its adapter and the workflow
   `engine` field are removed.
-- `@operloom/workbench-client` and `@operloom/workbench-react` 2.0.0 drop the
+- `@operloom/client` and `@operloom/react` 2.0.0 drop the
   workflow `engine` field from run and workflow contracts.
 - LangGraph is removed. The signed Node.js tool runner runs standalone from
   `runner/server.ts` (`pnpm start:runner`, `Dockerfile.runner`,
@@ -22,3 +22,12 @@ the baseline schema.
   administrator budget receive default limits on first use.
 - D1 history is squashed into `0001_baseline.sql`; recreate databases instead of upgrading.
 - `/v1` is the only public control-plane API. Internal routes, facade signatures and caller-supplied identity headers are no longer accepted from the network.
+- `/v1/me/<operation>` runs an operation against the caller's active workspace
+  agent; `/v1/workspaces/{id}/agents/{id}/<operation>` targets one explicitly.
+  The bundled console uses `/v1/me` with the signed-in WorkOS access token.
+- Identities are renamed: `WORKBENCH_*` → `OPERLOOM_*`, `x-workbench-*` and
+  `x-assistant-mk1-*` → `x-operloom-*`, `CLOUDFLARE_CONTROL_PLANE_URL` →
+  `OPERLOOM_BACKEND_URL`, `CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN` →
+  `OPERLOOM_LOCAL_API_TOKEN`, `@operloom/workbench-client` → `@operloom/client`,
+  `@operloom/workbench-react` → `@operloom/react`, Durable Objects
+  `ThreadChatAgent`/`SessionAgent`, and `operloom-*` resource names.

@@ -1,5 +1,5 @@
 import { selectAgent } from "./authz-store";
-import { publicChatContracts } from "../../../packages/workbench-client/src/public-chat-contracts";
+import { publicChatContracts } from "../../../packages/client/src/public-chat-contracts";
 import { createChatSession, getOwnedChatThread, storeChatThread } from "./chat-boundary-store";
 import {
   deriveThreadAgentInstanceName,
@@ -34,8 +34,8 @@ export const handlePublicThreadOperation = async (
   const agent = await selectAgent(env, identity.agentId, identity.scope.workspaceId);
   if (!agent || agent.status !== "active")
     return json({ ok: false, error: "Agent is not active" }, { status: 403 });
-  const secret = env.WORKBENCH_AGENT_CONNECTION_SECRET;
-  if (!secret || !env.WorkbenchThreadChatAgent)
+  const secret = env.OPERLOOM_AGENT_CONNECTION_SECRET;
+  if (!secret || !env.ThreadChatAgent)
     return json({ ok: false, error: "Chat runtime is not configured" }, { status: 503 });
   const instanceName = await resolveThreadAgentInstanceName(thread);
   const token = await signAgentConnectionClaims(secret, {
@@ -53,9 +53,7 @@ export const handlePublicThreadOperation = async (
     instanceName,
     runtime: "cloudflare-agent-chat",
   });
-  const stub = env.WorkbenchThreadChatAgent.get(
-    env.WorkbenchThreadChatAgent.idFromName(instanceName),
-  );
+  const stub = env.ThreadChatAgent.get(env.ThreadChatAgent.idFromName(instanceName));
   if (operation === "messages") {
     const transcript = await stub.fetch(
       `https://thread-agent.internal/internal/public-messages?token=${encodeURIComponent(token)}`,
@@ -72,7 +70,7 @@ export const handlePublicThreadOperation = async (
   if (operation === "cancel")
     return stub.fetch("https://thread-agent.internal/internal/thread-cancel", {
       method: "POST",
-      headers: { "x-workbench-agent-secret": secret },
+      headers: { "x-operloom-agent-secret": secret },
     });
   const parsed = publicChatContracts["POST /chat/threads/{id}/turns"].request.safeParse(
     await request.json().catch(() => null),

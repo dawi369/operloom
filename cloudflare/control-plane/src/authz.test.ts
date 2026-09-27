@@ -17,9 +17,9 @@ const agentId = defaultAgentId(workspaceId);
 const makeRequest = () =>
   new Request("https://control.test/workbench/data-exports/export-1", {
     headers: {
-      "x-assistant-mk1-user-id": userId,
-      "x-assistant-mk1-account-id": accountId,
-      "x-assistant-mk1-account-source": "workos_organization",
+      "x-operloom-user-id": userId,
+      "x-operloom-account-id": accountId,
+      "x-operloom-account-source": "workos_organization",
     },
   });
 

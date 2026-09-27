@@ -3,8 +3,8 @@ const allowedRequestHeaders = [
   "content-type",
   "idempotency-key",
   "last-event-id",
-  "x-workbench-client-platform",
-  "x-workbench-client-version",
+  "x-operloom-client-platform",
+  "x-operloom-client-version",
 ].join(", ");
 
 const allowedMethods = "DELETE, GET, OPTIONS, PATCH, POST";

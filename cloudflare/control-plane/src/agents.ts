@@ -166,7 +166,7 @@ export const handleInstantiateAgentPack = async (
   const conformanceTemplate =
     !installedTemplate &&
     compiledEntry?.conformanceOnly &&
-    (env.WORKBENCH_E2E_MODE === "true" || env.WORKBENCH_CONFORMANCE_MODE === "true")
+    (env.OPERLOOM_E2E_MODE === "true" || env.OPERLOOM_CONFORMANCE_MODE === "true")
       ? toPackTemplate(compiledEntry.module as LocalAgentPackManifest)
       : undefined;
   const template = installedTemplate ?? conformanceTemplate;

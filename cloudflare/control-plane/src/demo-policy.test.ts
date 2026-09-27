@@ -31,13 +31,13 @@ const demoEnv = (prepare = vi.fn(() => statement())) =>
   ({
     DB: { prepare, batch: vi.fn(async () => []) },
     OPENROUTER_API_KEY: "demo-key",
-    WORKBENCH_DEMO_MODE: "true",
-    WORKBENCH_DEMO_PACK_ALLOWLIST: JSON.stringify(["operloom", "repo-analyst", "baby-polymancer"]),
-    WORKBENCH_DEMO_CHAT_DAILY_LIMIT: "20",
-    WORKBENCH_DEMO_WORKFLOW_DAILY_LIMIT: "3",
-    WORKBENCH_DEMO_MODEL_BUDGET_USD: "20",
-    WORKBENCH_DEMO_ARTIFACT_WORKSPACE_BYTES: String(20 * 1024 * 1024),
-    WORKBENCH_DEMO_RETENTION_DAYS: "7",
+    OPERLOOM_DEMO_MODE: "true",
+    OPERLOOM_DEMO_PACK_ALLOWLIST: JSON.stringify(["operloom", "repo-analyst", "baby-polymancer"]),
+    OPERLOOM_DEMO_CHAT_DAILY_LIMIT: "20",
+    OPERLOOM_DEMO_WORKFLOW_DAILY_LIMIT: "3",
+    OPERLOOM_DEMO_MODEL_BUDGET_USD: "20",
+    OPERLOOM_DEMO_ARTIFACT_WORKSPACE_BYTES: String(20 * 1024 * 1024),
+    OPERLOOM_DEMO_RETENTION_DAYS: "7",
   }) as unknown as Env;
 
 afterEach(() => vi.restoreAllMocks());
@@ -48,7 +48,7 @@ describe("public demo policy", () => {
     expect(demoConfigurationValid(env)).toBe(true);
     expect(demoPackAllowed(env, "repo-analyst")).toBe(true);
     expect(demoPackAllowed(env, "custom-pack")).toBe(false);
-    env.WORKBENCH_DEMO_CHAT_DAILY_LIMIT = "21";
+    env.OPERLOOM_DEMO_CHAT_DAILY_LIMIT = "21";
     expect(demoConfigurationValid(env)).toBe(false);
   });
 

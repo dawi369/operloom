@@ -10,7 +10,7 @@ import { agentManifestRegistry } from "../../../generated/agent-runtime/manifest
 import * as registry from "../../../lib/agent-runtime/registry";
 import { createRuntimeStatePort } from "./runtime-state";
 import { reserveChatCommand } from "./chat-command-admission";
-import { createRuntimeClient } from "../../../packages/workbench-client/src/runtime-client";
+import { createRuntimeClient } from "../../../packages/client/src/runtime-client";
 import { purgeWorkspace } from "./workspace-data-jobs";
 import { exportCollections, loadCollection } from "./workspace-data-export-core";
 import type { AgentIdentity, ControlDataJobRow, D1PreparedStatement, Env } from "./types";
@@ -79,7 +79,7 @@ const fixture = () => {
       },
     },
   } as unknown as Env;
-  env.WORKBENCH_CONFORMANCE_MODE = "true";
+  env.OPERLOOM_CONFORMANCE_MODE = "true";
   const current = createAgentBehaviorSnapshotFromTemplate(toPackTemplate(manifest));
   const old = { ...current, version: "0.0.1", pack: { ...current.pack!, version: "0.0.1" } };
   db.prepare("UPDATE agents SET data_json = ? WHERE id = 'a'").run(

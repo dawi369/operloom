@@ -9,24 +9,24 @@ const positiveInteger = (value: string | undefined) => {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
-export const demoModeEnabled = (env: Env) => enabled(env.WORKBENCH_DEMO_MODE);
+export const demoModeEnabled = (env: Env) => enabled(env.OPERLOOM_DEMO_MODE);
 
 export const resolveDemoPolicy = (env: Env) => {
   if (!demoModeEnabled(env)) return null;
   let allowlist: string[] = [];
   try {
-    const parsed = JSON.parse(env.WORKBENCH_DEMO_PACK_ALLOWLIST ?? "");
+    const parsed = JSON.parse(env.OPERLOOM_DEMO_PACK_ALLOWLIST ?? "");
     if (Array.isArray(parsed) && parsed.every((value) => typeof value === "string")) {
       allowlist = parsed;
     }
   } catch {
     // Invalid public-demo configuration is handled by the fail-closed result below.
   }
-  const chatDailyLimit = positiveInteger(env.WORKBENCH_DEMO_CHAT_DAILY_LIMIT);
-  const workflowDailyLimit = positiveInteger(env.WORKBENCH_DEMO_WORKFLOW_DAILY_LIMIT);
-  const modelBudgetUsd = Number(env.WORKBENCH_DEMO_MODEL_BUDGET_USD);
-  const artifactWorkspaceBytes = positiveInteger(env.WORKBENCH_DEMO_ARTIFACT_WORKSPACE_BYTES);
-  const retentionDays = positiveInteger(env.WORKBENCH_DEMO_RETENTION_DAYS);
+  const chatDailyLimit = positiveInteger(env.OPERLOOM_DEMO_CHAT_DAILY_LIMIT);
+  const workflowDailyLimit = positiveInteger(env.OPERLOOM_DEMO_WORKFLOW_DAILY_LIMIT);
+  const modelBudgetUsd = Number(env.OPERLOOM_DEMO_MODEL_BUDGET_USD);
+  const artifactWorkspaceBytes = positiveInteger(env.OPERLOOM_DEMO_ARTIFACT_WORKSPACE_BYTES);
+  const retentionDays = positiveInteger(env.OPERLOOM_DEMO_RETENTION_DAYS);
   const valid =
     requiredPackIds.every((packId) => allowlist.includes(packId)) &&
     allowlist.length === requiredPackIds.length &&

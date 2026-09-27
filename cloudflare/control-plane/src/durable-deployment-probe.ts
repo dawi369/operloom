@@ -15,8 +15,8 @@ export type DurableHandlerPin = {
 /** Build inspection only. Never exposed by a hosted Worker or tenant API. */
 export const handleDurableDeploymentProbe = async (request: Request, env: Env) => {
   if (
-    env.WORKBENCH_ENVIRONMENT !== "local" ||
-    env.WORKBENCH_LOCAL_API_ENABLED !== "true" ||
+    env.OPERLOOM_ENVIRONMENT !== "local" ||
+    env.OPERLOOM_LOCAL_API_ENABLED !== "true" ||
     !["localhost", "127.0.0.1", "[::1]"].includes(new URL(request.url).hostname)
   )
     return json({ error: "not_found" }, { status: 404 });

@@ -198,7 +198,7 @@ function AgentRuntime({
   const agentQuery = useMemo(() => ({ token: connection.token! }), [connection.token]);
 
   const agent = useAgent({
-    agent: "WorkbenchThreadChatAgent",
+    agent: "ThreadChatAgent",
     name: connection.instanceName!,
     host: hostOptions.host,
     protocol: hostOptions.protocol,

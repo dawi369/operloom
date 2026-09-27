@@ -1,4 +1,4 @@
-import { publicStateContracts } from "../../../packages/workbench-client/src/public-state-contracts";
+import { publicStateContracts } from "../../../packages/client/src/public-state-contracts";
 import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import {
   startRuntimeStateMigration,

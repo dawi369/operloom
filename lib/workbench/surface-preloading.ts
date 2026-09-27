@@ -1,8 +1,4 @@
-import {
-  workbenchQueryKeys,
-  type QueryClient,
-  type WorkbenchClient,
-} from "@operloom/workbench-react";
+import { workbenchQueryKeys, type QueryClient, type WorkbenchClient } from "@operloom/react";
 
 export type WorkbenchPreloadSurface = "agents" | "history";
 

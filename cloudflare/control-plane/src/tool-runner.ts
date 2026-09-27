@@ -242,9 +242,9 @@ const safeRunnerDispatchErrorCode = (toolName: string, code?: string) => {
 };
 
 export const isFlyRunnerConfigured = (env: Env) =>
-  env.WORKBENCH_RUNNER_TRANSPORT === flyRunnerTransport &&
-  Boolean(env.WORKBENCH_RUNNER_URL?.trim()) &&
-  Boolean(env.WORKBENCH_RUNNER_SIGNING_SECRET?.trim());
+  env.OPERLOOM_RUNNER_TRANSPORT === flyRunnerTransport &&
+  Boolean(env.OPERLOOM_RUNNER_URL?.trim()) &&
+  Boolean(env.OPERLOOM_RUNNER_SIGNING_SECRET?.trim());
 
 export const resolveConfiguredRunnerTransport = (env: Env): ToolRunnerTransport =>
   isFlyRunnerConfigured(env) ? flyRunnerTransport : cloudflareInlineRunnerTransport;
@@ -255,8 +255,8 @@ export const invokeFlyToolRunner = async (
   invocation: ToolRunnerInvocation,
   signal?: AbortSignal,
 ): Promise<ToolRunnerInvocationResponse> => {
-  const endpoint = env.WORKBENCH_RUNNER_URL?.trim();
-  const secret = env.WORKBENCH_RUNNER_SIGNING_SECRET?.trim();
+  const endpoint = env.OPERLOOM_RUNNER_URL?.trim();
+  const secret = env.OPERLOOM_RUNNER_SIGNING_SECRET?.trim();
   if (!endpoint || !secret) {
     return {
       ok: false,
@@ -276,12 +276,12 @@ export const invokeFlyToolRunner = async (
   const pathWithQuery = `${url.pathname}${url.search}`;
   const headers: Record<string, string> = {
     "content-type": "application/json",
-    "x-assistant-mk1-user-id": identity.scope.userId,
-    "x-assistant-mk1-workspace-id": identity.scope.workspaceId,
-    "x-assistant-mk1-agent-id": identity.agentId,
-    "x-assistant-mk1-run-id": invocation.runId,
-    "x-assistant-mk1-workflow-intent-id": invocation.workflowIntentId,
-    "x-assistant-mk1-tool-name": invocation.toolName,
+    "x-operloom-user-id": identity.scope.userId,
+    "x-operloom-workspace-id": identity.scope.workspaceId,
+    "x-operloom-agent-id": identity.agentId,
+    "x-operloom-run-id": invocation.runId,
+    "x-operloom-workflow-intent-id": invocation.workflowIntentId,
+    "x-operloom-tool-name": invocation.toolName,
   };
 
   Object.assign(

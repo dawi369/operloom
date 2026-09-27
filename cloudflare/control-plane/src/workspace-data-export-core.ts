@@ -243,14 +243,14 @@ export const threadLifecycleRequest = async (
   action: "export" | "purge" | "freeze" | "unfreeze",
   jobId?: string,
 ) => {
-  if (!env.WorkbenchThreadChatAgent || !env.WORKBENCH_AGENT_CONNECTION_SECRET) {
+  if (!env.ThreadChatAgent || !env.OPERLOOM_AGENT_CONNECTION_SECRET) {
     throw new Error("durable_object_lifecycle_unavailable");
   }
   const name = await resolveThreadAgentInstanceName(thread);
-  const stub = env.WorkbenchThreadChatAgent.get(env.WorkbenchThreadChatAgent.idFromName(name));
+  const stub = env.ThreadChatAgent.get(env.ThreadChatAgent.idFromName(name));
   const response = await stub.fetch(`https://thread-agent.internal/internal/lifecycle-${action}`, {
     method: "POST",
-    headers: { "x-workbench-lifecycle-secret": env.WORKBENCH_AGENT_CONNECTION_SECRET },
+    headers: { "x-operloom-lifecycle-secret": env.OPERLOOM_AGENT_CONNECTION_SECRET },
     body:
       action === "freeze" || action === "unfreeze"
         ? JSON.stringify({ jobId: jobId ?? "" })
@@ -462,9 +462,9 @@ export const stageSnapshotRows = async (
 };
 
 export const pauseE2eExportBoundary = async (env: Env) => {
-  const configured = env.WORKBENCH_E2E_EXPORT_PAUSE_MS?.trim();
+  const configured = env.OPERLOOM_E2E_EXPORT_PAUSE_MS?.trim();
   if (!configured) return;
-  if (env.WORKBENCH_E2E_MODE !== "true") {
+  if (env.OPERLOOM_E2E_MODE !== "true") {
     throw new Error("e2e_export_pause_requires_e2e_mode");
   }
   const delayMs = Number(configured);
@@ -475,4 +475,4 @@ export const pauseE2eExportBoundary = async (env: Env) => {
 };
 
 export const lifecycleFaultInjectionEnabled = (env: Env) =>
-  env.WORKBENCH_E2E_MODE === "true" || env.WORKBENCH_CONFORMANCE_MODE === "true";
+  env.OPERLOOM_E2E_MODE === "true" || env.OPERLOOM_CONFORMANCE_MODE === "true";

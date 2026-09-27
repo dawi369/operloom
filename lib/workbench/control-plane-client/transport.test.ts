@@ -22,7 +22,7 @@ describe("control-plane /v1 transport", () => {
 
   beforeEach(() => {
     session.current = { authMode: "local-dev", accessToken: "local-token" };
-    vi.stubEnv("CLOUDFLARE_CONTROL_PLANE_URL", `${base}/`);
+    vi.stubEnv("OPERLOOM_BACKEND_URL", `${base}/`);
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
   });
@@ -34,8 +34,8 @@ describe("control-plane /v1 transport", () => {
     fetchMock.mockResolvedValueOnce(Response.json({ ok: true }));
     await controlPlaneRequest("/workspace-context?refresh=1", {
       headers: {
-        "x-assistant-mk1-user-id": "victim",
-        "x-assistant-mk1-workspace-id": "other",
+        "x-operloom-user-id": "victim",
+        "x-operloom-workspace-id": "other",
         cookie: "wos-session=forged",
         accept: "application/json",
       },
@@ -54,7 +54,7 @@ describe("control-plane /v1 transport", () => {
     await requestControlPlane("/chat/session/agent-switch", {
       method: "POST",
       body: "{}",
-      headers: { "idempotency-key": "switch-1", "x-assistant-mk1-agent-id": "forged" },
+      headers: { "idempotency-key": "switch-1", "x-operloom-agent-id": "forged" },
     });
     expect(calls().map(({ url, method }) => [method, url])).toEqual([
       ["GET", `${base}/v1/me/tools?stage=observe`],
@@ -62,9 +62,7 @@ describe("control-plane /v1 transport", () => {
     ]);
     expect(calls()[1]!.headers.get("idempotency-key")).toBe("switch-1");
     for (const call of calls()) {
-      expect([...call.headers.keys()].some((name) => name.startsWith("x-assistant-mk1-"))).toBe(
-        false,
-      );
+      expect([...call.headers.keys()].some((name) => name.startsWith("x-operloom-"))).toBe(false);
     }
   });
 

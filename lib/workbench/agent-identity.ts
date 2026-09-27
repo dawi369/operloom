@@ -35,9 +35,9 @@ export const getWorkbenchSession = async (): Promise<WorkbenchSession> => {
       500,
     );
   }
-  const accessToken = process.env.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN?.trim();
+  const accessToken = process.env.OPERLOOM_LOCAL_API_TOKEN?.trim();
   if (!accessToken) {
-    throw new WorkbenchAuthError("CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN is not configured", 500);
+    throw new WorkbenchAuthError("OPERLOOM_LOCAL_API_TOKEN is not configured", 500);
   }
   return { authMode: "local-dev", accessToken };
 };

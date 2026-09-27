@@ -270,7 +270,7 @@ const buildRuntimeModelTool = (input: {
             bindingVersion: 1,
             policyDecisionId,
             traceId: input.request.traceId,
-            callbackUrl: input.env.WORKBENCH_CALLBACK_URL,
+            callbackUrl: input.env.OPERLOOM_CALLBACK_URL,
             source: "model",
           },
         });

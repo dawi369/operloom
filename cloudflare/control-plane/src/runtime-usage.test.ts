@@ -16,10 +16,10 @@ import {
 import { createRuntimeModelPort } from "./runtime-models";
 import { createChatUsageTracker } from "./chat-usage";
 import { captureRuntimeContext } from "./runtime-context";
-import { createRuntimeClient } from "../../../packages/workbench-client/src/runtime-client";
+import { createRuntimeClient } from "../../../packages/client/src/runtime-client";
 import { exportCollections, loadCollection } from "./workspace-data-export-core";
 import { purgeWorkspace } from "./workspace-data-jobs";
-import type { RuntimeBudgetLimits } from "../../../packages/workbench-client/src/public-budget-contracts";
+import type { RuntimeBudgetLimits } from "../../../packages/client/src/public-budget-contracts";
 import type { AgentIdentity, ControlDataJobRow, D1PreparedStatement, Env } from "./types";
 vi.mock("ai", async (original) => ({
   ...(await original<typeof import("ai")>()),
@@ -98,7 +98,7 @@ const fixture = () => {
     },
   } as unknown as Env;
   env.OPENROUTER_API_KEY = "synthetic-test-key";
-  env.WORKBENCH_CONFORMANCE_MODE = "true";
+  env.OPERLOOM_CONFORMANCE_MODE = "true";
   const current = createAgentBehaviorSnapshotFromTemplate(toPackTemplate(manifest));
   const old = {
     ...current,

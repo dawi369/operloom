@@ -1,4 +1,4 @@
-# @operloom/workbench-client
+# @operloom/client
 
 Framework-neutral TypeScript client for Operloom product APIs. It is used
 by the web workbench and is suitable for independent React web clients. Native
@@ -15,7 +15,7 @@ responses at runtime and generate OpenAPI. Administrative schema coverage is
 still in progress. The existing `createWorkbenchClient` facade remains compatible.
 
 ```ts
-import { createRuntimeClient } from "@operloom/workbench-client";
+import { createRuntimeClient } from "@operloom/client";
 
 const runtime = createRuntimeClient({
   baseUrl: "https://runtime.example.com",
@@ -50,7 +50,7 @@ external effect occurred. Approval decisions use the existing scoped approval AP
 ## Existing web facade
 
 ```ts
-import { createWorkbenchClient } from "@operloom/workbench-client";
+import { createWorkbenchClient } from "@operloom/client";
 
 const client = createWorkbenchClient({
   baseUrl: "https://assistant.example.com",
@@ -75,7 +75,7 @@ response body.
 
 This package is private and initially unpublished. From the repository, run
 `pnpm workbench client pack` to create checked archives and a checksum manifest
-under `output/workbench-client-distribution/`.
+under `output/client-distribution/`.
 
 See the [frontend integration guide](https://github.com/dawi369/operloom/blob/main/docs/frontend-integration.md).
 
@@ -123,7 +123,7 @@ current workspace membership; quarantine denies access until recovery.
 
 ### Resource budgets and usage
 
-With `WORKBENCH_USAGE_LIMITS_ENABLED=true`, owners/admins use `runtime.budgets.get()`
+With `OPERLOOM_USAGE_LIMITS_ENABLED=true`, owners/admins use `runtime.budgets.get()`
 and `runtime.budgets.update({ expectedVersion, idempotencyKey, limits })` to inspect
 and change workspace limits. Limits cover daily and canonical root-run model/tool
 calls and tokens, plus workspace concurrent operations. A workspace must have an

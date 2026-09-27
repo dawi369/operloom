@@ -47,7 +47,7 @@ export const resolveWorkbenchCommand = (arguments_: string[]): ResolvedCommand |
     if (scripts[action]) return { script: scripts[action], args: rest };
   }
   if (group === "client" && action === "pack") {
-    return { script: "workbench-client:pack", args: rest };
+    return { script: "client:pack", args: rest };
   }
   if (group === "env" && action === "check") {
     return { script: "environment:check", args: rest };

@@ -422,8 +422,8 @@ describe("artifact lifecycle", () => {
     const update = createStatement();
     const fetch = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
     const env = {
-      WORKBENCH_AGENT_CONNECTION_SECRET: "lifecycle-secret",
-      WorkbenchThreadChatAgent: {
+      OPERLOOM_AGENT_CONNECTION_SECRET: "lifecycle-secret",
+      ThreadChatAgent: {
         idFromName: vi.fn((name: string) => name),
         get: vi.fn(() => ({ fetch })),
       },
@@ -443,7 +443,7 @@ describe("artifact lifecycle", () => {
       "https://thread-agent.internal/internal/lifecycle-purge",
       expect.objectContaining({
         method: "POST",
-        headers: { "x-workbench-lifecycle-secret": "lifecycle-secret" },
+        headers: { "x-operloom-lifecycle-secret": "lifecycle-secret" },
       }),
     );
     expect(update.bind).toHaveBeenCalledWith(

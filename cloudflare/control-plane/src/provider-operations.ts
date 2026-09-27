@@ -269,7 +269,7 @@ export const dispatchProviderOperation = async (
   proposalId: string,
   binding: RuntimeToolBinding,
 ): Promise<ActionExecutionResult> => {
-  if (env.WORKBENCH_CONNECTIONS_ENABLED !== "true" || env.WORKBENCH_MUTATIONS_ENABLED !== "true")
+  if (env.OPERLOOM_CONNECTIONS_ENABLED !== "true" || env.OPERLOOM_MUTATIONS_ENABLED !== "true")
     throw new Error("provider_operations_disabled");
   const row = await env.DB.prepare(
     `SELECT * FROM control_action_proposals WHERE id=? AND user_id=? AND workspace_id=? AND agent_id=?`,
@@ -385,7 +385,7 @@ export const reconcileProviderOperation = async (
   // Canonical outcomes survive projection failure and require no provider request.
   if (receipt.status === "succeeded" || receipt.status === "failed")
     return resultFromReceipt(receipt, true);
-  if (env.WORKBENCH_CONNECTIONS_ENABLED !== "true") throw new Error("provider_operations_disabled");
+  if (env.OPERLOOM_CONNECTIONS_ENABLED !== "true") throw new Error("provider_operations_disabled");
   const operation = providerOperationDescriptor(env, binding);
   if (!operation || runtimeStateCanonicalJson(operation) !== receipt.descriptor_json)
     throw new Error("provider_operation_changed");

@@ -92,46 +92,45 @@ export const initializeWorkbench = async ({
   const frontend = readFileSync(frontendPath, "utf8");
   const worker = readFileSync(workerPath, "utf8");
   const transportToken = sharedValue(
-    readValue(frontend, "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN"),
-    readValue(worker, "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN"),
+    readValue(frontend, "OPERLOOM_LOCAL_API_TOKEN"),
+    readValue(worker, "OPERLOOM_LOCAL_API_TOKEN"),
   );
   const callbackSecret = sharedValue(
-    readValue(frontend, "WORKBENCH_CALLBACK_SIGNING_SECRET"),
-    readValue(worker, "WORKBENCH_CALLBACK_SIGNING_SECRET"),
+    readValue(frontend, "OPERLOOM_CALLBACK_SIGNING_SECRET"),
+    readValue(worker, "OPERLOOM_CALLBACK_SIGNING_SECRET"),
   );
   const agentConnectionSecret = sharedValue(
     undefined,
-    readValue(worker, "WORKBENCH_AGENT_CONNECTION_SECRET"),
+    readValue(worker, "OPERLOOM_AGENT_CONNECTION_SECRET"),
   );
   const runnerSigningSecret = sharedValue(
-    readValue(frontend, "WORKBENCH_RUNNER_SIGNING_SECRET"),
-    readValue(worker, "WORKBENCH_RUNNER_SIGNING_SECRET"),
+    readValue(frontend, "OPERLOOM_RUNNER_SIGNING_SECRET"),
+    readValue(worker, "OPERLOOM_RUNNER_SIGNING_SECRET"),
   );
   const configured = [
     ...writeConfiguredFile(frontendPath, frontend, {
-      WORKBENCH_LOCAL_API_ENABLED: "true",
-      CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: transportToken,
-      WORKBENCH_CALLBACK_SIGNING_SECRET: callbackSecret,
-      WORKBENCH_RUNNER_SIGNING_SECRET: runnerSigningSecret,
-      WORKBENCH_ADMIN_USER_IDS:
-        readValue(worker, "WORKBENCH_LOCAL_API_USER_ID") || "operloom-local",
+      OPERLOOM_LOCAL_API_ENABLED: "true",
+      OPERLOOM_LOCAL_API_TOKEN: transportToken,
+      OPERLOOM_CALLBACK_SIGNING_SECRET: callbackSecret,
+      OPERLOOM_RUNNER_SIGNING_SECRET: runnerSigningSecret,
+      OPERLOOM_ADMIN_USER_IDS: readValue(worker, "OPERLOOM_LOCAL_API_USER_ID") || "operloom-local",
     }).map((key) => `.env.local:${key}`),
     ...writeConfiguredFile(
       workerPath,
       worker,
       {
-        WORKBENCH_LOCAL_API_ENABLED: "true",
-        WORKBENCH_ENVIRONMENT: "local",
-        CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: transportToken,
-        WORKBENCH_AGENT_CONNECTION_SECRET: agentConnectionSecret,
-        WORKBENCH_CALLBACK_SIGNING_SECRET: callbackSecret,
-        WORKBENCH_RUNNER_SIGNING_SECRET: runnerSigningSecret,
-        WORKBENCH_RUNNER_TRANSPORT: "fly",
-        WORKBENCH_RUNNER_URL: "http://127.0.0.1:3101/workbench/tool-runners/invocations",
-        WORKBENCH_CALLBACK_URL: "http://127.0.0.1:8787/workbench/run-callbacks",
+        OPERLOOM_LOCAL_API_ENABLED: "true",
+        OPERLOOM_ENVIRONMENT: "local",
+        OPERLOOM_LOCAL_API_TOKEN: transportToken,
+        OPERLOOM_AGENT_CONNECTION_SECRET: agentConnectionSecret,
+        OPERLOOM_CALLBACK_SIGNING_SECRET: callbackSecret,
+        OPERLOOM_RUNNER_SIGNING_SECRET: runnerSigningSecret,
+        OPERLOOM_RUNNER_TRANSPORT: "fly",
+        OPERLOOM_RUNNER_URL: "http://127.0.0.1:3101/workbench/tool-runners/invocations",
+        OPERLOOM_CALLBACK_URL: "http://127.0.0.1:8787/workbench/run-callbacks",
       },
       {
-        WORKBENCH_RUNNER_TRANSPORT: ["inline"],
+        OPERLOOM_RUNNER_TRANSPORT: ["inline"],
       },
     ).map((key) => `cloudflare/control-plane/.dev.vars:${key}`),
   ];

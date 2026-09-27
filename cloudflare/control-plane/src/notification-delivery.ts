@@ -134,7 +134,7 @@ export const createMemoryNotificationPort = (input?: {
 });
 
 export const resolveNotificationPort = (env: Env): NotificationPort => {
-  if (env.WORKBENCH_E2E_MODE === "true") return createMemoryNotificationPort();
+  if (env.OPERLOOM_E2E_MODE === "true") return createMemoryNotificationPort();
   return createExpoNotificationPort();
 };
 

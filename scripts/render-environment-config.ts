@@ -44,7 +44,7 @@ export const renderEnvironmentConfig = (
           authorizationUrl: `${manifest.fly.origin}/e2e/oauth/authorize`,
           tokenUrl: `${manifest.fly.origin}/e2e/oauth/token`,
           actionUrl: `${manifest.fly.origin}/e2e/actions`,
-          clientId: "assistant-mk1-acceptance",
+          clientId: "operloom-acceptance",
           permittedHosts: [flyHost],
           credentialPlacement: "bearer",
         },
@@ -70,33 +70,33 @@ export const renderEnvironmentConfig = (
       OPENROUTER_MODEL: "openai/gpt-6-luna",
       OPENROUTER_SITE_URL: manifest.web.origin,
       OPENROUTER_APP_NAME: `operloom-${target}-cloudflare-chat`,
-      WORKBENCH_CALLBACK_URL: `${manifest.cloudflare.origin}/workbench/run-callbacks`,
-      WORKBENCH_RUNNER_TRANSPORT: "fly",
-      WORKBENCH_RUNNER_URL: `${manifest.fly.origin}/workbench/tool-runners/invocations`,
-      WORKBENCH_OPERATOR_ALERT_WEBHOOK_URL: `${manifest.web.origin}/api/workbench/operator-alerts/ingest`,
-      WORKBENCH_CONFORMANCE_MODE: String(manifest.conformanceMode),
-      WORKBENCH_RETAINED_DATA_ENABLED: String(features.retainedData),
-      WORKBENCH_CONNECTIONS_ENABLED: String(features.connections),
-      WORKBENCH_MUTATIONS_ENABLED: String(features.mutations),
-      WORKBENCH_PUSH_ENABLED: "false",
-      WORKBENCH_VAULT_BACKEND: manifest.vaultBackend,
+      OPERLOOM_CALLBACK_URL: `${manifest.cloudflare.origin}/workbench/run-callbacks`,
+      OPERLOOM_RUNNER_TRANSPORT: "fly",
+      OPERLOOM_RUNNER_URL: `${manifest.fly.origin}/workbench/tool-runners/invocations`,
+      OPERLOOM_OPERATOR_ALERT_WEBHOOK_URL: `${manifest.web.origin}/api/workbench/operator-alerts/ingest`,
+      OPERLOOM_CONFORMANCE_MODE: String(manifest.conformanceMode),
+      OPERLOOM_RETAINED_DATA_ENABLED: String(features.retainedData),
+      OPERLOOM_CONNECTIONS_ENABLED: String(features.connections),
+      OPERLOOM_MUTATIONS_ENABLED: String(features.mutations),
+      OPERLOOM_PUSH_ENABLED: "false",
+      OPERLOOM_VAULT_BACKEND: manifest.vaultBackend,
       ...(isDemo
         ? {
-            WORKBENCH_DEMO_MODE: "true",
-            WORKBENCH_DEMO_PACK_ALLOWLIST: JSON.stringify([
+            OPERLOOM_DEMO_MODE: "true",
+            OPERLOOM_DEMO_PACK_ALLOWLIST: JSON.stringify([
               "operloom",
               "repo-analyst",
               "baby-polymancer",
             ]),
-            WORKBENCH_DEMO_CHAT_DAILY_LIMIT: "20",
-            WORKBENCH_DEMO_WORKFLOW_DAILY_LIMIT: "3",
-            WORKBENCH_DEMO_MODEL_BUDGET_USD: "20",
-            WORKBENCH_DEMO_ARTIFACT_WORKSPACE_BYTES: String(20 * 1024 * 1024),
-            WORKBENCH_DEMO_RETENTION_DAYS: "7",
+            OPERLOOM_DEMO_CHAT_DAILY_LIMIT: "20",
+            OPERLOOM_DEMO_WORKFLOW_DAILY_LIMIT: "3",
+            OPERLOOM_DEMO_MODEL_BUDGET_USD: "20",
+            OPERLOOM_DEMO_ARTIFACT_WORKSPACE_BYTES: String(20 * 1024 * 1024),
+            OPERLOOM_DEMO_RETENTION_DAYS: "7",
           }
         : {}),
-      ...(conformanceProviders ? { WORKBENCH_OAUTH_PROVIDERS_JSON: conformanceProviders } : {}),
-      WORKBENCH_RELEASE_SHA: releaseSha,
+      ...(conformanceProviders ? { OPERLOOM_OAUTH_PROVIDERS_JSON: conformanceProviders } : {}),
+      OPERLOOM_RELEASE_SHA: releaseSha,
       SENTRY_ENVIRONMENT: target,
       SENTRY_TRACES_SAMPLE_RATE: isDemo ? "0" : "0.02",
     },
@@ -140,20 +140,11 @@ export const renderEnvironmentConfig = (
     ],
     durable_objects: {
       bindings: [
-        { name: "WorkbenchThreadChatAgent", class_name: "WorkbenchThreadChatAgent" },
-        { name: "WorkbenchSessionAgent", class_name: "WorkbenchSessionAgent" },
+        { name: "ThreadChatAgent", class_name: "ThreadChatAgent" },
+        { name: "SessionAgent", class_name: "SessionAgent" },
       ],
     },
-    migrations: [
-      {
-        tag: "v1-workbench-thread-chat-agent",
-        new_sqlite_classes: ["WorkbenchThreadChatAgent"],
-      },
-      {
-        tag: "v2-workbench-session-agent",
-        new_sqlite_classes: ["WorkbenchSessionAgent"],
-      },
-    ],
+    migrations: [{ tag: "v1", new_sqlite_classes: ["ThreadChatAgent", "SessionAgent"] }],
   };
   writeFileSync(wranglerPath, `${JSON.stringify(wrangler, null, 2)}\n`, { mode: 0o600 });
 
@@ -165,9 +156,9 @@ primary_region = "fra"
 dockerfile = "../../../Dockerfile.runner"
 
 [env]
-WORKBENCH_CONFORMANCE_MODE = "${manifest.conformanceMode}"
-WORKBENCH_CALLBACK_ORIGIN = "${manifest.cloudflare.origin}"
-WORKBENCH_RELEASE_SHA = "${releaseSha}"
+OPERLOOM_CONFORMANCE_MODE = "${manifest.conformanceMode}"
+OPERLOOM_CALLBACK_ORIGIN = "${manifest.cloudflare.origin}"
+OPERLOOM_RELEASE_SHA = "${releaseSha}"
 
 [http_service]
 internal_port = 3000

@@ -31,12 +31,12 @@ import type {
   WorkspaceRow,
 } from "./types";
 
-const authModeHeader = "x-assistant-mk1-auth-mode";
-const workspaceSourceHeader = "x-assistant-mk1-workspace-source";
-const membershipRoleHeader = "x-assistant-mk1-membership-role";
-const membershipRolesHeader = "x-assistant-mk1-membership-roles";
-const membershipPermissionsHeader = "x-assistant-mk1-membership-permissions";
-const membershipStatusHeader = "x-assistant-mk1-membership-status";
+const authModeHeader = "x-operloom-auth-mode";
+const workspaceSourceHeader = "x-operloom-workspace-source";
+const membershipRoleHeader = "x-operloom-membership-role";
+const membershipRolesHeader = "x-operloom-membership-roles";
+const membershipPermissionsHeader = "x-operloom-membership-permissions";
+const membershipStatusHeader = "x-operloom-membership-status";
 const compactEventLimit = 6;
 const drawerEventLimit = 12;
 

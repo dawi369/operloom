@@ -9,7 +9,7 @@ import {
   useWorkbenchArtifacts,
   useWorkbenchRun,
   useWorkbenchRuns,
-} from "@operloom/workbench-react";
+} from "@operloom/react";
 import {
   CheckIcon,
   CircleStopIcon,

@@ -18,8 +18,8 @@ const identity = {
 } as AgentIdentity;
 
 const env = {
-  WORKBENCH_RUNNER_URL: "https://runner.example.test/workbench/tool-runners/invocations",
-  WORKBENCH_RUNNER_SIGNING_SECRET: "runner-secret",
+  OPERLOOM_RUNNER_URL: "https://runner.example.test/workbench/tool-runners/invocations",
+  OPERLOOM_RUNNER_SIGNING_SECRET: "runner-secret",
 } as Env;
 
 describe("tool runner sandbox contracts", () => {

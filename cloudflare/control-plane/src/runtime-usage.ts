@@ -7,7 +7,7 @@ import type { RuntimeRecord } from "@operloom/agent-sdk";
 import {
   publicBudgetContracts,
   type RuntimeBudgetLimits,
-} from "../../../packages/workbench-client/src/public-budget-contracts";
+} from "../../../packages/client/src/public-budget-contracts";
 import { sha256Hex } from "../../../lib/workbench/control-plane-signing";
 import { runtimeStateCanonicalJson } from "./runtime-state";
 import { json } from "./http";

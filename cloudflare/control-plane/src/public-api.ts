@@ -1,7 +1,4 @@
-import {
-  matchesPublicApiRoute,
-  publicApiOpenApi,
-} from "../../../packages/workbench-client/src/public-api";
+import { matchesPublicApiRoute, publicApiOpenApi } from "../../../packages/client/src/public-api";
 import { compiledWorkbenchVersion } from "../../../generated/agent-runtime/platform";
 import { WorkbenchAuthError } from "../../../lib/workbench/agent-identity-types";
 import { withCors } from "./cors";
@@ -9,7 +6,7 @@ import { json, type ControlPlaneAuthContext } from "./http";
 import { authenticatePublicApi, publicApiCommandRequest } from "./public-api-auth";
 import type { Env } from "./types";
 import { agentRevisionConflict } from "./agent-execution-revisions";
-import { findPublicActionContract } from "../../../packages/workbench-client/src/public-action-contracts";
+import { findPublicActionContract } from "../../../packages/client/src/public-action-contracts";
 
 export const handlePublicApi = async (
   request: Request,

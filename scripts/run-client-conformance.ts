@@ -4,11 +4,11 @@ import { resolve } from "node:path";
 
 const suites = [
   {
-    command: ["workbench-client:contract", "--check"],
+    command: ["client:contract", "--check"],
     guarantees: ["tracked-public-contract"],
   },
   {
-    command: ["workbench-client:verify"],
+    command: ["client:verify"],
     guarantees: ["packed-vite-consumer", "no-workspace-resolution"],
   },
   {
@@ -16,8 +16,8 @@ const suites = [
       "exec",
       "vitest",
       "run",
-      "packages/workbench-client/src/client.test.ts",
-      "packages/workbench-client/src/realtime.test.ts",
+      "packages/client/src/client.test.ts",
+      "packages/client/src/realtime.test.ts",
       "lib/workbench/access-token.test.ts",
       "lib/workbench/client-cors.test.ts",
     ],
@@ -60,7 +60,7 @@ const report = {
   status: failed ? "failed" : "passed",
   guarantees: results.flatMap((result) => result.guarantees),
   commands: results,
-  failureArtifacts: ["output/workbench-client-consumer", "output/conformance/client.json"],
+  failureArtifacts: ["output/client-consumer", "output/conformance/client.json"],
 };
 const directory = resolve(process.cwd(), "output/conformance");
 mkdirSync(directory, { recursive: true });

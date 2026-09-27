@@ -57,8 +57,8 @@ cloudflare/control-plane/.wrangler/
 /apps/mobile/ios/
 /apps/mobile/android/
 /packages/agent-sdk/dist/
-/packages/workbench-client/dist/
-/packages/workbench-react/dist/
+/packages/client/dist/
+/packages/react/dist/
 /packages/observability/dist/
 /examples/complex-operator/dist/
 /examples/document-review/dist/

@@ -8,7 +8,7 @@ import {
   createWorkbenchQueryClient,
   workbenchQueryKeys,
   workbenchSessionEventInvalidations,
-} from "../../packages/workbench-react/src/index";
+} from "../../packages/react/src/index";
 import { preloadWorkbenchSurface } from "./surface-preloading";
 
 describe("workbench query model", () => {

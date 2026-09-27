@@ -108,7 +108,7 @@ test.describe.serial("Production customer-data lifecycle", () => {
     }
     expect(rejectedRetentionDays).toBeDefined();
 
-    const durableObjectPath = `${workerOrigin}/agents/workbench-thread-chat-agent/${encodeURIComponent(thread.connection!.instanceName!)}`;
+    const durableObjectPath = `${workerOrigin}/agents/thread-chat-agent/${encodeURIComponent(thread.connection!.instanceName!)}`;
     let blockedDurableWriteStatus = 0;
     for (let attempt = 0; attempt < 50 && blockedDurableWriteStatus !== 423; attempt += 1) {
       const blockedDurableWrite = await request.post(

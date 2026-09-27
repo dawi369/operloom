@@ -15,9 +15,9 @@ export const sessionCoordinatorName = async (identity: AgentIdentity) =>
   ).slice(0, 48)}`;
 
 export const sessionCoordinatorStub = async (env: Env, identity: AgentIdentity) => {
-  if (!env.WorkbenchSessionAgent) return null;
+  if (!env.SessionAgent) return null;
   const name = await sessionCoordinatorName(identity);
-  return env.WorkbenchSessionAgent.get(env.WorkbenchSessionAgent.idFromName(name));
+  return env.SessionAgent.get(env.SessionAgent.idFromName(name));
 };
 
 export const dispatchWorkbenchSessionEvent = async (

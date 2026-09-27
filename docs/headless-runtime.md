@@ -9,8 +9,8 @@ and agent; selecting a different workspace in another client cannot redirect it.
 
 Initialize local Worker configuration and apply forward migrations using the
 existing setup. The Worker needs its D1 bindings and
-`CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN`; chat also needs
-`WORKBENCH_AGENT_CONNECTION_SECRET` and a server-side model provider key.
+`OPERLOOM_LOCAL_API_TOKEN`; chat also needs
+`OPERLOOM_AGENT_CONNECTION_SECRET` and a server-side model provider key.
 
 ```sh
 pnpm db:cloudflare:migrate:local
@@ -23,11 +23,11 @@ Heavy runner tools and explicit LangGraph workflows still require their own
 services. Use `pnpm conformance:runtime` for a disposable migrated D1/Worker
 journey using deterministic chat without a model provider.
 
-The local adapter requires all three: `WORKBENCH_LOCAL_API_ENABLED=true`,
-`WORKBENCH_ENVIRONMENT=local`, and a loopback request URL. The supervisor supplies
+The local adapter requires all three: `OPERLOOM_LOCAL_API_ENABLED=true`,
+`OPERLOOM_ENVIRONMENT=local`, and a loopback request URL. The supervisor supplies
 these flags; the token is read from Worker configuration. Caller identity and
 role headers are discarded. Local identity defaults to `operloom-local`, or the
-server-configured `WORKBENCH_LOCAL_API_USER_ID`.
+server-configured `OPERLOOM_LOCAL_API_USER_ID`.
 
 ## Independent deployment artifact
 
@@ -77,16 +77,16 @@ The packaging uses Cloudflare's documented
 
 ## Production authentication configuration
 
-Keep `WORKBENCH_PUBLIC_API_ENABLED=false` until hosted acceptance is complete.
+Keep `OPERLOOM_PUBLIC_API_ENABLED=false` until hosted acceptance is complete.
 To test WorkOS verification on an isolated deployment, configure these Worker
 variables alongside the existing Worker deployment configuration:
 
 ```text
-WORKBENCH_PUBLIC_API_ENABLED=true
-WORKBENCH_LOCAL_API_ENABLED=false
-WORKBENCH_WORKOS_ISSUER=<exact token issuer, including path/trailing slash>
-WORKBENCH_WORKOS_JWKS_URL=<HTTPS signing-key endpoint>
-WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS=<comma-separated authorized client IDs>
+OPERLOOM_PUBLIC_API_ENABLED=true
+OPERLOOM_LOCAL_API_ENABLED=false
+OPERLOOM_WORKOS_ISSUER=<exact token issuer, including path/trailing slash>
+OPERLOOM_WORKOS_JWKS_URL=<HTTPS signing-key endpoint>
+OPERLOOM_WORKOS_ALLOWED_CLIENT_IDS=<comma-separated authorized client IDs>
 ```
 
 Clients obtain and refresh access tokens through WorkOS. The API checks RS256
@@ -113,7 +113,7 @@ perform headless deletion yet.
 ## Fetch consumer
 
 ```ts
-import { createRuntimeClient } from "@operloom/workbench-client";
+import { createRuntimeClient } from "@operloom/client";
 
 const runtime = createRuntimeClient({
   baseUrl: "https://your-worker.example",
@@ -250,7 +250,7 @@ See [admission and crash boundaries](chat-command-admission.md).
 
 ## Explicit package upgrades
 
-With `WORKBENCH_PACKAGE_UPGRADES_ENABLED=true` on an isolated local/acceptance
+With `OPERLOOM_PACKAGE_UPGRADES_ENABLED=true` on an isolated local/acceptance
 Worker, owners/admins use the same explicit client target:
 
 ```ts
@@ -273,21 +273,21 @@ before upgrading. Hosted renderers leave this capability disabled.
 
 ## Model/tool budgets
 
-With `WORKBENCH_USAGE_LIMITS_ENABLED=true`, configure a workspace policy through
+With `OPERLOOM_USAGE_LIMITS_ENABLED=true`, configure a workspace policy through
 `client.budgets.update({ expectedVersion, idempotencyKey, limits })` before
 submitting model or tool work. Both daily workspace and canonical root-run limits
 are enforced before dispatch. Owners/admins inspect `client.budgets.get()` and
 `client.budgets.usage({ day, limit, cursor })` using the same explicit target and
 authentication. Listen for `usage.reserved`, `usage.settled` and `budget.updated`
 events, then fetch canonical usage. Workflow structured calls additionally require
-`WORKBENCH_STRUCTURED_MODELS_ENABLED=true` and the package capability declaration.
+`OPERLOOM_STRUCTURED_MODELS_ENABLED=true` and the package capability declaration.
 See [model/budget semantics](runtime-models-and-budgets.md) and the
 [document-review example](../examples/document-review/README.md) for complete setup.
 
 ## Experimental durable submission
 
 With the native Workflows binding configured and
-`WORKBENCH_DURABLE_WORKFLOWS_ENABLED=true`, a v2 workflow that declares `durable`
+`OPERLOOM_DURABLE_WORKFLOWS_ENABLED=true`, a v2 workflow that declares `durable`
 can be submitted through the same explicit workspace/agent route:
 
 ```ts

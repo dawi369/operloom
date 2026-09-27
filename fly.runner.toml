@@ -5,7 +5,7 @@ primary_region = "fra"
 dockerfile = "Dockerfile.runner"
 
 [env]
-WORKBENCH_CALLBACK_ORIGIN = "http://127.0.0.1:8787"
+OPERLOOM_CALLBACK_ORIGIN = "http://127.0.0.1:8787"
 
 [http_service]
 internal_port = 3000

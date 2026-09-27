@@ -13,7 +13,7 @@ type ContractManifest = {
 };
 
 const root = process.cwd();
-const clientRoot = resolve(root, "packages/workbench-client");
+const clientRoot = resolve(root, "packages/client");
 const manifestPath = resolve(clientRoot, "contract-manifest.json");
 const normalize = (value: string) => value.replaceAll("\r\n", "\n").trimEnd() + "\n";
 const hash = (value: string) => createHash("sha256").update(normalize(value)).digest("hex");
@@ -28,7 +28,7 @@ const declarationFiles = (directory: string): string[] =>
         : [];
   });
 
-const packages = ["workbench-client", "workbench-react"].map((directory) => {
+const packages = ["client", "react"].map((directory) => {
   const packageRoot = resolve(root, "packages", directory);
   const metadata = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as {
     name?: unknown;
@@ -60,7 +60,7 @@ const runtimeSchemas = [
   "src/messages.ts",
   "src/public-action-contracts.ts",
 ].map((path) => ({
-  path: `workbench-client/${path}`,
+  path: `client/${path}`,
   sha256: hash(readFileSync(resolve(clientRoot, path), "utf8")),
 }));
 const current: ContractManifest = { schemaVersion: 2, runtimeSchemas, packages };
@@ -72,7 +72,7 @@ if (process.argv.includes("--accept")) {
 }
 if (!existsSync(manifestPath) || readFileSync(manifestPath, "utf8") !== serialized) {
   throw new Error(
-    "Workbench client public contract changed. Review compatibility, then run pnpm workbench-client:contract --accept.",
+    "Workbench client public contract changed. Review compatibility, then run pnpm client:contract --accept.",
   );
 }
 console.log(

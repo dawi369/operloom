@@ -1,6 +1,6 @@
-# @operloom/workbench-react
+# @operloom/react
 
-UI-agnostic React Query bindings for `@operloom/workbench-client`. The
+UI-agnostic React Query bindings for `@operloom/client`. The
 package works with React DOM and React Native and is the shared resource layer
 used by the bundled web and Expo applications.
 
@@ -9,7 +9,7 @@ import {
   WorkbenchClientProvider,
   createWorkbenchQueryClient,
   useWorkbenchAgents,
-} from "@operloom/workbench-react";
+} from "@operloom/react";
 
 const queryClient = createWorkbenchQueryClient();
 

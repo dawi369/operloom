@@ -1,7 +1,7 @@
-export const serviceSignatureHeader = "x-assistant-mk1-signature-v1";
-export const serviceSignatureTimestampHeader = "x-assistant-mk1-signature-timestamp";
-export const serviceSignatureNonceHeader = "x-assistant-mk1-signature-nonce";
-export const serviceContentSha256Header = "x-assistant-mk1-content-sha256";
+export const serviceSignatureHeader = "x-operloom-signature-v1";
+export const serviceSignatureTimestampHeader = "x-operloom-signature-timestamp";
+export const serviceSignatureNonceHeader = "x-operloom-signature-nonce";
+export const serviceContentSha256Header = "x-operloom-content-sha256";
 
 const textEncoder = new TextEncoder();
 
@@ -47,7 +47,7 @@ const normalizeHeaders = (headers: Headers | Record<string, string>) => {
 
 export const canonicalAssistantHeaders = (headers: Headers | Record<string, string>) =>
   normalizeHeaders(headers)
-    .filter(([key]) => key.startsWith("x-assistant-mk1-") && !excludedSignedHeaders.has(key))
+    .filter(([key]) => key.startsWith("x-operloom-") && !excludedSignedHeaders.has(key))
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([key, value]) => `${key}:${value}`)
     .join("\n");

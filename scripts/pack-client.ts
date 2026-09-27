@@ -5,7 +5,7 @@ import { basename, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const repositoryRoot = resolve(import.meta.dirname, "..");
-const defaultOutput = resolve(repositoryRoot, "output/workbench-client-distribution");
+const defaultOutput = resolve(repositoryRoot, "output/client-distribution");
 
 type PackageManifest = {
   name: string;
@@ -121,26 +121,18 @@ const main = () => {
   rmSync(output, { recursive: true, force: true });
   mkdirSync(output, { recursive: true });
 
-  run(
-    "pnpm",
-    ["pack", "--pack-destination", output],
-    resolve(repositoryRoot, "packages/workbench-client"),
-  );
-  run(
-    "pnpm",
-    ["pack", "--pack-destination", output],
-    resolve(repositoryRoot, "packages/workbench-react"),
-  );
+  run("pnpm", ["pack", "--pack-destination", output], resolve(repositoryRoot, "packages/client"));
+  run("pnpm", ["pack", "--pack-destination", output], resolve(repositoryRoot, "packages/react"));
 
   const packages = [
-    inspectArchive(archiveFor(output, "operloom-workbench-client-")),
-    inspectArchive(archiveFor(output, "operloom-workbench-react-")),
+    inspectArchive(archiveFor(output, "operloom-client-")),
+    inspectArchive(archiveFor(output, "operloom-react-")),
   ];
   const application = JSON.parse(readFileSync(resolve(repositoryRoot, "package.json"), "utf8")) as {
     version: string;
   };
   const contractText = readFileSync(
-    resolve(repositoryRoot, "packages/workbench-client/contract-manifest.json"),
+    resolve(repositoryRoot, "packages/client/contract-manifest.json"),
     "utf8",
   );
   const manifest = buildDistributionManifest({

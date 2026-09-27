@@ -124,8 +124,8 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
       const token = await options.getAccessToken?.({ minValidityMs: 60_000 });
       const headers = new Headers(requestOptions.headers);
       headers.set("accept", "application/json");
-      headers.set("x-workbench-client-platform", options.client.platform);
-      headers.set("x-workbench-client-version", options.client.version);
+      headers.set("x-operloom-client-platform", options.client.platform);
+      headers.set("x-operloom-client-version", options.client.version);
       if (token) headers.set("authorization", `Bearer ${token}`);
       if (requestOptions.body !== undefined) headers.set("content-type", "application/json");
       if (requestOptions.idempotencyKey) {

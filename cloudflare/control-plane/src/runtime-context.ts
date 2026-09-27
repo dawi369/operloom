@@ -15,7 +15,7 @@ import { resolveAgentBehaviorConfig, resolveAgentRuntimeConfig } from "./agent-r
 import { createRuntimeStatePort, runtimeStateCanonicalJson } from "./runtime-state";
 import type { AgentIdentity, AgentRow, Env } from "./types";
 import { json } from "./http";
-import { publicContextContracts } from "../../../packages/workbench-client/src/public-context-contracts";
+import { publicContextContracts } from "../../../packages/client/src/public-context-contracts";
 
 const authority = `SELECT a.* FROM agents a JOIN workspaces w ON w.id = a.workspace_id AND w.status = 'active'
   JOIN memberships m ON m.workspace_id = w.id AND m.user_id = ? AND m.status = 'active'

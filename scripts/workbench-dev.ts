@@ -40,10 +40,10 @@ export const createLocalWorkbenchConfiguration = (
   const frontendPort = 3000;
   const workerPort = 8787;
   const runnerPort = 3101;
-  const callbackUrl = new URL(required(worker, "WORKBENCH_CALLBACK_URL", ".dev.vars"));
-  const runnerUrl = new URL(required(worker, "WORKBENCH_RUNNER_URL", ".dev.vars"));
-  if (worker.WORKBENCH_RUNNER_TRANSPORT !== "fly") {
-    throw new Error("Local full-stack development requires WORKBENCH_RUNNER_TRANSPORT=fly");
+  const callbackUrl = new URL(required(worker, "OPERLOOM_CALLBACK_URL", ".dev.vars"));
+  const runnerUrl = new URL(required(worker, "OPERLOOM_RUNNER_URL", ".dev.vars"));
+  if (worker.OPERLOOM_RUNNER_TRANSPORT !== "fly") {
+    throw new Error("Local full-stack development requires OPERLOOM_RUNNER_TRANSPORT=fly");
   }
   if (runnerUrl.origin !== `http://127.0.0.1:${runnerPort}`) {
     throw new Error(`Local runner URL must use http://127.0.0.1:${runnerPort}`);
@@ -57,17 +57,13 @@ export const createLocalWorkbenchConfiguration = (
     ...shared,
     ...worker,
     PORT: String(runnerPort),
-    WORKBENCH_CALLBACK_ORIGIN: callbackUrl.origin,
-    WORKBENCH_CALLBACK_SIGNING_SECRET: required(
+    OPERLOOM_CALLBACK_ORIGIN: callbackUrl.origin,
+    OPERLOOM_CALLBACK_SIGNING_SECRET: required(
       worker,
-      "WORKBENCH_CALLBACK_SIGNING_SECRET",
+      "OPERLOOM_CALLBACK_SIGNING_SECRET",
       ".dev.vars",
     ),
-    WORKBENCH_RUNNER_SIGNING_SECRET: required(
-      worker,
-      "WORKBENCH_RUNNER_SIGNING_SECRET",
-      ".dev.vars",
-    ),
+    OPERLOOM_RUNNER_SIGNING_SECRET: required(worker, "OPERLOOM_RUNNER_SIGNING_SECRET", ".dev.vars"),
   };
 
   return {

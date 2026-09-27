@@ -4,13 +4,13 @@ export type HostedService = "web" | "cloudflare" | "fly";
 export type HostedVariableInventory = Record<HostedService, ReadonlyMap<string, string | null>>;
 
 const commonForbidden = [
-  "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN",
-  "WORKBENCH_LOCAL_API_ENABLED",
-  "WORKBENCH_LOCAL_API_USER_ID",
-  "WORKBENCH_EXECUTOR_TOKEN",
-  "WORKBENCH_EXECUTOR_URL",
-  "WORKBENCH_SHARED_SECRET",
-  "WORKBENCH_LOCAL_IDENTITY",
+  "OPERLOOM_LOCAL_API_TOKEN",
+  "OPERLOOM_LOCAL_API_ENABLED",
+  "OPERLOOM_LOCAL_API_USER_ID",
+  "OPERLOOM_EXECUTOR_TOKEN",
+  "OPERLOOM_EXECUTOR_URL",
+  "OPERLOOM_SHARED_SECRET",
+  "OPERLOOM_LOCAL_IDENTITY",
 ] as const;
 
 export const hostedEnvironmentPolicy = (target: EnvironmentTarget) => {
@@ -19,21 +19,21 @@ export const hostedEnvironmentPolicy = (target: EnvironmentTarget) => {
   return {
     web: {
       required: [
-        "WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET",
+        "OPERLOOM_OPERATOR_ALERT_SIGNING_SECRET",
         "WORKOS_API_KEY",
         "WORKOS_COOKIE_PASSWORD",
         "WORKOS_CLIENT_ID",
         "NEXT_PUBLIC_WORKOS_CLIENT_ID",
         "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
-        "CLOUDFLARE_CONTROL_PLANE_URL",
-        "WORKBENCH_ENVIRONMENT",
-        "WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE",
+        "OPERLOOM_BACKEND_URL",
+        "OPERLOOM_ENVIRONMENT",
+        "OPERLOOM_OPERATOR_ALERT_CONFORMANCE_MODE",
         "SENTRY_DSN",
         "NEXT_PUBLIC_SENTRY_DSN",
         "SENTRY_AUTH_TOKEN",
       ],
       optional: [
-        "WORKBENCH_ADMIN_EMAILS",
+        "OPERLOOM_ADMIN_EMAILS",
         "SENTRY_ORG",
         "SENTRY_PROJECT",
         "SENTRY_ENVIRONMENT",
@@ -43,33 +43,33 @@ export const hostedEnvironmentPolicy = (target: EnvironmentTarget) => {
         "NEXT_PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE",
         "NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE",
       ],
-      forbidden: [...commonForbidden, "WORKBENCH_VAULT_BACKEND", "WORKBENCH_CONFORMANCE_MODE"],
+      forbidden: [...commonForbidden, "OPERLOOM_VAULT_BACKEND", "OPERLOOM_CONFORMANCE_MODE"],
     },
     cloudflare: {
       required: [
-        "WORKBENCH_RUNNER_SIGNING_SECRET",
-        "WORKBENCH_CALLBACK_SIGNING_SECRET",
-        "WORKBENCH_AGENT_CONNECTION_SECRET",
-        "WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET",
+        "OPERLOOM_RUNNER_SIGNING_SECRET",
+        "OPERLOOM_CALLBACK_SIGNING_SECRET",
+        "OPERLOOM_AGENT_CONNECTION_SECRET",
+        "OPERLOOM_OPERATOR_ALERT_SIGNING_SECRET",
         "WORKOS_API_KEY",
         "OPENROUTER_API_KEY",
         "SENTRY_DSN",
-        "WORKBENCH_VAULT_BACKEND",
-        "WORKBENCH_CONFORMANCE_MODE",
-        "WORKBENCH_RETAINED_DATA_ENABLED",
-        "WORKBENCH_CONNECTIONS_ENABLED",
-        "WORKBENCH_MUTATIONS_ENABLED",
-        "WORKBENCH_PUSH_ENABLED",
-        "WORKBENCH_RELEASE_SHA",
+        "OPERLOOM_VAULT_BACKEND",
+        "OPERLOOM_CONFORMANCE_MODE",
+        "OPERLOOM_RETAINED_DATA_ENABLED",
+        "OPERLOOM_CONNECTIONS_ENABLED",
+        "OPERLOOM_MUTATIONS_ENABLED",
+        "OPERLOOM_PUSH_ENABLED",
+        "OPERLOOM_RELEASE_SHA",
         ...(demo
           ? [
-              "WORKBENCH_DEMO_MODE",
-              "WORKBENCH_DEMO_PACK_ALLOWLIST",
-              "WORKBENCH_DEMO_CHAT_DAILY_LIMIT",
-              "WORKBENCH_DEMO_WORKFLOW_DAILY_LIMIT",
-              "WORKBENCH_DEMO_MODEL_BUDGET_USD",
-              "WORKBENCH_DEMO_ARTIFACT_WORKSPACE_BYTES",
-              "WORKBENCH_DEMO_RETENTION_DAYS",
+              "OPERLOOM_DEMO_MODE",
+              "OPERLOOM_DEMO_PACK_ALLOWLIST",
+              "OPERLOOM_DEMO_CHAT_DAILY_LIMIT",
+              "OPERLOOM_DEMO_WORKFLOW_DAILY_LIMIT",
+              "OPERLOOM_DEMO_MODEL_BUDGET_USD",
+              "OPERLOOM_DEMO_ARTIFACT_WORKSPACE_BYTES",
+              "OPERLOOM_DEMO_RETENTION_DAYS",
             ]
           : []),
       ],
@@ -78,14 +78,14 @@ export const hostedEnvironmentPolicy = (target: EnvironmentTarget) => {
     },
     fly: {
       required: [
-        "WORKBENCH_RUNNER_SIGNING_SECRET",
-        "WORKBENCH_CALLBACK_SIGNING_SECRET",
+        "OPERLOOM_RUNNER_SIGNING_SECRET",
+        "OPERLOOM_CALLBACK_SIGNING_SECRET",
         "SENTRY_DSN",
-        "WORKBENCH_CONFORMANCE_MODE",
-        "WORKBENCH_RELEASE_SHA",
+        "OPERLOOM_CONFORMANCE_MODE",
+        "OPERLOOM_RELEASE_SHA",
       ],
       optional: ["SENTRY_ENVIRONMENT", "SENTRY_TRACES_SAMPLE_RATE"],
-      forbidden: [...commonForbidden, "WORKOS_API_KEY", "WORKBENCH_VAULT_BACKEND"],
+      forbidden: [...commonForbidden, "WORKOS_API_KEY", "OPERLOOM_VAULT_BACKEND"],
     },
     expected: {
       conformance: String(conformance),
@@ -171,18 +171,18 @@ export const validateHostedConfiguration = (
     if (actual === null && service === "web") return;
     if (actual !== value) failures.push(`${service} ${name} does not match the manifest policy`);
   };
-  requireValue("cloudflare", "WORKBENCH_VAULT_BACKEND", policy.expected.vaultBackend);
-  requireValue("cloudflare", "WORKBENCH_CONFORMANCE_MODE", policy.expected.conformance);
-  requireValue("cloudflare", "WORKBENCH_RETAINED_DATA_ENABLED", policy.expected.retainedData);
-  requireValue("cloudflare", "WORKBENCH_CONNECTIONS_ENABLED", policy.expected.connections);
-  requireValue("cloudflare", "WORKBENCH_MUTATIONS_ENABLED", policy.expected.mutations);
-  requireValue("cloudflare", "WORKBENCH_PUSH_ENABLED", policy.expected.push);
-  requireValue("cloudflare", "WORKBENCH_RELEASE_SHA", expectedCommit);
-  requireValue("fly", "WORKBENCH_CONFORMANCE_MODE", policy.expected.conformance);
-  requireValue("fly", "WORKBENCH_RELEASE_SHA", expectedCommit);
-  requireValue("web", "WORKBENCH_ENVIRONMENT", manifest.target);
-  requireValue("web", "WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE", policy.expected.conformance);
-  requireValue("web", "CLOUDFLARE_CONTROL_PLANE_URL", manifest.cloudflare.origin);
+  requireValue("cloudflare", "OPERLOOM_VAULT_BACKEND", policy.expected.vaultBackend);
+  requireValue("cloudflare", "OPERLOOM_CONFORMANCE_MODE", policy.expected.conformance);
+  requireValue("cloudflare", "OPERLOOM_RETAINED_DATA_ENABLED", policy.expected.retainedData);
+  requireValue("cloudflare", "OPERLOOM_CONNECTIONS_ENABLED", policy.expected.connections);
+  requireValue("cloudflare", "OPERLOOM_MUTATIONS_ENABLED", policy.expected.mutations);
+  requireValue("cloudflare", "OPERLOOM_PUSH_ENABLED", policy.expected.push);
+  requireValue("cloudflare", "OPERLOOM_RELEASE_SHA", expectedCommit);
+  requireValue("fly", "OPERLOOM_CONFORMANCE_MODE", policy.expected.conformance);
+  requireValue("fly", "OPERLOOM_RELEASE_SHA", expectedCommit);
+  requireValue("web", "OPERLOOM_ENVIRONMENT", manifest.target);
+  requireValue("web", "OPERLOOM_OPERATOR_ALERT_CONFORMANCE_MODE", policy.expected.conformance);
+  requireValue("web", "OPERLOOM_BACKEND_URL", manifest.cloudflare.origin);
   requireValue("web", "NEXT_PUBLIC_WORKOS_REDIRECT_URI", `${manifest.web.origin}/auth/callback`);
   return failures;
 };

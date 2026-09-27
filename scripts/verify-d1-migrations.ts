@@ -29,7 +29,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const configPath = join(repoRoot, "cloudflare/control-plane/wrangler.jsonc");
 const migrationsPath = join(repoRoot, "cloudflare/control-plane/migrations");
 const resetSchemaPath = join(repoRoot, "cloudflare/control-plane/schema.sql");
-const database = "assistant_mk1_local";
+const database = "operloom_local";
 const databaseId = "00000000-0000-0000-0000-000000000000";
 
 function wrangler(args: string[]): string {

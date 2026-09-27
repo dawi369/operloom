@@ -5,7 +5,7 @@ import { sha256Hex } from "../../../lib/workbench/control-plane-signing";
 import {
   publicUpgradeContracts,
   type PackageUpgradeResponse,
-} from "../../../packages/workbench-client/src/public-upgrade-contracts";
+} from "../../../packages/client/src/public-upgrade-contracts";
 import {
   createAgentBehaviorSnapshotFromTemplate,
   toPackTemplate,
@@ -36,8 +36,8 @@ const installedManifest = (env: Env, packId: string) => {
   const entry = agentManifestRegistry[packId as keyof typeof agentManifestRegistry];
   return entry &&
     (!entry.conformanceOnly ||
-      env.WORKBENCH_E2E_MODE === "true" ||
-      env.WORKBENCH_CONFORMANCE_MODE === "true") &&
+      env.OPERLOOM_E2E_MODE === "true" ||
+      env.OPERLOOM_CONFORMANCE_MODE === "true") &&
     demoPackAllowed(env, packId)
     ? entry.module
     : null;

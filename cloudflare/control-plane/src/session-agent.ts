@@ -1,1 +1,1 @@
-export { WorkbenchSessionAgent } from "./session-agent-runtime";
+export { SessionAgent } from "./session-agent-runtime";

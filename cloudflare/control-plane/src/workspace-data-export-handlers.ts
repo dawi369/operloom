@@ -27,11 +27,11 @@ export const handleCreateWorkspaceExport = async (
     );
   const adminError = await requireLifecycleAdmin(env, identity);
   if (adminError) return adminError;
-  if (!env.ARTIFACTS || !env.WorkbenchThreadChatAgent)
+  if (!env.ARTIFACTS || !env.ThreadChatAgent)
     return json({ ok: false, error: "Complete export storage is unavailable." }, { status: 503 });
   const body = await request.json().catch(() => null);
   const requestedFailurePhase =
-    request.headers.get("x-workbench-e2e-export-failure-phase")?.trim() ??
+    request.headers.get("x-operloom-e2e-export-failure-phase")?.trim() ??
     new URL(request.url).searchParams.get("e2eFailPhase")?.trim() ??
     (isRecord(body) ? String(body.e2eFailPhase ?? "") : "");
   const e2eFailPhase =

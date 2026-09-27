@@ -255,7 +255,7 @@ writeFileSync(
       resources: descriptions[provider],
       commands: commandEvidence,
       completedAt: new Date().toISOString(),
-      operator: process.env.WORKBENCH_RELEASE_OPERATOR?.trim() || process.env.USER || "unknown",
+      operator: process.env.OPERLOOM_RELEASE_OPERATOR?.trim() || process.env.USER || "unknown",
       followUp:
         "Record provider resource IDs in protected target variables before rendering or deploying.",
     },

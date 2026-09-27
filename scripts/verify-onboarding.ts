@@ -26,7 +26,7 @@ const main = async () => {
   });
   if (result.failures.length) throw new Error(result.failures.join("\n"));
   const worker = readFileSync(resolve(fixture, "cloudflare/control-plane/.dev.vars"), "utf8");
-  if (worker.includes("WORKBENCH_EXECUTOR_")) {
+  if (worker.includes("OPERLOOM_EXECUTOR_")) {
     throw new Error("Local setup still contains retired executor configuration");
   }
   console.log("Clean-clone local configuration and offline doctor contract verified.");

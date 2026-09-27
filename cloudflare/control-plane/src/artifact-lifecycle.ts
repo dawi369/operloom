@@ -562,7 +562,7 @@ export const sweepExpiredChatMessages = async (
   env: Env,
   input: { now?: Date; limit?: number } = {},
 ) => {
-  if (!env.WorkbenchThreadChatAgent || !env.WORKBENCH_AGENT_CONNECTION_SECRET) {
+  if (!env.ThreadChatAgent || !env.OPERLOOM_AGENT_CONNECTION_SECRET) {
     return { inspected: 0, purged: 0, failed: 0, configured: false };
   }
   const timestamp = (input.now ?? new Date()).toISOString();
@@ -590,13 +590,11 @@ export const sweepExpiredChatMessages = async (
   for (const thread of rows.results) {
     try {
       const instanceName = await resolveThreadAgentInstanceName(thread);
-      const stub = env.WorkbenchThreadChatAgent.get(
-        env.WorkbenchThreadChatAgent.idFromName(instanceName),
-      );
+      const stub = env.ThreadChatAgent.get(env.ThreadChatAgent.idFromName(instanceName));
       const response = await stub.fetch("https://thread-agent.internal/internal/lifecycle-purge", {
         method: "POST",
         headers: {
-          "x-workbench-lifecycle-secret": env.WORKBENCH_AGENT_CONNECTION_SECRET,
+          "x-operloom-lifecycle-secret": env.OPERLOOM_AGENT_CONNECTION_SECRET,
         },
       });
       if (!response.ok) throw new Error("durable_object_retention_failed");

@@ -1,8 +1,8 @@
 import { json, parseJson } from "./http";
-import type { WorkbenchSessionAgent } from "./session-agent-runtime";
+import type { SessionAgent } from "./session-agent-runtime";
 import { ensureCoordinatorRequest } from "./session-agent-transitions";
 
-export const handleSessionAgentRequest = async (agent: WorkbenchSessionAgent, request: Request) => {
+export const handleSessionAgentRequest = async (agent: SessionAgent, request: Request) => {
   const input = ensureCoordinatorRequest(parseJson(await request.text()));
   if (!input) {
     return json({ ok: false, error: "Invalid session coordinator request" }, { status: 400 });

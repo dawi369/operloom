@@ -72,7 +72,7 @@ export const createRuntimeModelPort = (
         "model_output_limit",
         `Output limit must be between 1 and the configured ${config.maxTokens} tokens`,
       );
-    const fixture = env.WORKBENCH_E2E_MODE === "true" && env.WORKBENCH_ENVIRONMENT === "local";
+    const fixture = env.OPERLOOM_E2E_MODE === "true" && env.OPERLOOM_ENVIRONMENT === "local";
     if (!fixture && !env.OPENROUTER_API_KEY)
       return fail("model_provider_unconfigured", "The model provider is not configured");
     const system =

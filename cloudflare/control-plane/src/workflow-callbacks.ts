@@ -282,7 +282,7 @@ export const validateWorkflowCallbackPayload = (
   };
 };
 
-const callbackSigningSecret = (env: Env) => env.WORKBENCH_CALLBACK_SIGNING_SECRET?.trim();
+const callbackSigningSecret = (env: Env) => env.OPERLOOM_CALLBACK_SIGNING_SECRET?.trim();
 
 const readAuthHeader = (request: Request, name: string) => request.headers.get(name)?.trim() ?? "";
 

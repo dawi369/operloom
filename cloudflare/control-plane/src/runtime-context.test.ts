@@ -10,7 +10,7 @@ import {
 import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
 import { createRuntimeStatePort } from "./runtime-state";
 import { controlPlane } from "../../../examples/document-review/control-plane";
-import { createRuntimeClient } from "../../../packages/workbench-client/src/runtime-client";
+import { createRuntimeClient } from "../../../packages/client/src/runtime-client";
 import { exportCollections, loadCollection } from "./workspace-data-export-core";
 import { purgeWorkspace } from "./workspace-data-jobs";
 import { executeResolvedRuntimeAdminTool } from "./runtime-admin-execution";
@@ -93,7 +93,7 @@ const fixture = () => {
       concurrentOperations: 10,
     }),
   );
-  env.WORKBENCH_CONFORMANCE_MODE = "true";
+  env.OPERLOOM_CONFORMANCE_MODE = "true";
   const current = createAgentBehaviorSnapshotFromTemplate(toPackTemplate(manifest));
   const old = {
     ...current,

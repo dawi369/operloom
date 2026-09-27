@@ -8,12 +8,12 @@ import {
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const secret = process.env.WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET?.trim();
+  const secret = process.env.OPERLOOM_OPERATOR_ALERT_SIGNING_SECRET?.trim();
   if (!secret) return Response.json({ ok: false, error: "not configured" }, { status: 503 });
   const body = await request.text();
   const verification = await verifyOperatorAlertWebhook({
     body,
-    signature: request.headers.get("x-assistant-mk1-alert-signature") ?? "",
+    signature: request.headers.get("x-operloom-alert-signature") ?? "",
     secret,
   });
   if (!verification.ok) {
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   if (
     shouldInjectOperatorAlertReceiverOutage(
       verification.payload,
-      process.env.WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE === "true",
+      process.env.OPERLOOM_OPERATOR_ALERT_CONFORMANCE_MODE === "true",
     )
   ) {
     return Response.json(

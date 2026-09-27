@@ -459,10 +459,7 @@ export const handleOperatorRetryWorkspaceDeletion = async (
   targetWorkspaceId: string,
   signedFacade: boolean,
 ) => {
-  if (
-    !signedFacade ||
-    request.headers.get("x-assistant-mk1-platform-operator")?.trim() !== "true"
-  ) {
+  if (!signedFacade || request.headers.get("x-operloom-platform-operator")?.trim() !== "true") {
     return json({ ok: false, error: "Not found." }, { status: 404 });
   }
   const body = await request.json().catch(() => null);

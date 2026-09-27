@@ -18,7 +18,7 @@ export function GET() {
     release:
       process.env.RAILWAY_GIT_COMMIT_SHA?.trim() ||
       process.env.VERCEL_GIT_COMMIT_SHA?.trim() ||
-      process.env.WORKBENCH_RELEASE_SHA?.trim() ||
+      process.env.OPERLOOM_RELEASE_SHA?.trim() ||
       "development",
   });
 }

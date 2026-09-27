@@ -144,7 +144,7 @@ export const getOrCreateThreadAgentConnectionContext = async (
   });
 
   return {
-    agentName: "workbench-thread-chat-agent",
+    agentName: "thread-chat-agent",
     instanceName,
     threadId,
     sessionId,

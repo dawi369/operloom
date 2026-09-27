@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("demo account controls stay clear of the runtime summary", async ({ page }) => {
-  test.skip(releaseMode !== "local-session" || process.env.WORKBENCH_ENVIRONMENT !== "demo");
+  test.skip(releaseMode !== "local-session" || process.env.OPERLOOM_ENVIRONMENT !== "demo");
 
   await page.setViewportSize({ width: 785, height: 420 });
   await page.goto("/");
@@ -37,7 +37,7 @@ test("demo account controls stay clear of the runtime summary", async ({ page })
 });
 
 test("demo warms bounded panels before the first click", async ({ page }) => {
-  test.skip(releaseMode !== "local-session" || process.env.WORKBENCH_ENVIRONMENT !== "demo");
+  test.skip(releaseMode !== "local-session" || process.env.OPERLOOM_ENVIRONMENT !== "demo");
 
   let listRequests = 0;
   page.on("request", (request) => {
@@ -79,7 +79,7 @@ test("signed-out refresh stays on the deliberate access screen", async ({ page, 
   await expect
     .poll(async () => {
       const cookies = await context.cookies();
-      return cookies.find((cookie) => cookie.name === "assistant-mk1-auth-presentation")?.value;
+      return cookies.find((cookie) => cookie.name === "operloom-auth-presentation")?.value;
     })
     .toBe("signed-out");
 

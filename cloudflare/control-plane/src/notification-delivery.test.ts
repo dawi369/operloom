@@ -103,7 +103,7 @@ describe("mobile notification delivery", () => {
   it("persists queue handoff failures without failing terminal publication", async () => {
     const updates: string[] = [];
     const env = {
-      WORKBENCH_PUSH_ENABLED: "true",
+      OPERLOOM_PUSH_ENABLED: "true",
       NOTIFICATIONS: { send: vi.fn(async () => Promise.reject(new Error("queue unavailable"))) },
       DB: {
         prepare(query: string) {
@@ -186,8 +186,8 @@ describe("mobile notification delivery", () => {
     });
     const updates: Array<{ query: string; values: unknown[] }> = [];
     const env = {
-      WORKBENCH_E2E_MODE: "true",
-      WORKBENCH_VAULT_BACKEND: "memory",
+      OPERLOOM_E2E_MODE: "true",
+      OPERLOOM_VAULT_BACKEND: "memory",
       DB: {
         prepare(query: string) {
           let values: unknown[] = [];

@@ -1,5 +1,5 @@
 import { sha256Hex } from "../../../lib/workbench/control-plane-signing";
-import { publicChatContracts } from "../../../packages/workbench-client/src/public-chat-contracts";
+import { publicChatContracts } from "../../../packages/client/src/public-chat-contracts";
 import { json } from "./http";
 import type { AgentIdentity, Env } from "./types";
 

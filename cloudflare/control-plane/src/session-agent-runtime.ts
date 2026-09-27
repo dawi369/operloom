@@ -72,7 +72,7 @@ type MaterializeTurnResult =
   | Awaited<ReturnType<typeof responseFromSnapshot>>
   | { ok: false; error: string; status: number };
 
-export class WorkbenchSessionAgent {
+export class SessionAgent {
   private snapshot: SessionSnapshot | null = null;
   private revision = 0;
   private clients = new Map<string, ReadableStreamDefaultController<Uint8Array>>();

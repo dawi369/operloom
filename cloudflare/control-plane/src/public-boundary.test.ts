@@ -23,9 +23,9 @@ const fixture = () => {
     execute(): { success: true; meta: { changes: number } };
   };
   const env = {
-    WORKBENCH_LOCAL_API_ENABLED: "true",
-    WORKBENCH_ENVIRONMENT: "local",
-    CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: "local-test-token",
+    OPERLOOM_LOCAL_API_ENABLED: "true",
+    OPERLOOM_ENVIRONMENT: "local",
+    OPERLOOM_LOCAL_API_TOKEN: "local-test-token",
     DB: {
       prepare(query: string): Statement {
         queries.push(query);
@@ -64,13 +64,13 @@ const fixture = () => {
 const ctx: WorkerExecutionContext = { waitUntil() {} };
 const forgedIdentity = {
   "x-api-key": "local-test-token",
-  "x-assistant-mk1-user-id": "victim",
-  "x-assistant-mk1-account-id": "victim-account",
-  "x-assistant-mk1-account-source": "workos_organization",
-  "x-assistant-mk1-workspace-id": "workspace:victim-account:default",
-  "x-assistant-mk1-agent-id": "agent-workspace:victim-account:default",
-  "x-assistant-mk1-membership-role": "owner",
-  "x-assistant-mk1-platform-operator": "true",
+  "x-operloom-user-id": "victim",
+  "x-operloom-account-id": "victim-account",
+  "x-operloom-account-source": "workos_organization",
+  "x-operloom-workspace-id": "workspace:victim-account:default",
+  "x-operloom-agent-id": "agent-workspace:victim-account:default",
+  "x-operloom-membership-role": "owner",
+  "x-operloom-platform-operator": "true",
 };
 const call = (env: Env, path: string, init?: RequestInit) =>
   worker.fetch!(

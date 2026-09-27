@@ -10,10 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  usePublishWorkbenchSession,
-  useWorkbenchSessionEventInvalidation,
-} from "@operloom/workbench-react";
+import { usePublishWorkbenchSession, useWorkbenchSessionEventInvalidation } from "@operloom/react";
 
 import { requestWorkbenchSummaryRefresh } from "@/lib/workbench/admin-summary-events";
 import { browserWorkbenchClient } from "@/lib/workbench/browser-client";

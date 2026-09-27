@@ -46,17 +46,17 @@ describe("local workbench supervisor", () => {
     const frontend = configuration.services.find((service) => service.name === "frontend")!;
     const workerService = configuration.services.find((service) => service.name === "worker")!;
     const worker = readFileSync(resolve(root, "cloudflare/control-plane/.dev.vars"), "utf8");
-    expect(frontend.env.WORKBENCH_LOCAL_API_ENABLED).toBe("true");
+    expect(frontend.env.OPERLOOM_LOCAL_API_ENABLED).toBe("true");
     expect(workerService.env).toMatchObject({
-      WORKBENCH_LOCAL_API_ENABLED: "true",
-      WORKBENCH_ENVIRONMENT: "local",
-      CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: frontend.env.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN,
+      OPERLOOM_LOCAL_API_ENABLED: "true",
+      OPERLOOM_ENVIRONMENT: "local",
+      OPERLOOM_LOCAL_API_TOKEN: frontend.env.OPERLOOM_LOCAL_API_TOKEN,
     });
-    expect(runner.env.WORKBENCH_RUNNER_SIGNING_SECRET).toBeTruthy();
+    expect(runner.env.OPERLOOM_RUNNER_SIGNING_SECRET).toBeTruthy();
     expect(worker).toContain(
-      `WORKBENCH_RUNNER_SIGNING_SECRET=${runner.env.WORKBENCH_RUNNER_SIGNING_SECRET}`,
+      `OPERLOOM_RUNNER_SIGNING_SECRET=${runner.env.OPERLOOM_RUNNER_SIGNING_SECRET}`,
     );
-    expect(runner.env.WORKBENCH_CALLBACK_ORIGIN).toBe("http://127.0.0.1:8787");
+    expect(runner.env.OPERLOOM_CALLBACK_ORIGIN).toBe("http://127.0.0.1:8787");
     expect(runner.healthUrl).toBe("http://127.0.0.1:3101/health");
   });
 });

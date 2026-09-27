@@ -2,8 +2,8 @@ import { json, parseJson } from "./http";
 import { selectAgent, selectMembership, selectUser, selectWorkspace } from "./authz-store";
 import type { AgentIdentity, Env } from "./types";
 
-const authModeHeader = "x-assistant-mk1-auth-mode";
-const workspaceSourceHeader = "x-assistant-mk1-workspace-source";
+const authModeHeader = "x-operloom-auth-mode";
+const workspaceSourceHeader = "x-operloom-workspace-source";
 
 const readOptionalHeader = (request: Request, name: string) =>
   request.headers.get(name)?.trim() || undefined;

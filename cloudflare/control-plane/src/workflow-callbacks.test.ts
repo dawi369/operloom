@@ -70,7 +70,7 @@ const createRecordingEnv = (input?: {
   };
 
   const env = {
-    WORKBENCH_CALLBACK_SIGNING_SECRET: "callback-secret",
+    OPERLOOM_CALLBACK_SIGNING_SECRET: "callback-secret",
     DB: {
       prepare: createStatement,
       async batch(batchStatements: Array<D1PreparedStatement & Partial<RecordedStatement>>) {
@@ -105,7 +105,7 @@ const signedRequest = async (
   Object.assign(
     headers,
     await signServiceRequest({
-      secret: env.WORKBENCH_CALLBACK_SIGNING_SECRET ?? "",
+      secret: env.OPERLOOM_CALLBACK_SIGNING_SECRET ?? "",
       method: "POST",
       pathWithQuery: "/workbench/run-callbacks",
       body: bodyText,

@@ -7,7 +7,7 @@ const organization = process.env.SENTRY_ORG?.trim() || "t23";
 const project = process.env.SENTRY_PROJECT?.trim() || "operloom";
 const commit = process.env.GITHUB_SHA?.trim() || "";
 if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error("GITHUB_SHA must be a full commit");
-const target = process.env.WORKBENCH_ENVIRONMENT?.trim() || "unknown";
+const target = process.env.OPERLOOM_ENVIRONMENT?.trim() || "unknown";
 const main = async () => {
   const response = await fetch(
     `https://sentry.io/api/0/projects/${encodeURIComponent(organization)}/${encodeURIComponent(project)}/rules/`,

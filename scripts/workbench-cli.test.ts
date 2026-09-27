@@ -32,7 +32,7 @@ describe("workbench command facade", () => {
       args: ["--check"],
     });
     expect(resolveWorkbenchCommand(["client", "pack"])).toEqual({
-      script: "workbench-client:pack",
+      script: "client:pack",
       args: [],
     });
   });

@@ -11,7 +11,7 @@ import {
   readChatCommand,
   handleGetChatCommand,
 } from "./chat-command-admission";
-import { createRuntimeClient } from "../../../packages/workbench-client/src/runtime-client";
+import { createRuntimeClient } from "../../../packages/client/src/runtime-client";
 import type { AgentIdentity, D1PreparedStatement, Env } from "./types";
 
 const databases: DatabaseSync[] = [];

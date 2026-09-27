@@ -209,7 +209,7 @@ test.describe.serial("Level 2 executable conformance", () => {
     expect(switched.activeThread?.agentId).toBe(targetAgent!.id);
 
     const staleTokenResponse = await request.get(
-      `${workerOrigin}/agents/workbench-thread-chat-agent/${encodeURIComponent(session.connection!.instanceName ?? "")}?token=${encodeURIComponent(session.connection!.token ?? "")}`,
+      `${workerOrigin}/agents/thread-chat-agent/${encodeURIComponent(session.connection!.instanceName ?? "")}?token=${encodeURIComponent(session.connection!.token ?? "")}`,
     );
     expect(staleTokenResponse.status()).toBe(403);
 
@@ -240,7 +240,7 @@ test.describe.serial("Level 2 executable conformance", () => {
     expect(staged.connection?.instanceName).toBeTruthy();
 
     const stagedAgentResponse = await request.get(
-      `${workerOrigin}/agents/workbench-thread-chat-agent/${encodeURIComponent(staged.connection!.instanceName!)}/get-messages?token=${encodeURIComponent(staged.connection!.token!)}`,
+      `${workerOrigin}/agents/thread-chat-agent/${encodeURIComponent(staged.connection!.instanceName!)}/get-messages?token=${encodeURIComponent(staged.connection!.token!)}`,
     );
     expect(stagedAgentResponse.status()).toBe(200);
   });

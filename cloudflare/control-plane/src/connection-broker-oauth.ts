@@ -127,7 +127,7 @@ export const handleStartConnectionAuthorization = async (
   }
   if (
     redirect.protocol !== "https:" &&
-    !(env.WORKBENCH_E2E_MODE === "true" && redirect.hostname === "localhost")
+    !(env.OPERLOOM_E2E_MODE === "true" && redirect.hostname === "localhost")
   ) {
     return json({ ok: false, error: "OAuth redirect URI must use HTTPS." }, { status: 400 });
   }

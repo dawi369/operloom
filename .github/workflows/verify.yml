@@ -53,7 +53,7 @@ jobs:
             output/conformance
             output/extension-contract
             output/sdk-consumer
-            output/workbench-client-consumer
+            output/client-consumer
 
   docker:
     needs: verify

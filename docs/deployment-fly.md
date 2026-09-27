@@ -32,8 +32,8 @@ For the dedicated LangGraph runtime, set:
 
 ```bash
 fly secrets set --app <target-app> OPENROUTER_API_KEY=...
-fly secrets set --app <target-app> WORKBENCH_RUNNER_SIGNING_SECRET=...
-fly secrets set --app <target-app> WORKBENCH_CALLBACK_SIGNING_SECRET=...
+fly secrets set --app <target-app> OPERLOOM_RUNNER_SIGNING_SECRET=...
+fly secrets set --app <target-app> OPERLOOM_CALLBACK_SIGNING_SECRET=...
 fly secrets set --app <target-app> LANGGRAPH_PROXY_TOKEN=...
 ```
 
@@ -98,16 +98,16 @@ Tool runner transport:
 
 ```bash
 LANGGRAPH_RUNTIME_BASE_URL=<target-fly-origin> \
-WORKBENCH_RUNNER_SIGNING_SECRET=<runner-secret> \
+OPERLOOM_RUNNER_SIGNING_SECRET=<runner-secret> \
 pnpm smoke:fly-tool-runner
 ```
 
 When validating callback-backed runner behavior against a reachable callback
-receiver, also set `WORKBENCH_RUNNER_CALLBACK_URL`.
+receiver, also set `OPERLOOM_RUNNER_CALLBACK_URL`.
 
 Cloudflare uses this path only when the Worker is configured with
-`WORKBENCH_RUNNER_TRANSPORT=fly`, `WORKBENCH_RUNNER_URL`, and the matching
-`WORKBENCH_RUNNER_SIGNING_SECRET`. Without those settings, Fly-only tools such
+`OPERLOOM_RUNNER_TRANSPORT=fly`, `OPERLOOM_RUNNER_URL`, and the matching
+`OPERLOOM_RUNNER_SIGNING_SECRET`. Without those settings, Fly-only tools such
 as `url.inspect` are unavailable; they never fall back to Cloudflare egress.
 
 Fly machine health uses `GET /health/live`, a shallow gateway liveness check

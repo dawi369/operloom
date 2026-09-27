@@ -16,7 +16,7 @@ export const getAuthConfiguration = (environment: Environment = process.env) => 
   );
   const localApiEnabled =
     !workOsConfigured &&
-    environment.WORKBENCH_LOCAL_API_ENABLED === "true" &&
+    environment.OPERLOOM_LOCAL_API_ENABLED === "true" &&
     environment.NODE_ENV === "development" &&
     !environment.VERCEL_ENV &&
     !environment.RAILWAY_ENVIRONMENT_ID &&

@@ -5,19 +5,19 @@
   "vaultBackend": "memory",
   "mutationDefaultEnabled": false,
   "cloudflare": {
-    "workerName": "assistant-mk1-local-control-plane",
-    "d1DatabaseName": "assistant_mk1_local",
+    "workerName": "operloom-local-control-plane",
+    "d1DatabaseName": "operloom_local",
     "d1DatabaseId": "00000000-0000-0000-0000-000000000000",
-    "r2BucketName": "assistant-mk1-local-artifacts",
+    "r2BucketName": "operloom-local-artifacts",
     "origin": "http://127.0.0.1:8787"
   },
   "fly": {
-    "appName": "assistant-mk1-local-runner",
+    "appName": "operloom-local-runner",
     "origin": "http://127.0.0.1:3101"
   },
   "web": {
     "provider": "vercel",
-    "projectName": "assistant-mk1-local",
+    "projectName": "operloom-local",
     "organizationId": "local",
     "projectId": "local",
     "origin": "http://localhost:3000",
@@ -25,21 +25,21 @@
     "nodeVersion": "24.x"
   },
   "workos": {
-    "applicationName": "assistant-mk1-local",
+    "applicationName": "operloom-local",
     "applicationId": "local",
     "acceptanceWorkspaceId": "local"
   },
   "secretEnvironmentVariables": {
-    "runnerSigning": "WORKBENCH_LOCAL_RUNNER_SIGNING_SECRET",
-    "callbackSigning": "WORKBENCH_LOCAL_CALLBACK_SIGNING_SECRET",
-    "agentConnection": "WORKBENCH_LOCAL_AGENT_CONNECTION_SECRET",
-    "operatorAlertSigning": "WORKBENCH_LOCAL_OPERATOR_ALERT_SIGNING_SECRET",
-    "workosCookie": "WORKBENCH_LOCAL_WORKOS_COOKIE_PASSWORD",
-    "vault": "WORKBENCH_LOCAL_VAULT_SECRET",
-    "openrouter": "WORKBENCH_LOCAL_OPENROUTER_API_KEY"
+    "runnerSigning": "OPERLOOM_LOCAL_RUNNER_SIGNING_SECRET",
+    "callbackSigning": "OPERLOOM_LOCAL_CALLBACK_SIGNING_SECRET",
+    "agentConnection": "OPERLOOM_LOCAL_AGENT_CONNECTION_SECRET",
+    "operatorAlertSigning": "OPERLOOM_LOCAL_OPERATOR_ALERT_SIGNING_SECRET",
+    "workosCookie": "OPERLOOM_LOCAL_WORKOS_COOKIE_PASSWORD",
+    "vault": "OPERLOOM_LOCAL_VAULT_SECRET",
+    "openrouter": "OPERLOOM_LOCAL_OPENROUTER_API_KEY"
   },
   "observabilityEnvironmentVariables": {
-    "sentryDsn": "WORKBENCH_LOCAL_SENTRY_DSN",
-    "sentryAuthToken": "WORKBENCH_LOCAL_SENTRY_AUTH_TOKEN"
+    "sentryDsn": "OPERLOOM_LOCAL_SENTRY_DSN",
+    "sentryAuthToken": "OPERLOOM_LOCAL_SENTRY_AUTH_TOKEN"
   }
 }

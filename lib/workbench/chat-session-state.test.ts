@@ -115,7 +115,7 @@ describe("chat-session-state", () => {
     const current = session({
       connection: {
         agentHost: "https://agent.example.com",
-        agentName: "WorkbenchThreadChatAgent",
+        agentName: "ThreadChatAgent",
         instanceName: "thread-a",
         token: "token",
         threadId: "thread-a",
@@ -139,7 +139,7 @@ describe("chat-session-state", () => {
     const current = session({
       connection: {
         agentHost: "https://agent.example.com",
-        agentName: "WorkbenchThreadChatAgent",
+        agentName: "ThreadChatAgent",
         instanceName: "thread-a",
         token: "token",
         threadId: "thread-a",
@@ -236,7 +236,7 @@ describe("chat-session-state", () => {
       session({
         connection: {
           agentHost: "https://agent.example.com",
-          agentName: "WorkbenchThreadChatAgent",
+          agentName: "ThreadChatAgent",
           instanceName: "thread-a",
           token: "token-a",
           threadId: "thread-a",
@@ -527,7 +527,7 @@ describe("chat-session-state", () => {
       session({
         connection: {
           agentHost: "https://example.com",
-          agentName: "workbench-thread-chat-agent",
+          agentName: "thread-chat-agent",
           instanceName: "agent-instance",
           token: "token",
           threadId: "thread-a",

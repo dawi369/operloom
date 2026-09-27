@@ -39,7 +39,7 @@ if (sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
     environment: process.env.SENTRY_ENVIRONMENT ?? "production",
-    release: process.env.SENTRY_RELEASE ?? process.env.WORKBENCH_RELEASE_SHA,
+    release: process.env.SENTRY_RELEASE ?? process.env.OPERLOOM_RELEASE_SHA,
     tracesSampleRate: parseSentrySampleRate(process.env.SENTRY_TRACES_SAMPLE_RATE),
     sendDefaultPii: false,
     beforeSend: scrubSentryEvent,
@@ -58,11 +58,11 @@ const port = Number(process.env.PORT ?? 3000);
 const runnerInvocationPath = "/workbench/tool-runners/invocations";
 const signatureWindowMs = 5 * 60 * 1000;
 const runnerNonces = new Map<string, number>();
-const e2eMode = process.env.WORKBENCH_E2E_MODE === "true";
-const syntheticConformanceMode = e2eMode || process.env.WORKBENCH_CONFORMANCE_MODE === "true";
-const requestedE2eDelayMs = Number(process.env.WORKBENCH_E2E_RUNNER_DELAY_MS ?? "0");
+const e2eMode = process.env.OPERLOOM_E2E_MODE === "true";
+const syntheticConformanceMode = e2eMode || process.env.OPERLOOM_CONFORMANCE_MODE === "true";
+const requestedE2eDelayMs = Number(process.env.OPERLOOM_E2E_RUNNER_DELAY_MS ?? "0");
 if (requestedE2eDelayMs > 0 && !e2eMode) {
-  throw new Error("WORKBENCH_E2E_RUNNER_DELAY_MS requires WORKBENCH_E2E_MODE=true");
+  throw new Error("OPERLOOM_E2E_RUNNER_DELAY_MS requires OPERLOOM_E2E_MODE=true");
 }
 const e2eRunnerDelayMs = e2eMode
   ? Math.min(5_000, Math.max(0, Math.trunc(requestedE2eDelayMs || 0)))
@@ -110,7 +110,7 @@ const assistantHeaders = (request: IncomingMessage) => {
   const headers: Record<string, string> = {};
   for (const [key, value] of Object.entries(request.headers)) {
     const item = firstHeader(value);
-    if (item && key.toLowerCase().startsWith("x-assistant-mk1-")) {
+    if (item && key.toLowerCase().startsWith("x-operloom-")) {
       headers[key.toLowerCase()] = item;
     }
   }
@@ -131,7 +131,7 @@ const verifyRunnerSignature = async (
   url: URL,
   body: Buffer,
 ) => {
-  const secret = process.env.WORKBENCH_RUNNER_SIGNING_SECRET?.trim();
+  const secret = process.env.OPERLOOM_RUNNER_SIGNING_SECRET?.trim();
   if (!secret) {
     authError(
       response,
@@ -336,7 +336,7 @@ const postWorkflowCallback = async (
     };
   }
 
-  const secret = process.env.WORKBENCH_CALLBACK_SIGNING_SECRET?.trim();
+  const secret = process.env.OPERLOOM_CALLBACK_SIGNING_SECRET?.trim();
   if (!secret) {
     const message = "Workbench callback signing is not configured for the runner.";
     logCallbackFailure(invocation, payload, {
@@ -364,7 +364,7 @@ const postWorkflowCallback = async (
       result: callbackFailure(toolName, "Runner callback URL is invalid."),
     };
   }
-  const configuredCallbackOrigin = process.env.WORKBENCH_CALLBACK_ORIGIN?.trim();
+  const configuredCallbackOrigin = process.env.OPERLOOM_CALLBACK_ORIGIN?.trim();
   if (!configuredCallbackOrigin) {
     return {
       ok: false,
@@ -402,9 +402,9 @@ const postWorkflowCallback = async (
   const body = JSON.stringify(payload);
   const headers: Record<string, string> = {
     "content-type": "application/json",
-    "x-assistant-mk1-run-id": payload.runId,
-    "x-assistant-mk1-workflow-intent-id": payload.workflowIntentId,
-    "x-assistant-mk1-tool-name": toolName,
+    "x-operloom-run-id": payload.runId,
+    "x-operloom-workflow-intent-id": payload.workflowIntentId,
+    "x-operloom-tool-name": toolName,
   };
   Object.assign(
     headers,
@@ -953,7 +953,7 @@ const server = createServer((request, response) => {
         ok: true,
         service: "operloom-runner",
         version: compiledWorkbenchVersion,
-        release: process.env.WORKBENCH_RELEASE_SHA ?? "development",
+        release: process.env.OPERLOOM_RELEASE_SHA ?? "development",
       });
       return;
     }

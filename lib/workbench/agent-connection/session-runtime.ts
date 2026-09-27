@@ -3,7 +3,7 @@ import {
   sanitizeThread,
   type PendingSessionTransition,
 } from "@/lib/workbench/chat-session-state";
-import { workbenchChatProtocolVersion } from "@operloom/workbench-client";
+import { workbenchChatProtocolVersion } from "@operloom/client";
 import { browserWorkbenchClient } from "@/lib/workbench/browser-client";
 import type {
   AgentSummary,

@@ -367,7 +367,7 @@ export const executeRuntimeWorkflowRequest = async (
         runtimeVersion: runtime.runtimeVersion,
         bindingVersion: 1,
         callbackUrl:
-          env.WORKBENCH_CALLBACK_URL ?? `${new URL(request.url).origin}/workbench/run-callbacks`,
+          env.OPERLOOM_CALLBACK_URL ?? `${new URL(request.url).origin}/workbench/run-callbacks`,
         source: "agent-pack",
       },
     });

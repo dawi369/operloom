@@ -52,8 +52,8 @@ const makeEnv = () => {
         >;
       },
     },
-    WORKBENCH_AGENT_CONNECTION_SECRET: "test-agent-secret-that-is-long-enough",
-    WorkbenchThreadChatAgent: {
+    OPERLOOM_AGENT_CONNECTION_SECRET: "test-agent-secret-that-is-long-enough",
+    ThreadChatAgent: {
       idFromName: vi.fn((name: string) => name),
       get: vi.fn(() => ({ fetch })),
     },
@@ -88,7 +88,7 @@ describe("session thread lifecycle transitions", () => {
       "https://thread-agent.internal/internal/thread-cancel",
       expect.objectContaining({
         method: "POST",
-        headers: { "x-workbench-agent-secret": "test-agent-secret-that-is-long-enough" },
+        headers: { "x-operloom-agent-secret": "test-agent-secret-that-is-long-enough" },
       }),
     );
   });

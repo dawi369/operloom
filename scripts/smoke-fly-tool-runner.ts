@@ -10,14 +10,14 @@ const runSmoke = (label: string, fn: () => Promise<void>) =>
       process.exitCode = 1;
     });
 
-const baseUrl = (process.env.WORKBENCH_RUNNER_BASE_URL ?? "http://localhost:3000").replace(
+const baseUrl = (process.env.OPERLOOM_RUNNER_BASE_URL ?? "http://localhost:3000").replace(
   /\/$/,
   "",
 );
-const runnerCallbackUrl = process.env.WORKBENCH_RUNNER_CALLBACK_URL?.trim();
-const signingSecret = process.env.WORKBENCH_RUNNER_SIGNING_SECRET?.trim();
+const runnerCallbackUrl = process.env.OPERLOOM_RUNNER_CALLBACK_URL?.trim();
+const signingSecret = process.env.OPERLOOM_RUNNER_SIGNING_SECRET?.trim();
 if (!signingSecret) {
-  throw new Error("WORKBENCH_RUNNER_SIGNING_SECRET is required for Fly runner smoke");
+  throw new Error("OPERLOOM_RUNNER_SIGNING_SECRET is required for Fly runner smoke");
 }
 
 const path = "/workbench/tool-runners/invocations";
@@ -225,12 +225,12 @@ const signedFetch = async (input?: {
   const toolName = input?.toolName ?? "url.inspect";
   const headers: Record<string, string> = {
     "content-type": "application/json",
-    "x-assistant-mk1-user-id": scope.userId,
-    "x-assistant-mk1-workspace-id": scope.workspaceId,
-    "x-assistant-mk1-agent-id": `agent:${scope.workspaceId}:default`,
-    "x-assistant-mk1-run-id": runId,
-    "x-assistant-mk1-workflow-intent-id": workflowIntentId,
-    "x-assistant-mk1-tool-name": toolName,
+    "x-operloom-user-id": scope.userId,
+    "x-operloom-workspace-id": scope.workspaceId,
+    "x-operloom-agent-id": `agent:${scope.workspaceId}:default`,
+    "x-operloom-run-id": runId,
+    "x-operloom-workflow-intent-id": workflowIntentId,
+    "x-operloom-tool-name": toolName,
   };
   Object.assign(
     headers,
@@ -441,7 +441,7 @@ runSmoke("Fly tool runner smoke", async () => {
   const scopeTampered = await signedFetch({
     nonce: `scope-tamper-${suffix}`,
     tamper: (headers) => {
-      headers["x-assistant-mk1-workspace-id"] = "other-workspace";
+      headers["x-operloom-workspace-id"] = "other-workspace";
     },
   });
   await expectRunnerAuthError(scopeTampered, "signature_invalid");
@@ -450,7 +450,7 @@ runSmoke("Fly tool runner smoke", async () => {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-assistant-mk1-user-id": scope.userId,
+      "x-operloom-user-id": scope.userId,
     },
     body: invocationBody(`cf-run-unsigned-${suffix}`),
   });
@@ -467,12 +467,12 @@ runSmoke("Fly tool runner smoke", async () => {
   const replayNonce = `replay-${suffix}`;
   const replayHeaders: Record<string, string> = {
     "content-type": "application/json",
-    "x-assistant-mk1-user-id": scope.userId,
-    "x-assistant-mk1-workspace-id": scope.workspaceId,
-    "x-assistant-mk1-agent-id": `agent:${scope.workspaceId}:default`,
-    "x-assistant-mk1-run-id": `cf-run-replay-${suffix}`,
-    "x-assistant-mk1-workflow-intent-id": `cf-intent-${suffix}`,
-    "x-assistant-mk1-tool-name": "url.inspect",
+    "x-operloom-user-id": scope.userId,
+    "x-operloom-workspace-id": scope.workspaceId,
+    "x-operloom-agent-id": `agent:${scope.workspaceId}:default`,
+    "x-operloom-run-id": `cf-run-replay-${suffix}`,
+    "x-operloom-workflow-intent-id": `cf-intent-${suffix}`,
+    "x-operloom-tool-name": "url.inspect",
   };
   Object.assign(
     replayHeaders,
@@ -511,12 +511,12 @@ runSmoke("Fly tool runner smoke", async () => {
   const signedBody = invocationBody(`cf-run-body-mismatch-${suffix}`);
   const tamperHeaders: Record<string, string> = {
     "content-type": "application/json",
-    "x-assistant-mk1-user-id": scope.userId,
-    "x-assistant-mk1-workspace-id": scope.workspaceId,
-    "x-assistant-mk1-agent-id": `agent:${scope.workspaceId}:default`,
-    "x-assistant-mk1-run-id": `cf-run-body-mismatch-${suffix}`,
-    "x-assistant-mk1-workflow-intent-id": `cf-intent-${suffix}`,
-    "x-assistant-mk1-tool-name": "url.inspect",
+    "x-operloom-user-id": scope.userId,
+    "x-operloom-workspace-id": scope.workspaceId,
+    "x-operloom-agent-id": `agent:${scope.workspaceId}:default`,
+    "x-operloom-run-id": `cf-run-body-mismatch-${suffix}`,
+    "x-operloom-workflow-intent-id": `cf-intent-${suffix}`,
+    "x-operloom-tool-name": "url.inspect",
   };
   Object.assign(
     tamperHeaders,
@@ -539,7 +539,7 @@ runSmoke("Fly tool runner smoke", async () => {
   const invalid = await signedFetch({
     nonce: `invalid-${suffix}`,
     tamper: (headers) => {
-      headers["x-assistant-mk1-user-id"] = `tampered-${scope.userId}`;
+      headers["x-operloom-user-id"] = `tampered-${scope.userId}`;
     },
   });
   await expectRunnerAuthError(invalid, "signature_invalid");

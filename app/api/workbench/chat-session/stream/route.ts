@@ -20,8 +20,8 @@ export async function GET(request: Request) {
     headers.delete("transfer-encoding");
     headers.set("cache-control", "no-store");
     headers.set("content-type", "text/event-stream; charset=utf-8");
-    headers.set("x-workbench-sse-policy", "bounded-reconnect");
-    headers.set("x-workbench-sse-reconnect-ms", String(vercelSseReconnectWindowMs));
+    headers.set("x-operloom-sse-policy", "bounded-reconnect");
+    headers.set("x-operloom-sse-reconnect-ms", String(vercelSseReconnectWindowMs));
 
     return new NextResponse(
       createBoundedSseStream({

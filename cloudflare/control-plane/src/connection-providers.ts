@@ -17,7 +17,7 @@ const validEndpoint = (env: Env, value: unknown) => {
   if (typeof value !== "string") return undefined;
   const url = new URL(value);
   const e2eLocal =
-    env.WORKBENCH_E2E_MODE === "true" &&
+    env.OPERLOOM_E2E_MODE === "true" &&
     url.protocol === "http:" &&
     ["127.0.0.1", "localhost"].includes(url.hostname);
   if (url.protocol !== "https:" && !e2eLocal) throw new Error("provider_endpoint_not_https");
@@ -26,8 +26,8 @@ const validEndpoint = (env: Env, value: unknown) => {
 };
 
 export const connectionProviderRegistry = (env: Env): ReadonlyMap<string, ConnectionProvider> => {
-  if (!env.WORKBENCH_OAUTH_PROVIDERS_JSON?.trim()) return new Map();
-  const parsed = JSON.parse(env.WORKBENCH_OAUTH_PROVIDERS_JSON) as unknown;
+  if (!env.OPERLOOM_OAUTH_PROVIDERS_JSON?.trim()) return new Map();
+  const parsed = JSON.parse(env.OPERLOOM_OAUTH_PROVIDERS_JSON) as unknown;
   if (!Array.isArray(parsed)) throw new Error("connection_provider_registry_invalid");
   const entries = parsed.map((raw): [string, ConnectionProvider] => {
     if (!isRecord(raw) || typeof raw.id !== "string" || !raw.id.trim()) {
@@ -46,7 +46,7 @@ export const connectionProviderRegistry = (env: Env): ReadonlyMap<string, Connec
       actionUrl: validEndpoint(
         env,
         raw.actionUrl ??
-          (env.WORKBENCH_E2E_MODE === "true" && raw.id === "synthetic-broker"
+          (env.OPERLOOM_E2E_MODE === "true" && raw.id === "synthetic-broker"
             ? "http://127.0.0.1:3101/e2e/actions"
             : undefined),
       ),
@@ -86,7 +86,7 @@ export const assertProviderRequest = (
 ) => {
   const url = new URL(rawUrl);
   const e2eLocal =
-    env.WORKBENCH_E2E_MODE === "true" &&
+    env.OPERLOOM_E2E_MODE === "true" &&
     url.protocol === "http:" &&
     ["127.0.0.1", "localhost"].includes(url.hostname);
   if (url.protocol !== "https:" && !e2eLocal) throw new Error("provider_request_not_https");

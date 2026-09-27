@@ -5,7 +5,7 @@ import {
   useActivateWorkspace,
   useWorkbenchAccounts,
   useWorkbenchWorkspaces,
-} from "@operloom/workbench-react";
+} from "@operloom/react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import {
   ArrowLeftIcon,

@@ -51,7 +51,7 @@ const main = async () => {
   const commit = process.env.GITHUB_SHA?.trim() ?? "";
   const report = {
     schemaVersion: 1,
-    target: process.env.WORKBENCH_ENVIRONMENT?.trim() ?? "unknown",
+    target: process.env.OPERLOOM_ENVIRONMENT?.trim() ?? "unknown",
     commit,
     generatedAt: new Date().toISOString(),
     ok: true,

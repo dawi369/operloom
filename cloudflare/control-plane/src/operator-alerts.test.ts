@@ -76,8 +76,8 @@ describe("operator alerts", () => {
   it("rejects insecure non-test webhook destinations", async () => {
     const prepare = vi.fn();
     const env = {
-      WORKBENCH_OPERATOR_ALERT_WEBHOOK_URL: "http://alerts.example.test/ingest",
-      WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET: "operator-alert-secret-0001",
+      OPERLOOM_OPERATOR_ALERT_WEBHOOK_URL: "http://alerts.example.test/ingest",
+      OPERLOOM_OPERATOR_ALERT_SIGNING_SECRET: "operator-alert-secret-0001",
       DB: { prepare, batch: vi.fn() },
     } as unknown as Env;
 
@@ -94,8 +94,8 @@ describe("operator alerts", () => {
     const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", fetchMock);
     const env = {
-      WORKBENCH_OPERATOR_ALERT_WEBHOOK_URL: "https://alerts.example.test/ingest",
-      WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET: "operator-alert-secret-0001",
+      OPERLOOM_OPERATOR_ALERT_WEBHOOK_URL: "https://alerts.example.test/ingest",
+      OPERLOOM_OPERATOR_ALERT_SIGNING_SECRET: "operator-alert-secret-0001",
       DB: { prepare, batch: vi.fn() },
     } as unknown as Env;
 
@@ -110,8 +110,8 @@ describe("operator alerts", () => {
         method: "POST",
         redirect: "manual",
         headers: expect.objectContaining({
-          "x-assistant-mk1-alert-id": "alert-1",
-          "x-assistant-mk1-alert-signature": expect.any(String),
+          "x-operloom-alert-id": "alert-1",
+          "x-operloom-alert-signature": expect.any(String),
         }),
       }),
     );
@@ -132,8 +132,8 @@ describe("operator alerts", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.stubGlobal("fetch", fetchMock);
     const env = {
-      WORKBENCH_OPERATOR_ALERT_WEBHOOK_URL: "https://alerts.example.test/ingest",
-      WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET: "operator-alert-secret-0001",
+      OPERLOOM_OPERATOR_ALERT_WEBHOOK_URL: "https://alerts.example.test/ingest",
+      OPERLOOM_OPERATOR_ALERT_SIGNING_SECRET: "operator-alert-secret-0001",
       DB: { prepare, batch: vi.fn() },
     } as unknown as Env;
 

@@ -15,8 +15,8 @@ const syntheticAuthEnv =
 // The Worker's local API principal is e2e-owner (see e2e:serve:worker); Admin is granted to it.
 const frontendCommand =
   releaseMode === "signed-out"
-    ? `${redirectEnv} ${syntheticAuthEnv} WORKBENCH_LOCAL_API_ENABLED=false pnpm exec tsx scripts/run-with-log.ts output/playwright/frontend-signed-out.log pnpm exec next dev --webpack --disable-source-maps -p 3100`
-    : `${redirectEnv} ${syntheticAuthEnv} WORKBENCH_LOCAL_API_ENABLED=true WORKBENCH_ADMIN_USER_IDS=e2e-owner CLOUDFLARE_CONTROL_PLANE_URL=http://localhost:8788 CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN=e2e-control-plane-token pnpm exec tsx scripts/run-with-log.ts output/playwright/frontend-local.log pnpm exec next dev --webpack --disable-source-maps -p 3100`;
+    ? `${redirectEnv} ${syntheticAuthEnv} OPERLOOM_LOCAL_API_ENABLED=false pnpm exec tsx scripts/run-with-log.ts output/playwright/frontend-signed-out.log pnpm exec next dev --webpack --disable-source-maps -p 3100`
+    : `${redirectEnv} ${syntheticAuthEnv} OPERLOOM_LOCAL_API_ENABLED=true OPERLOOM_ADMIN_USER_IDS=e2e-owner OPERLOOM_BACKEND_URL=http://localhost:8788 OPERLOOM_LOCAL_API_TOKEN=e2e-control-plane-token pnpm exec tsx scripts/run-with-log.ts output/playwright/frontend-local.log pnpm exec next dev --webpack --disable-source-maps -p 3100`;
 
 export default defineConfig({
   testDir: "./tests/e2e",

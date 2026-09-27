@@ -107,8 +107,8 @@ import { internalErrorResponse, json, type ControlPlaneAuthContext } from "./htt
 import { handlePublicApi } from "./public-api";
 import { handleCreatePublicThread, handlePublicThreadOperation } from "./public-chat";
 import type { Env, WorkerExecutionContext, WorkerScheduledController } from "./types";
-import { WorkbenchThreadChatAgent } from "./thread-chat-agent";
-import { WorkbenchSessionAgent } from "./session-agent";
+import { ThreadChatAgent } from "./thread-chat-agent";
+import { SessionAgent } from "./session-agent";
 import { handleGetManagedState, handleListManagedState } from "./managed-state";
 import {
   handleRuntimeStateOperation,
@@ -170,8 +170,8 @@ import {
   ensureDemoRetentionPolicy,
 } from "./demo-policy";
 
-export { WorkbenchThreadChatAgent };
-export { WorkbenchSessionAgent };
+export { ThreadChatAgent };
+export { SessionAgent };
 
 const isCloudflareAgentSdkPath = (pathname: string) => {
   if (pathname === "/agents" || /^\/agents\/[^/]+\/activate$/.test(pathname)) return false;
@@ -195,8 +195,8 @@ const handleRequest = async (
       ok: true,
       service: "operloom-control-plane",
       version: compiledWorkbenchVersion,
-      release: env.WORKBENCH_RELEASE_SHA ?? "development",
-      deploymentId: env.WORKBENCH_DEPLOYMENT_ID ?? null,
+      release: env.OPERLOOM_RELEASE_SHA ?? "development",
+      deploymentId: env.OPERLOOM_DEPLOYMENT_ID ?? null,
     });
   }
 
@@ -206,8 +206,8 @@ const handleRequest = async (
       if (
         database?.ok !== 1 ||
         !env.ARTIFACTS ||
-        !env.WorkbenchThreadChatAgent ||
-        !env.WorkbenchSessionAgent ||
+        !env.ThreadChatAgent ||
+        !env.SessionAgent ||
         !releaseFeatureConfigurationValid(env)
       ) {
         return json({ ok: false, service: "operloom-control-plane" }, { status: 503 });
@@ -236,7 +236,7 @@ const handleRequest = async (
         service: "operloom-control-plane",
         version: compiledWorkbenchVersion,
         storage: "d1",
-        release: env.WORKBENCH_RELEASE_SHA ?? "development",
+        release: env.OPERLOOM_RELEASE_SHA ?? "development",
       });
     } catch {
       return json({ ok: false, service: "operloom-control-plane" }, { status: 503 });

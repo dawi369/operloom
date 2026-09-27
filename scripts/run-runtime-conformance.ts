@@ -14,7 +14,7 @@ import { createServer } from "node:net";
 import { createServer as createHttpServer } from "node:http";
 import { chromium } from "@playwright/test";
 import { startManagedProcess } from "./managed-process";
-import { createRuntimeClient } from "../packages/workbench-client/src/runtime-client";
+import { createRuntimeClient } from "../packages/client/src/runtime-client";
 
 const main = async () => {
   const root = process.cwd();
@@ -45,7 +45,7 @@ const main = async () => {
   ];
   const migrate = startManagedProcess(
     "pnpm",
-    ["exec", "wrangler", "d1", "migrations", "apply", "assistant_mk1_local", ...common],
+    ["exec", "wrangler", "d1", "migrations", "apply", "operloom_local", ...common],
     { label: "worker-runtime-migrate", cwd: runtimeRoot, stdio: "pipe", maxRssMb: 1536 },
   );
   let migrationLogs = "";
@@ -90,17 +90,17 @@ const main = async () => {
         "--var",
         `ALLOWED_ORIGINS:${browserOrigin}`,
         "--var",
-        "WORKBENCH_LOCAL_API_ENABLED:true",
+        "OPERLOOM_LOCAL_API_ENABLED:true",
         "--var",
-        "WORKBENCH_ENVIRONMENT:local",
+        "OPERLOOM_ENVIRONMENT:local",
         "--var",
-        `CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN:${token}`,
+        `OPERLOOM_LOCAL_API_TOKEN:${token}`,
         "--var",
-        "WORKBENCH_AGENT_CONNECTION_SECRET:runtime-conformance-agent-secret-000001",
+        "OPERLOOM_AGENT_CONNECTION_SECRET:runtime-conformance-agent-secret-000001",
         "--var",
-        "WORKBENCH_E2E_MODE:true",
+        "OPERLOOM_E2E_MODE:true",
         "--var",
-        "WORKBENCH_RETAINED_DATA_ENABLED:true",
+        "OPERLOOM_RETAINED_DATA_ENABLED:true",
       ],
       { label: "worker-runtime-conformance", cwd: runtimeRoot, stdio: "pipe", maxRssMb: 1536 },
     );
@@ -193,7 +193,7 @@ const main = async () => {
 
     const forged = await fetch(
       `${baseUrl}/v1/workspaces/other/agents/${encodeURIComponent(agentId)}/chat/threads`,
-      { headers: { ...headers, "x-assistant-mk1-workspace-id": workspaceId } },
+      { headers: { ...headers, "x-operloom-workspace-id": workspaceId } },
     );
     if (forged.ok) throw new Error("Forged target bypassed isolation");
     const browser = await chromium.launch({ headless: true });
@@ -1063,7 +1063,7 @@ const main = async () => {
           ...headers,
           "content-type": "application/json",
           "idempotency-key": "document-event-1",
-          "x-assistant-mk1-trigger-secret": webhook.webhookSecret,
+          "x-operloom-trigger-secret": webhook.webhookSecret,
         },
         body: JSON.stringify({ text }),
       });
@@ -1210,16 +1210,7 @@ const main = async () => {
     );
     const seed = startManagedProcess(
       "pnpm",
-      [
-        "exec",
-        "wrangler",
-        "d1",
-        "execute",
-        "assistant_mk1_local",
-        ...common,
-        "--file",
-        stateFixture,
-      ],
+      ["exec", "wrangler", "d1", "execute", "operloom_local", ...common, "--file", stateFixture],
       { label: "runtime-state-fixture", cwd: runtimeRoot, stdio: "pipe", maxRssMb: 1536 },
     );
     seed.child.stdout?.resume();

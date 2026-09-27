@@ -1,5 +1,5 @@
 import type { ControlApprovalRequestRow } from "./types";
-import type { WorkflowReviewDescriptor } from "@operloom/workbench-client";
+import type { WorkflowReviewDescriptor } from "@operloom/client";
 import { isRecord, parseDataJson } from "./http";
 
 export const workflowReviewDescriptor = (

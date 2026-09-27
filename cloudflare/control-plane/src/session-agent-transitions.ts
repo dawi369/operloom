@@ -215,16 +215,14 @@ export const persistThreadMutation = async (
 };
 
 export const abortThreadChatResponse = async (env: Env, thread: ChatThreadRow) => {
-  const secret = env.WORKBENCH_AGENT_CONNECTION_SECRET?.trim();
-  if (!env.WorkbenchThreadChatAgent || !secret) return false;
+  const secret = env.OPERLOOM_AGENT_CONNECTION_SECRET?.trim();
+  if (!env.ThreadChatAgent || !secret) return false;
   try {
     const instanceName = await resolveThreadAgentInstanceName(thread);
-    const stub = env.WorkbenchThreadChatAgent.get(
-      env.WorkbenchThreadChatAgent.idFromName(instanceName),
-    );
+    const stub = env.ThreadChatAgent.get(env.ThreadChatAgent.idFromName(instanceName));
     const response = await stub.fetch("https://thread-agent.internal/internal/thread-cancel", {
       method: "POST",
-      headers: { "x-workbench-agent-secret": secret },
+      headers: { "x-operloom-agent-secret": secret },
     });
     return response.ok;
   } catch {
@@ -328,13 +326,11 @@ export const submitProgrammaticTurn = async (
 ): Promise<
   { ok: true; status: number; messageId?: string } | { ok: false; status: number; error: string }
 > => {
-  if (!env.WorkbenchThreadChatAgent) {
-    return { ok: false, error: "WorkbenchThreadChatAgent binding is not configured", status: 500 };
+  if (!env.ThreadChatAgent) {
+    return { ok: false, error: "ThreadChatAgent binding is not configured", status: 500 };
   }
 
-  const stub = env.WorkbenchThreadChatAgent.get(
-    env.WorkbenchThreadChatAgent.idFromName(input.context.instanceName),
-  );
+  const stub = env.ThreadChatAgent.get(env.ThreadChatAgent.idFromName(input.context.instanceName));
   const response = await stub.fetch("https://thread-agent.internal/internal/programmatic-submit", {
     method: "POST",
     body: JSON.stringify({

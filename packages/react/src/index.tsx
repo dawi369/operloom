@@ -16,11 +16,7 @@ import {
   type ReactNode,
 } from "react";
 
-import type {
-  ChatSessionResponse,
-  WorkbenchClient,
-  WorkbenchSessionEvent,
-} from "@operloom/workbench-client";
+import type { ChatSessionResponse, WorkbenchClient, WorkbenchSessionEvent } from "@operloom/client";
 
 const ClientContext = createContext<WorkbenchClient | null>(null);
 const currentWorkspace = "__current__";
@@ -476,5 +472,5 @@ export const useUpdateNotificationPreferences = (workspaceId?: string | null) =>
     invalidations: () => [workbenchQueryKeys.notificationPreferences(workspaceId)],
   });
 
-export type { WorkbenchClient } from "@operloom/workbench-client";
+export type { WorkbenchClient } from "@operloom/client";
 export type { QueryClient } from "@tanstack/react-query";

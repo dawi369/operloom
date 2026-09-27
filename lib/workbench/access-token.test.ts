@@ -9,9 +9,9 @@ import { WorkbenchAuthError } from "./agent-identity-types";
 
 const config = loadAccessTokenConfig({
   NODE_ENV: "production",
-  WORKBENCH_WORKOS_ISSUER: "https://api.workos.com/user_management/client_test",
-  WORKBENCH_WORKOS_JWKS_URL: "https://api.workos.com/sso/jwks/client_test",
-  WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS: "client_test",
+  OPERLOOM_WORKOS_ISSUER: "https://api.workos.com/user_management/client_test",
+  OPERLOOM_WORKOS_JWKS_URL: "https://api.workos.com/sso/jwks/client_test",
+  OPERLOOM_WORKOS_ALLOWED_CLIENT_IDS: "client_test",
 });
 describe("shared backend token verification", () => {
   it("preserves the exact issuer, including its path", () => {
@@ -115,9 +115,9 @@ describe("shared backend token verification", () => {
     expect(() =>
       loadAccessTokenConfig({
         NODE_ENV: "production",
-        WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS: "client_test",
-        WORKBENCH_WORKOS_ISSUER: "http://localhost:9000",
-        WORKBENCH_WORKOS_JWKS_URL: "http://localhost:9000/jwks",
+        OPERLOOM_WORKOS_ALLOWED_CLIENT_IDS: "client_test",
+        OPERLOOM_WORKOS_ISSUER: "http://localhost:9000",
+        OPERLOOM_WORKOS_JWKS_URL: "http://localhost:9000/jwks",
       }),
     ).toThrow("requires HTTPS");
   });

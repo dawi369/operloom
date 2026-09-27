@@ -67,8 +67,8 @@ export const createWorkbenchRealtimeAdapter = (
             headers: {
               accept: "text/event-stream",
               ...(token ? { authorization: `Bearer ${token}` } : {}),
-              "x-workbench-client-platform": options.client.platform,
-              "x-workbench-client-version": options.client.version,
+              "x-operloom-client-platform": options.client.platform,
+              "x-operloom-client-version": options.client.version,
             },
             signal: controller.signal,
           });

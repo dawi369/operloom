@@ -75,7 +75,7 @@ export const executeResolvedRuntimeAdminTool = async (input: {
       bindingVersion: 1,
       policyDecisionId: input.policyDecisionId,
       callbackUrl:
-        input.env.WORKBENCH_CALLBACK_URL ??
+        input.env.OPERLOOM_CALLBACK_URL ??
         `${new URL(input.requestUrl).origin}/workbench/run-callbacks`,
       source: "admin",
     },

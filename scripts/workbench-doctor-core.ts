@@ -61,51 +61,51 @@ export const diagnoseWorkbench = async ({
     if (!value || value.startsWith("replace-with-")) failures.push(`${label} is missing ${key}`);
   };
 
-  for (const key of ["CLOUDFLARE_CONTROL_PLANE_URL", "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN"]) {
+  for (const key of ["OPERLOOM_BACKEND_URL", "OPERLOOM_LOCAL_API_TOKEN"]) {
     requireValue(frontend, key, ".env.local");
   }
-  for (const key of ["CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN", "WORKBENCH_AGENT_CONNECTION_SECRET"]) {
+  for (const key of ["OPERLOOM_LOCAL_API_TOKEN", "OPERLOOM_AGENT_CONNECTION_SECRET"]) {
     requireValue(worker, key, "cloudflare/control-plane/.dev.vars");
   }
   if (!allowMissingProviderKey) {
     requireValue(worker, "OPENROUTER_API_KEY", "cloudflare/control-plane/.dev.vars");
   }
-  if (frontend.WORKBENCH_LOCAL_API_ENABLED !== "true") {
-    failures.push(".env.local must explicitly enable WORKBENCH_LOCAL_API_ENABLED");
+  if (frontend.OPERLOOM_LOCAL_API_ENABLED !== "true") {
+    failures.push(".env.local must explicitly enable OPERLOOM_LOCAL_API_ENABLED");
   }
-  if (worker.WORKBENCH_LOCAL_API_ENABLED !== "true" || worker.WORKBENCH_ENVIRONMENT !== "local") {
+  if (worker.OPERLOOM_LOCAL_API_ENABLED !== "true" || worker.OPERLOOM_ENVIRONMENT !== "local") {
     failures.push(
-      "cloudflare/control-plane/.dev.vars must set WORKBENCH_LOCAL_API_ENABLED=true and WORKBENCH_ENVIRONMENT=local",
+      "cloudflare/control-plane/.dev.vars must set OPERLOOM_LOCAL_API_ENABLED=true and OPERLOOM_ENVIRONMENT=local",
     );
   }
   if (
-    frontend.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN &&
-    worker.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN &&
-    frontend.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN !== worker.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN
+    frontend.OPERLOOM_LOCAL_API_TOKEN &&
+    worker.OPERLOOM_LOCAL_API_TOKEN &&
+    frontend.OPERLOOM_LOCAL_API_TOKEN !== worker.OPERLOOM_LOCAL_API_TOKEN
   ) {
     failures.push("frontend and Worker control-plane tokens do not match");
   }
-  if (worker.WORKBENCH_RUNNER_TRANSPORT === "fly") {
-    requireValue(worker, "WORKBENCH_RUNNER_URL", "cloudflare/control-plane/.dev.vars");
-    requireValue(worker, "WORKBENCH_RUNNER_SIGNING_SECRET", "cloudflare/control-plane/.dev.vars");
-    requireValue(worker, "WORKBENCH_CALLBACK_URL", "cloudflare/control-plane/.dev.vars");
-    requireValue(worker, "WORKBENCH_CALLBACK_SIGNING_SECRET", "cloudflare/control-plane/.dev.vars");
+  if (worker.OPERLOOM_RUNNER_TRANSPORT === "fly") {
+    requireValue(worker, "OPERLOOM_RUNNER_URL", "cloudflare/control-plane/.dev.vars");
+    requireValue(worker, "OPERLOOM_RUNNER_SIGNING_SECRET", "cloudflare/control-plane/.dev.vars");
+    requireValue(worker, "OPERLOOM_CALLBACK_URL", "cloudflare/control-plane/.dev.vars");
+    requireValue(worker, "OPERLOOM_CALLBACK_SIGNING_SECRET", "cloudflare/control-plane/.dev.vars");
     if (
-      frontend.WORKBENCH_RUNNER_SIGNING_SECRET &&
-      frontend.WORKBENCH_RUNNER_SIGNING_SECRET !== worker.WORKBENCH_RUNNER_SIGNING_SECRET
+      frontend.OPERLOOM_RUNNER_SIGNING_SECRET &&
+      frontend.OPERLOOM_RUNNER_SIGNING_SECRET !== worker.OPERLOOM_RUNNER_SIGNING_SECRET
     ) {
       failures.push("frontend runner signing secret does not match the Worker runner secret");
     }
   }
   if (
-    frontend.WORKBENCH_CALLBACK_SIGNING_SECRET &&
-    worker.WORKBENCH_CALLBACK_SIGNING_SECRET &&
-    frontend.WORKBENCH_CALLBACK_SIGNING_SECRET !== worker.WORKBENCH_CALLBACK_SIGNING_SECRET
+    frontend.OPERLOOM_CALLBACK_SIGNING_SECRET &&
+    worker.OPERLOOM_CALLBACK_SIGNING_SECRET &&
+    frontend.OPERLOOM_CALLBACK_SIGNING_SECRET !== worker.OPERLOOM_CALLBACK_SIGNING_SECRET
   ) {
     failures.push("frontend and Worker callback signing secrets do not match");
   }
-  const alertWebhookUrl = worker.WORKBENCH_OPERATOR_ALERT_WEBHOOK_URL?.trim();
-  const alertSigningSecret = worker.WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET?.trim();
+  const alertWebhookUrl = worker.OPERLOOM_OPERATOR_ALERT_WEBHOOK_URL?.trim();
+  const alertSigningSecret = worker.OPERLOOM_OPERATOR_ALERT_SIGNING_SECRET?.trim();
   if (Boolean(alertWebhookUrl) !== Boolean(alertSigningSecret)) {
     failures.push(
       "Worker operator alert webhook URL and signing secret must be configured together",
@@ -129,9 +129,9 @@ export const diagnoseWorkbench = async ({
     }
   }
   if (
-    frontend.WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET &&
+    frontend.OPERLOOM_OPERATOR_ALERT_SIGNING_SECRET &&
     alertSigningSecret &&
-    frontend.WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET !== alertSigningSecret
+    frontend.OPERLOOM_OPERATOR_ALERT_SIGNING_SECRET !== alertSigningSecret
   ) {
     failures.push("Vercel and Worker operator alert signing secrets do not match");
   }
@@ -150,21 +150,21 @@ export const diagnoseWorkbench = async ({
   }
 
   if (!offline && failures.length === 0) {
-    const origin = frontend.CLOUDFLARE_CONTROL_PLANE_URL.replace(/\/$/, "");
+    const origin = frontend.OPERLOOM_BACKEND_URL.replace(/\/$/, "");
     try {
       const health = await fetch(`${origin}/health`, { signal: AbortSignal.timeout(5_000) });
       if (!health.ok) failures.push(`Worker health returned HTTP ${health.status}`);
       else checks.push("Worker health and D1 query succeeded");
 
       const account = await fetch(`${origin}/v1/account`, {
-        headers: { authorization: `Bearer ${frontend.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN}` },
+        headers: { authorization: `Bearer ${frontend.OPERLOOM_LOCAL_API_TOKEN}` },
         signal: AbortSignal.timeout(5_000),
       });
       if (!account.ok) failures.push(`local API account returned HTTP ${account.status}`);
       else checks.push("local API user, workspace, membership, agent, and preferences validated");
 
-      if (worker.WORKBENCH_RUNNER_TRANSPORT === "fly" && worker.WORKBENCH_RUNNER_URL) {
-        const runnerOrigin = new URL(worker.WORKBENCH_RUNNER_URL).origin;
+      if (worker.OPERLOOM_RUNNER_TRANSPORT === "fly" && worker.OPERLOOM_RUNNER_URL) {
+        const runnerOrigin = new URL(worker.OPERLOOM_RUNNER_URL).origin;
         const runner = await fetch(`${runnerOrigin}/health`, {
           signal: AbortSignal.timeout(5_000),
         });

@@ -1,5 +1,5 @@
 {
-  "name": "@operloom/workbench-react",
+  "name": "@operloom/react",
   "version": "2.0.0",
   "private": true,
   "description": "React query bindings for the Operloom workbench client.",
@@ -22,7 +22,7 @@
     "prepack": "pnpm clean && pnpm build"
   },
   "dependencies": {
-    "@operloom/workbench-client": "workspace:*",
+    "@operloom/client": "workspace:*",
     "@tanstack/react-query": "^5.90.21"
   },
   "devDependencies": {

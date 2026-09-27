@@ -9,7 +9,7 @@ import {
   handleRuntimeStateMigrationOperation,
 } from "./runtime-state-api";
 import * as runtimeRegistry from "../../../lib/agent-runtime/registry";
-import { createRuntimeClient } from "../../../packages/workbench-client/src/runtime-client";
+import { createRuntimeClient } from "../../../packages/client/src/runtime-client";
 import {
   startRuntimeStateMigration,
   repairRuntimeStateMigration,

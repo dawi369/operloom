@@ -7,7 +7,7 @@ import {
   useWorkbenchClient,
   useWorkbenchQueryClient,
   WorkbenchClientProvider,
-} from "@operloom/workbench-react";
+} from "@operloom/react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import {
   BotIcon,

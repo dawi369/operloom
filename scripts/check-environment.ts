@@ -55,27 +55,27 @@ if (!configurationOnly && resolved.unresolved.length === 0) {
     }
   }
 }
-if (targetValue !== "local" && process.env.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN) {
-  failures.push(`${targetValue} rejects CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN`);
+if (targetValue !== "local" && process.env.OPERLOOM_LOCAL_API_TOKEN) {
+  failures.push(`${targetValue} rejects OPERLOOM_LOCAL_API_TOKEN`);
 }
-if (targetValue === "production" && process.env.WORKBENCH_CONFORMANCE_MODE === "true") {
-  failures.push("production rejects WORKBENCH_CONFORMANCE_MODE=true");
+if (targetValue === "production" && process.env.OPERLOOM_CONFORMANCE_MODE === "true") {
+  failures.push("production rejects OPERLOOM_CONFORMANCE_MODE=true");
 }
-if (targetValue === "production" && process.env.WORKBENCH_VAULT_BACKEND === "memory") {
-  failures.push("production rejects WORKBENCH_VAULT_BACKEND=memory");
+if (targetValue === "production" && process.env.OPERLOOM_VAULT_BACKEND === "memory") {
+  failures.push("production rejects OPERLOOM_VAULT_BACKEND=memory");
 }
 if (
   targetValue === "production" &&
-  process.env.WORKBENCH_OPERATOR_ALERT_CONFORMANCE_MODE === "true"
+  process.env.OPERLOOM_OPERATOR_ALERT_CONFORMANCE_MODE === "true"
 ) {
   failures.push("production rejects operator-alert conformance mode");
 }
-if (process.env.WORKBENCH_MOBILE_CLIENTS_ENABLED === "true") {
-  const allowedClientIds = process.env.WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS?.trim();
+if (process.env.OPERLOOM_MOBILE_CLIENTS_ENABLED === "true") {
+  const allowedClientIds = process.env.OPERLOOM_WORKOS_ALLOWED_CLIENT_IDS?.trim();
   if (!allowedClientIds) failures.push("mobile clients require allowed WorkOS client IDs");
   for (const [name, value] of Object.entries({
-    WORKBENCH_WORKOS_ISSUER: process.env.WORKBENCH_WORKOS_ISSUER,
-    WORKBENCH_WORKOS_JWKS_URL: process.env.WORKBENCH_WORKOS_JWKS_URL,
+    OPERLOOM_WORKOS_ISSUER: process.env.OPERLOOM_WORKOS_ISSUER,
+    OPERLOOM_WORKOS_JWKS_URL: process.env.OPERLOOM_WORKOS_JWKS_URL,
   })) {
     try {
       const url = new URL(value ?? "");

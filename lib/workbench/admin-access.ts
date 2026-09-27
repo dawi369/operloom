@@ -21,8 +21,8 @@ export const getWorkbenchAdminAccess = async (): Promise<WorkbenchAdminAccess> =
     session.authMode === "workos"
       ? session.userId
       : (await getWorkspaceContext()).context?.identity.userId;
-  const allowedUserIds = parseAllowlist(process.env.WORKBENCH_ADMIN_USER_IDS);
-  const allowedEmails = parseAllowlist(process.env.WORKBENCH_ADMIN_EMAILS, (item) =>
+  const allowedUserIds = parseAllowlist(process.env.OPERLOOM_ADMIN_USER_IDS);
+  const allowedEmails = parseAllowlist(process.env.OPERLOOM_ADMIN_EMAILS, (item) =>
     item.toLowerCase(),
   );
   const userEmail = session.authMode === "workos" ? session.userEmail.toLowerCase() : undefined;

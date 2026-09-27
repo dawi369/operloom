@@ -61,7 +61,7 @@ const fixture = async () => {
     execute(): { success: true; meta: { changes: number } };
   };
   const env = {
-    WORKBENCH_MUTATIONS_ENABLED: "true",
+    OPERLOOM_MUTATIONS_ENABLED: "true",
     DB: {
       prepare(sql: string): Statement {
         let values: unknown[] = [];

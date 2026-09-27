@@ -180,7 +180,7 @@ export const executeLeasedTriggerDispatch = async (env: Env, item: LeasedTrigger
     });
     return { ok: false as const, code: "trigger_binding_unavailable" };
   }
-  const callbackUrl = env.WORKBENCH_CALLBACK_URL?.trim();
+  const callbackUrl = env.OPERLOOM_CALLBACK_URL?.trim();
   const durable = parseDataJson(item.trigger.execution_json).runtime === "durable";
   if (!callbackUrl && !durable) {
     await failUnfinishedDispatch(env, item, {

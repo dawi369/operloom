@@ -26,14 +26,14 @@ import { adminMembershipRoles } from "./membership-policy";
 import type { RuntimeTraceInputSpan } from "./runtime-traces";
 import { createId, toJson, type AgentIdentity, type Env } from "./types";
 
-const userEmailHeader = "x-assistant-mk1-user-email";
-const userNameHeader = "x-assistant-mk1-user-name";
-const membershipRoleHeader = "x-assistant-mk1-membership-role";
-const membershipRolesHeader = "x-assistant-mk1-membership-roles";
-const membershipPermissionsHeader = "x-assistant-mk1-membership-permissions";
-const membershipStatusHeader = "x-assistant-mk1-membership-status";
-const workspaceNameHeader = "x-assistant-mk1-workspace-name";
-const workspaceStatusHeader = "x-assistant-mk1-workspace-status";
+const userEmailHeader = "x-operloom-user-email";
+const userNameHeader = "x-operloom-user-name";
+const membershipRoleHeader = "x-operloom-membership-role";
+const membershipRolesHeader = "x-operloom-membership-roles";
+const membershipPermissionsHeader = "x-operloom-membership-permissions";
+const membershipStatusHeader = "x-operloom-membership-status";
+const workspaceNameHeader = "x-operloom-workspace-name";
+const workspaceStatusHeader = "x-operloom-workspace-status";
 
 type ResolveResult =
   | { ok: true; identity: AgentIdentity; authzSpans: RuntimeTraceInputSpan[] }
@@ -517,7 +517,7 @@ export const resolveAgentIdentity = async (
       response: json(
         {
           ok: false,
-          error: "x-assistant-mk1-user-id is required",
+          error: "x-operloom-user-id is required",
         },
         { status: 400 },
       ),
@@ -529,7 +529,7 @@ export const resolveAgentIdentity = async (
       return {
         ok: false,
         response: json(
-          { ok: false, error: "x-assistant-mk1-workspace-id is required for explicit agent" },
+          { ok: false, error: "x-operloom-workspace-id is required for explicit agent" },
           { status: 400 },
         ),
       };
@@ -589,7 +589,7 @@ export const resolveAgentIdentity = async (
       response: json(
         {
           ok: false,
-          error: "x-assistant-mk1-account-id and x-assistant-mk1-account-source are required",
+          error: "x-operloom-account-id and x-operloom-account-source are required",
         },
         { status: 400 },
       ),

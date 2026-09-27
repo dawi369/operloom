@@ -68,7 +68,7 @@
     },
     {
       "path": "schemas/agent-pack.schema.json",
-      "sha256": "473399b255134252dd989c91cd97c2a741ad9fe4ecc4ddffad3c77119b879191"
+      "sha256": "7ce1d45aad09ad9b216a202203e7777f7038d63b00a03158f27585caa9ac6962"
     },
     {
       "path": "schemas/runtime-module.schema.json",

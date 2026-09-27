@@ -70,9 +70,9 @@ export type RuntimeTraceInputSpan = {
   bottleneckCandidate?: boolean;
 };
 
-const traceIdHeader = "x-assistant-mk1-trace-id";
-const vercelStartedAtHeader = "x-assistant-mk1-vercel-started-at";
-const vercelDurationHeader = "x-assistant-mk1-vercel-duration-ms";
+const traceIdHeader = "x-operloom-trace-id";
+const vercelStartedAtHeader = "x-operloom-vercel-started-at";
+const vercelDurationHeader = "x-operloom-vercel-duration-ms";
 
 export const runtimeTraceHeaders = {
   traceId: traceIdHeader,
@@ -390,7 +390,7 @@ export const recordIncomingRequestSpans = async (
       startedAtMs: incoming.vercelStartedAtMs,
       endedAtMs: incoming.vercelStartedAtMs + vercelDurationMs,
       data: {
-        source: "x-assistant-mk1-vercel-duration-ms",
+        source: "x-operloom-vercel-duration-ms",
         note: "Pre-forward Vercel proxy setup only; not full stream duration.",
       },
     });

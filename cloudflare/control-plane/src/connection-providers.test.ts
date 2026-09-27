@@ -6,7 +6,7 @@ import type { Env } from "./types";
 describe("connection provider registry", () => {
   it("accepts HTTPS provider modules and enforces outbound hosts", () => {
     const env = {
-      WORKBENCH_OAUTH_PROVIDERS_JSON: JSON.stringify([
+      OPERLOOM_OAUTH_PROVIDERS_JSON: JSON.stringify([
         {
           id: "broker",
           authorizationUrl: "https://auth.broker.test/authorize",
@@ -30,7 +30,7 @@ describe("connection provider registry", () => {
 
   it("rejects plaintext endpoints outside explicit E2E mode", () => {
     const env = {
-      WORKBENCH_OAUTH_PROVIDERS_JSON: JSON.stringify([
+      OPERLOOM_OAUTH_PROVIDERS_JSON: JSON.stringify([
         {
           id: "broker",
           tokenUrl: "http://127.0.0.1:9999/token",
@@ -39,6 +39,6 @@ describe("connection provider registry", () => {
       ]),
     } as Env;
     expect(() => connectionProviderRegistry(env)).toThrow("provider_endpoint_not_https");
-    expect(() => connectionProviderRegistry({ ...env, WORKBENCH_E2E_MODE: "true" })).not.toThrow();
+    expect(() => connectionProviderRegistry({ ...env, OPERLOOM_E2E_MODE: "true" })).not.toThrow();
   });
 });

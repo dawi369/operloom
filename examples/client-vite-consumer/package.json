@@ -1,5 +1,5 @@
 {
-  "name": "@operloom/workbench-client-vite-consumer",
+  "name": "@operloom/client-vite-consumer",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,8 +7,8 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@operloom/workbench-client": "workspace:*",
-    "@operloom/workbench-react": "workspace:*",
+    "@operloom/client": "workspace:*",
+    "@operloom/react": "workspace:*",
     "@tanstack/react-query": "5.101.4",
     "react": "19.2.6",
     "vite": "8.0.16"

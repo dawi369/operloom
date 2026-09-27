@@ -89,7 +89,7 @@ const createRecordingEnv = (input: {
   };
 
   const env = {
-    WORKBENCH_E2E_MODE: input.e2eMode ? "true" : undefined,
+    OPERLOOM_E2E_MODE: input.e2eMode ? "true" : undefined,
     DB: {
       prepare: createStatement,
       async batch(batchStatements: Array<D1PreparedStatement & Partial<RecordedStatement>>) {

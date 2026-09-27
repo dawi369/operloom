@@ -9,14 +9,14 @@ import { loadWorkbenchEnvironment, resolveEnvironmentReferences } from "./workbe
 describe("provider secret configuration", () => {
   it("uses resolved target metadata and keeps secret roles at provider boundaries", () => {
     const source = {
-      WORKBENCH_ACCEPTANCE_D1_DATABASE_ID: "11111111-1111-4111-8111-111111111111",
-      WORKBENCH_ACCEPTANCE_CLOUDFLARE_ORIGIN: "https://control.acceptance.example.test",
-      WORKBENCH_ACCEPTANCE_FLY_ORIGIN: "https://runner.acceptance.example.test",
-      WORKBENCH_ACCEPTANCE_VERCEL_ORG_ID: "team_acceptance",
-      WORKBENCH_ACCEPTANCE_VERCEL_PROJECT_ID: "project_acceptance",
-      WORKBENCH_ACCEPTANCE_WEB_ORIGIN: "https://workbench.acceptance.example.test",
-      WORKBENCH_ACCEPTANCE_WORKOS_APPLICATION_ID: "client_acceptance",
-      WORKBENCH_ACCEPTANCE_WORKSPACE_ID: "workspace_acceptance",
+      OPERLOOM_ACCEPTANCE_D1_DATABASE_ID: "11111111-1111-4111-8111-111111111111",
+      OPERLOOM_ACCEPTANCE_CLOUDFLARE_ORIGIN: "https://control.acceptance.example.test",
+      OPERLOOM_ACCEPTANCE_FLY_ORIGIN: "https://runner.acceptance.example.test",
+      OPERLOOM_ACCEPTANCE_VERCEL_ORG_ID: "team_acceptance",
+      OPERLOOM_ACCEPTANCE_VERCEL_PROJECT_ID: "project_acceptance",
+      OPERLOOM_ACCEPTANCE_WEB_ORIGIN: "https://workbench.acceptance.example.test",
+      OPERLOOM_ACCEPTANCE_WORKOS_APPLICATION_ID: "client_acceptance",
+      OPERLOOM_ACCEPTANCE_WORKSPACE_ID: "workspace_acceptance",
     } as unknown as NodeJS.ProcessEnv;
     const resolved = resolveEnvironmentReferences(loadWorkbenchEnvironment("acceptance"), source);
     expect(resolved.unresolved).toEqual([]);
@@ -35,7 +35,7 @@ describe("provider secret configuration", () => {
     expect(configuration.webVariables).toMatchObject({
       WORKOS_CLIENT_ID: "client_acceptance",
       NEXT_PUBLIC_WORKOS_REDIRECT_URI: "https://workbench.acceptance.example.test/auth/callback",
-      CLOUDFLARE_CONTROL_PLANE_URL: "https://control.acceptance.example.test",
+      OPERLOOM_BACKEND_URL: "https://control.acceptance.example.test",
     });
     expect(configuration.webVariables).not.toHaveProperty("LANGGRAPH_API_URL");
     expect(JSON.stringify(configuration.webVariables)).not.toContain("${");

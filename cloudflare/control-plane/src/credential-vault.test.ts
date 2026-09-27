@@ -27,7 +27,7 @@ describe("credential vault", () => {
   });
 
   it("forbids the in-memory backend outside explicit E2E mode", () => {
-    expect(() => resolveCredentialVault({ WORKBENCH_VAULT_BACKEND: "memory" } as Env)).toThrow(
+    expect(() => resolveCredentialVault({ OPERLOOM_VAULT_BACKEND: "memory" } as Env)).toThrow(
       "insecure_vault_backend_forbidden",
     );
   });

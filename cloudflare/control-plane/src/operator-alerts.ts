@@ -57,12 +57,12 @@ export const prepareOperatorAlertStatement = (
   );
 
 const validateAlertWebhookUrl = (env: Env) => {
-  const raw = env.WORKBENCH_OPERATOR_ALERT_WEBHOOK_URL?.trim();
+  const raw = env.OPERLOOM_OPERATOR_ALERT_WEBHOOK_URL?.trim();
   if (!raw) return null;
   try {
     const url = new URL(raw);
     const isE2eLocalhost =
-      env.WORKBENCH_E2E_MODE === "true" &&
+      env.OPERLOOM_E2E_MODE === "true" &&
       url.protocol === "http:" &&
       (url.hostname === "127.0.0.1" || url.hostname === "localhost");
     if (
@@ -100,7 +100,7 @@ export const deliverPendingOperatorAlerts = async (
   input: { now?: Date; limit?: number } = {},
 ) => {
   const endpoint = validateAlertWebhookUrl(env);
-  const secret = env.WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET?.trim();
+  const secret = env.OPERLOOM_OPERATOR_ALERT_SIGNING_SECRET?.trim();
   if (!endpoint || !secret) return { configured: false, inspected: 0, delivered: 0, failed: 0 };
 
   const timestamp = (input.now ?? new Date()).toISOString();
@@ -137,8 +137,8 @@ export const deliverPendingOperatorAlerts = async (
         signal: AbortSignal.timeout(deliveryTimeoutMs),
         headers: {
           "content-type": "application/json",
-          "x-assistant-mk1-alert-id": row.id,
-          "x-assistant-mk1-alert-signature": signature,
+          "x-operloom-alert-id": row.id,
+          "x-operloom-alert-signature": signature,
         },
         body,
       });

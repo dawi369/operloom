@@ -2,7 +2,7 @@ import type { APIRequestContext } from "@playwright/test";
 
 export const workerOrigin = "http://127.0.0.1:8788";
 
-/** The e2e Worker's default local API principal (`WORKBENCH_LOCAL_API_USER_ID`). */
+/** The e2e Worker's default local API principal (`OPERLOOM_LOCAL_API_USER_ID`). */
 export const e2eOwner = "e2e-owner";
 export const localWorkspaceId = (userId: string) => `workspace:local-api:${userId}:default`;
 export const localAgentId = (userId: string) => `agent-${localWorkspaceId(userId)}`;

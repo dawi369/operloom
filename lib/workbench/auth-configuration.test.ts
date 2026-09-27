@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getAuthConfiguration, getWorkOSBaseURL } from "./auth-configuration";
 
-const local = { NODE_ENV: "development", WORKBENCH_LOCAL_API_ENABLED: "true" };
+const local = { NODE_ENV: "development", OPERLOOM_LOCAL_API_ENABLED: "true" };
 
 describe("local authentication configuration", () => {
   it("allows explicitly opted-in development without a hosted account", () => {
@@ -14,7 +14,7 @@ describe("local authentication configuration", () => {
     {},
     { NODE_ENV: "production" },
     { NODE_ENV: "test" },
-    { NODE_ENV: "development", WORKBENCH_LOCAL_API_ENABLED: "false" },
+    { NODE_ENV: "development", OPERLOOM_LOCAL_API_ENABLED: "false" },
     { ...local, NODE_ENV: "production" },
     { ...local, VERCEL_ENV: "preview" },
     { ...local, VERCEL_ENV: "production" },

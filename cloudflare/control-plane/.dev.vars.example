@@ -1,22 +1,22 @@
 # Copy to .dev.vars for local Worker development. Never commit real values.
 # Local /v1 API: the bearer token below is honored only on loopback with both
 # flags set. The principal defaults to operloom-local.
-WORKBENCH_LOCAL_API_ENABLED=true
-WORKBENCH_ENVIRONMENT=local
-WORKBENCH_LOCAL_API_USER_ID=
-CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN=replace-with-a-local-token
+OPERLOOM_LOCAL_API_ENABLED=true
+OPERLOOM_ENVIRONMENT=local
+OPERLOOM_LOCAL_API_USER_ID=
+OPERLOOM_LOCAL_API_TOKEN=replace-with-a-local-token
 OPENROUTER_API_KEY=
-WORKBENCH_AGENT_CONNECTION_SECRET=replace-with-a-long-random-secret
-WORKBENCH_CALLBACK_SIGNING_SECRET=replace-with-a-long-random-secret
+OPERLOOM_AGENT_CONNECTION_SECRET=replace-with-a-long-random-secret
+OPERLOOM_CALLBACK_SIGNING_SECRET=replace-with-a-long-random-secret
 
 # The normal local workbench starts the signed runner service.
-WORKBENCH_RUNNER_TRANSPORT=fly
-WORKBENCH_RUNNER_URL=http://127.0.0.1:3101/workbench/tool-runners/invocations
-WORKBENCH_RUNNER_SIGNING_SECRET=replace-with-a-long-random-secret
-WORKBENCH_CALLBACK_URL=http://127.0.0.1:8787/workbench/run-callbacks
+OPERLOOM_RUNNER_TRANSPORT=fly
+OPERLOOM_RUNNER_URL=http://127.0.0.1:3101/workbench/tool-runners/invocations
+OPERLOOM_RUNNER_SIGNING_SECRET=replace-with-a-long-random-secret
+OPERLOOM_CALLBACK_URL=http://127.0.0.1:8787/workbench/run-callbacks
 
 # Optional signed operator alert delivery. Configure both or neither.
-WORKBENCH_OPERATOR_ALERT_WEBHOOK_URL=
-WORKBENCH_OPERATOR_ALERT_SIGNING_SECRET=
+OPERLOOM_OPERATOR_ALERT_WEBHOOK_URL=
+OPERLOOM_OPERATOR_ALERT_SIGNING_SECRET=
 
 ALLOWED_ORIGINS=http://localhost:3000

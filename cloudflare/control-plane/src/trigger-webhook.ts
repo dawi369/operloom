@@ -14,7 +14,7 @@ import {
 
 const maximumWebhookBytes = 32 * 1024;
 const idempotencyKeyPattern = /^[A-Za-z0-9._:-]{1,128}$/;
-const triggerSecretHeader = "x-assistant-mk1-trigger-secret";
+const triggerSecretHeader = "x-operloom-trigger-secret";
 
 const constantTimeEqual = (left: string, right: string) => {
   let diff = left.length ^ right.length;

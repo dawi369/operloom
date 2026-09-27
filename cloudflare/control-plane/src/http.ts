@@ -1,8 +1,8 @@
-export const userIdHeader = "x-assistant-mk1-user-id";
-export const accountIdHeader = "x-assistant-mk1-account-id";
-export const accountSourceHeader = "x-assistant-mk1-account-source";
-export const workspaceIdHeader = "x-assistant-mk1-workspace-id";
-export const agentIdHeader = "x-assistant-mk1-agent-id";
+export const userIdHeader = "x-operloom-user-id";
+export const accountIdHeader = "x-operloom-account-id";
+export const accountSourceHeader = "x-operloom-account-source";
+export const workspaceIdHeader = "x-operloom-workspace-id";
+export const agentIdHeader = "x-operloom-agent-id";
 
 export const json = (body: unknown, init?: ResponseInit) =>
   new Response(JSON.stringify(body), {

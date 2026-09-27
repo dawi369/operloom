@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://assistant-mk1.dev/schemas/agent-pack.schema.json",
+  "$id": "https://operloom.dev/schemas/agent-pack.schema.json",
   "title": "Operloom Agent Pack manifest",
   "type": "object",
   "additionalProperties": false,

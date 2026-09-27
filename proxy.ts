@@ -11,7 +11,7 @@ export default async function proxy(request: NextRequest) {
   if (isWorkbenchApi && request.method === "OPTIONS") {
     const response = new NextResponse(null, { status: 204 });
     const allowed = applyWorkbenchClientCors(response.headers, {
-      configuredOrigins: process.env.WORKBENCH_CLIENT_ORIGINS,
+      configuredOrigins: process.env.OPERLOOM_CLIENT_ORIGINS,
       origin,
       preflight: true,
     });
@@ -21,7 +21,7 @@ export default async function proxy(request: NextRequest) {
   if (getAuthConfiguration().localApiEnabled) {
     const response = NextResponse.next();
     applyWorkbenchClientCors(response.headers, {
-      configuredOrigins: process.env.WORKBENCH_CLIENT_ORIGINS,
+      configuredOrigins: process.env.OPERLOOM_CLIENT_ORIGINS,
       origin,
     });
     return response;
@@ -31,7 +31,7 @@ export default async function proxy(request: NextRequest) {
   const response = handleAuthkitHeaders(request, headers);
   if (isWorkbenchApi) {
     applyWorkbenchClientCors(response.headers, {
-      configuredOrigins: process.env.WORKBENCH_CLIENT_ORIGINS,
+      configuredOrigins: process.env.OPERLOOM_CLIENT_ORIGINS,
       origin,
     });
   }

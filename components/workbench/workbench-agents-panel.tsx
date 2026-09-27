@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useWorkbenchAgents } from "@operloom/workbench-react";
+import { useWorkbenchAgents } from "@operloom/react";
 import {
   BotIcon,
   CheckCircle2Icon,

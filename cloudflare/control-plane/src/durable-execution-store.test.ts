@@ -11,7 +11,7 @@ import { handleCreateTriggerDispatch, handleReplayTriggerDispatch } from "./trig
 import type { ControlTriggerRow, ControlTriggerDispatchRow } from "./types";
 import type { DurableTriggerInvocation } from "./durable-trigger-links";
 import { controlPlane } from "../../../examples/document-review/control-plane";
-import { createRuntimeClient } from "../../../packages/workbench-client/src/runtime-client";
+import { createRuntimeClient } from "../../../packages/client/src/runtime-client";
 import { recoverDurableExecutions } from "./durable-recovery";
 import {
   claimDurableRecovery,
@@ -139,7 +139,7 @@ const fixture = () => {
     },
   } as unknown as Env;
   env.OPENROUTER_API_KEY = "synthetic-test-key";
-  env.WORKBENCH_CONFORMANCE_MODE = "true";
+  env.OPERLOOM_CONFORMANCE_MODE = "true";
   const current = createAgentBehaviorSnapshotFromTemplate(toPackTemplate(manifest));
   const old = {
     ...current,
@@ -298,7 +298,7 @@ describe("durable deployment gate", () => {
     expect((await admitDurableExecution(env, identity, submission)).execution.run_id).toBe(
       original.execution.run_id,
     );
-    env.WORKBENCH_DEPLOYMENT_ID = fence.deploymentId;
+    env.OPERLOOM_DEPLOYMENT_ID = fence.deploymentId;
     const admitted = await admitDurableExecution(env, identity, {
       ...submission,
       submissionKey: "new",
@@ -441,9 +441,9 @@ describe("durable deployment gate", () => {
     const { env } = fixture();
     engineFixture(env);
     Object.assign(env, {
-      WORKBENCH_LOCAL_API_ENABLED: "true",
-      WORKBENCH_ENVIRONMENT: "local",
-      CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: "probe-token",
+      OPERLOOM_LOCAL_API_ENABLED: "true",
+      OPERLOOM_ENVIRONMENT: "local",
+      OPERLOOM_LOCAL_API_TOKEN: "probe-token",
     });
     const runtime = resolvePackRuntime(manifest.id, manifest.version);
     if (!runtime.runnable) throw new Error("Fixture runtime unavailable");
@@ -502,7 +502,7 @@ describe("durable deployment gate", () => {
     expect(
       (await handleDurableDeploymentProbe(request([pin], "https://hosted.example"), env)).status,
     ).toBe(404);
-    env.WORKBENCH_ENVIRONMENT = "production";
+    env.OPERLOOM_ENVIRONMENT = "production";
     expect((await handleDurableDeploymentProbe(request(), env)).status).toBe(404);
   });
 });
@@ -1230,7 +1230,7 @@ describe("native workflow deletion", () => {
   it("yields a bounded successful page without consuming the failure budget", async () => {
     const { env, db } = fixture();
     const engine = engineFixture(env);
-    env.WORKBENCH_RETAINED_DATA_ENABLED = "true";
+    env.OPERLOOM_RETAINED_DATA_ENABLED = "true";
     for (let i = 0; i < 26; i++) {
       await admitDurableExecution(env, identity, { ...submission, submissionKey: `page-${i}` });
       db.exec("UPDATE control_runs SET status='cancelled' WHERE status='queued'");
@@ -2268,8 +2268,8 @@ describe("durable attempt authority in runtime ports", () => {
       runId = await setupRun(env),
       claim = await activeClaim(env, runId);
     budget(db);
-    env.WORKBENCH_E2E_MODE = "true";
-    env.WORKBENCH_ENVIRONMENT = "local";
+    env.OPERLOOM_E2E_MODE = "true";
+    env.OPERLOOM_ENVIRONMENT = "local";
     const durableAttempt = await attemptAuthority(env, runId, claim);
     const model = createRuntimeModelPort(env, identity, {
       runId,
@@ -2412,8 +2412,8 @@ describe("durable attempt authority in runtime ports", () => {
       runId = await setupRun(env),
       claim = await activeClaim(env, runId, { replaySafe: true, maxAttempts: 2 });
     budget(db);
-    env.WORKBENCH_E2E_MODE = "true";
-    env.WORKBENCH_ENVIRONMENT = "local";
+    env.OPERLOOM_E2E_MODE = "true";
+    env.OPERLOOM_ENVIRONMENT = "local";
     const model = (durableAttempt: DurableAttemptAuthority) =>
       createRuntimeModelPort(env, identity, {
         runId,

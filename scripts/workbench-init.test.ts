@@ -39,24 +39,24 @@ describe("workbench initializer", () => {
     const worker = readFileSync(resolve(root, "cloudflare/control-plane/.dev.vars"), "utf8");
 
     expect(result.created).toEqual([".env.local", "cloudflare/control-plane/.dev.vars"]);
-    expect(value(frontend, "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN")).toBe(
-      value(worker, "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN"),
+    expect(value(frontend, "OPERLOOM_LOCAL_API_TOKEN")).toBe(
+      value(worker, "OPERLOOM_LOCAL_API_TOKEN"),
     );
-    expect(value(frontend, "WORKBENCH_CALLBACK_SIGNING_SECRET")).toBe(
-      value(worker, "WORKBENCH_CALLBACK_SIGNING_SECRET"),
+    expect(value(frontend, "OPERLOOM_CALLBACK_SIGNING_SECRET")).toBe(
+      value(worker, "OPERLOOM_CALLBACK_SIGNING_SECRET"),
     );
-    expect(value(worker, "WORKBENCH_AGENT_CONNECTION_SECRET")?.length).toBeGreaterThan(32);
-    expect(value(frontend, "WORKBENCH_RUNNER_SIGNING_SECRET")).toBe(
-      value(worker, "WORKBENCH_RUNNER_SIGNING_SECRET"),
+    expect(value(worker, "OPERLOOM_AGENT_CONNECTION_SECRET")?.length).toBeGreaterThan(32);
+    expect(value(frontend, "OPERLOOM_RUNNER_SIGNING_SECRET")).toBe(
+      value(worker, "OPERLOOM_RUNNER_SIGNING_SECRET"),
     );
-    expect(value(worker, "WORKBENCH_RUNNER_TRANSPORT")).toBe("fly");
-    expect(value(worker, "WORKBENCH_CALLBACK_URL")).toBe(
+    expect(value(worker, "OPERLOOM_RUNNER_TRANSPORT")).toBe("fly");
+    expect(value(worker, "OPERLOOM_CALLBACK_URL")).toBe(
       "http://127.0.0.1:8787/workbench/run-callbacks",
     );
-    expect(value(frontend, "WORKBENCH_LOCAL_API_ENABLED")).toBe("true");
-    expect(value(worker, "WORKBENCH_LOCAL_API_ENABLED")).toBe("true");
-    expect(value(worker, "WORKBENCH_ENVIRONMENT")).toBe("local");
-    expect(value(frontend, "WORKBENCH_ADMIN_USER_IDS")).toBe("operloom-local");
+    expect(value(frontend, "OPERLOOM_LOCAL_API_ENABLED")).toBe("true");
+    expect(value(worker, "OPERLOOM_LOCAL_API_ENABLED")).toBe("true");
+    expect(value(worker, "OPERLOOM_ENVIRONMENT")).toBe("local");
+    expect(value(frontend, "OPERLOOM_ADMIN_USER_IDS")).toBe("operloom-local");
     expect(result.needsProviderKey).toBe(true);
   });
 
@@ -65,14 +65,14 @@ describe("workbench initializer", () => {
     writeFileSync(
       resolve(root, "cloudflare/control-plane/.dev.vars"),
       readFileSync(resolve(root, "cloudflare/control-plane/.dev.vars.example"), "utf8").replace(
-        "WORKBENCH_LOCAL_API_USER_ID=",
-        "WORKBENCH_LOCAL_API_USER_ID=local-owner",
+        "OPERLOOM_LOCAL_API_USER_ID=",
+        "OPERLOOM_LOCAL_API_USER_ID=local-owner",
       ),
     );
 
     await initializeWorkbench({ root, runMigration: false });
     const frontend = readFileSync(resolve(root, ".env.local"), "utf8");
-    expect(value(frontend, "WORKBENCH_ADMIN_USER_IDS")).toBe("local-owner");
+    expect(value(frontend, "OPERLOOM_ADMIN_USER_IDS")).toBe("local-owner");
   });
 
   it("never overwrites configured local values", async () => {
@@ -80,24 +80,21 @@ describe("workbench initializer", () => {
     writeFileSync(
       resolve(root, ".env.local"),
       readFileSync(resolve(root, ".env.example"), "utf8")
-        .replace(
-          "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN=",
-          "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN=existing-token",
-        )
-        .replace("WORKBENCH_ADMIN_USER_IDS=", "WORKBENCH_ADMIN_USER_IDS=existing-admin"),
+        .replace("OPERLOOM_LOCAL_API_TOKEN=", "OPERLOOM_LOCAL_API_TOKEN=existing-token")
+        .replace("OPERLOOM_ADMIN_USER_IDS=", "OPERLOOM_ADMIN_USER_IDS=existing-admin"),
     );
     writeFileSync(
       resolve(root, "cloudflare/control-plane/.dev.vars"),
       readFileSync(resolve(root, "cloudflare/control-plane/.dev.vars.example"), "utf8").replace(
-        "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN=replace-with-a-local-token",
-        "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN=existing-token",
+        "OPERLOOM_LOCAL_API_TOKEN=replace-with-a-local-token",
+        "OPERLOOM_LOCAL_API_TOKEN=existing-token",
       ),
     );
 
     await initializeWorkbench({ root, runMigration: false });
     const frontend = readFileSync(resolve(root, ".env.local"), "utf8");
-    expect(value(frontend, "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN")).toBe("existing-token");
-    expect(value(frontend, "WORKBENCH_ADMIN_USER_IDS")).toBe("existing-admin");
+    expect(value(frontend, "OPERLOOM_LOCAL_API_TOKEN")).toBe("existing-token");
+    expect(value(frontend, "OPERLOOM_ADMIN_USER_IDS")).toBe("existing-admin");
   });
 
   it("upgrades only the retired inline local transport default", async () => {
@@ -105,24 +102,24 @@ describe("workbench initializer", () => {
     writeFileSync(
       resolve(root, "cloudflare/control-plane/.dev.vars"),
       readFileSync(resolve(root, "cloudflare/control-plane/.dev.vars.example"), "utf8")
-        .replace("WORKBENCH_RUNNER_TRANSPORT=fly", "WORKBENCH_RUNNER_TRANSPORT=inline")
+        .replace("OPERLOOM_RUNNER_TRANSPORT=fly", "OPERLOOM_RUNNER_TRANSPORT=inline")
         .replace(
-          "WORKBENCH_RUNNER_URL=http://127.0.0.1:3101/workbench/tool-runners/invocations",
-          "WORKBENCH_RUNNER_URL=",
+          "OPERLOOM_RUNNER_URL=http://127.0.0.1:3101/workbench/tool-runners/invocations",
+          "OPERLOOM_RUNNER_URL=",
         )
         .replace(
-          "WORKBENCH_CALLBACK_URL=http://127.0.0.1:8787/workbench/run-callbacks",
-          "WORKBENCH_CALLBACK_URL=",
+          "OPERLOOM_CALLBACK_URL=http://127.0.0.1:8787/workbench/run-callbacks",
+          "OPERLOOM_CALLBACK_URL=",
         ),
     );
 
     await initializeWorkbench({ root, runMigration: false });
     const worker = readFileSync(resolve(root, "cloudflare/control-plane/.dev.vars"), "utf8");
-    expect(value(worker, "WORKBENCH_RUNNER_TRANSPORT")).toBe("fly");
-    expect(value(worker, "WORKBENCH_RUNNER_URL")).toBe(
+    expect(value(worker, "OPERLOOM_RUNNER_TRANSPORT")).toBe("fly");
+    expect(value(worker, "OPERLOOM_RUNNER_URL")).toBe(
       "http://127.0.0.1:3101/workbench/tool-runners/invocations",
     );
-    expect(value(worker, "WORKBENCH_CALLBACK_URL")).toBe(
+    expect(value(worker, "OPERLOOM_CALLBACK_URL")).toBe(
       "http://127.0.0.1:8787/workbench/run-callbacks",
     );
   });

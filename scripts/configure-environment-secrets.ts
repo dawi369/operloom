@@ -128,7 +128,7 @@ if (rendered.manifest.web.provider === "vercel") {
       vercelProcessEnv,
     );
   }
-  for (const [name, value] of Object.entries({ ...webVariables, WORKBENCH_RELEASE_SHA: sha })) {
+  for (const [name, value] of Object.entries({ ...webVariables, OPERLOOM_RELEASE_SHA: sha })) {
     runWithInput(
       "vercel",
       ["env", "add", name, "production", "--force", "--yes", "--no-sensitive"],
@@ -156,7 +156,7 @@ if (rendered.manifest.web.provider === "vercel") {
   for (const [name, value] of Object.entries({
     ...webSecrets,
     ...webVariables,
-    WORKBENCH_RELEASE_SHA: sha,
+    OPERLOOM_RELEASE_SHA: sha,
   })) {
     runWithInput("railway", [...railwayArgs, name, "--stdin"], `${value}\n`, railwayEnv);
   }
@@ -183,7 +183,7 @@ writeFileSync(
         web: Object.keys(webSecrets),
       },
       completedAt: new Date().toISOString(),
-      operator: process.env.WORKBENCH_RELEASE_OPERATOR?.trim() || process.env.USER || "unknown",
+      operator: process.env.OPERLOOM_RELEASE_OPERATOR?.trim() || process.env.USER || "unknown",
     },
     null,
     2,

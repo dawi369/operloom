@@ -6,13 +6,13 @@ import type { Env } from "../cloudflare/control-plane/src/types";
 import { isEnvironmentTarget } from "./workbench-environment";
 
 const main = async () => {
-  const enabled = process.env.WORKBENCH_HOSTED_VAULT_MODE === "true";
-  const target = process.env.WORKBENCH_ENVIRONMENT?.trim() ?? "";
+  const enabled = process.env.OPERLOOM_HOSTED_VAULT_MODE === "true";
+  const target = process.env.OPERLOOM_ENVIRONMENT?.trim() ?? "";
   const commit = process.env.GITHUB_SHA?.trim() ?? "";
   const workspaceId = process.env.HOSTED_VAULT_WORKSPACE_ID?.trim() ?? "";
-  if (!enabled) throw new Error("WORKBENCH_HOSTED_VAULT_MODE=true is required");
+  if (!enabled) throw new Error("OPERLOOM_HOSTED_VAULT_MODE=true is required");
   if (!isEnvironmentTarget(target) || target === "local") {
-    throw new Error("WORKBENCH_ENVIRONMENT must be acceptance|production");
+    throw new Error("OPERLOOM_ENVIRONMENT must be acceptance|production");
   }
   if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error("GITHUB_SHA must be a full commit");
   if (!workspaceId) throw new Error("HOSTED_VAULT_WORKSPACE_ID is required");
@@ -26,7 +26,7 @@ const main = async () => {
   const secondValue = `vault-acceptance-rotated-${crypto.randomUUID()}`;
   const created = await vault.create({
     context: { workspaceId },
-    name: `assistant-mk1-acceptance-${Date.now()}`,
+    name: `operloom-acceptance-${Date.now()}`,
     value: firstValue,
   });
   const read = await vault.read(created);

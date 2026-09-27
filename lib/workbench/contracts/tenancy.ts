@@ -1,1 +1,1 @@
-export * from "@operloom/workbench-client/contracts/tenancy";
+export * from "@operloom/client/contracts/tenancy";

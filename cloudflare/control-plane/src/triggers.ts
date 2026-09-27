@@ -140,8 +140,7 @@ export const resolveCheckedInTrigger = async (
   const agent = await selectAgent(env, identity.agentId, identity.scope.workspaceId);
   if (!agent || agent.status !== "active") return null;
   const behavior = resolveAgentBehaviorConfig(agent);
-  const conformance =
-    env.WORKBENCH_E2E_MODE === "true" || env.WORKBENCH_CONFORMANCE_MODE === "true";
+  const conformance = env.OPERLOOM_E2E_MODE === "true" || env.OPERLOOM_CONFORMANCE_MODE === "true";
   const pack =
     packs.find((candidate) => candidate.id === packId) ??
     (conformance

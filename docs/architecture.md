@@ -105,8 +105,8 @@ Document status: this page is the concise current system map. Use
   normal chat coordination, Admin summaries, runtime events, and control-plane
   state.
 - Cloudflare Agents own normal hosted chat through a per-thread
-  `WorkbenchThreadChatAgent` Durable Object.
-- `WorkbenchSessionAgent` owns hot user/workspace session snapshots, thread
+  `ThreadChatAgent` Durable Object.
+- `SessionAgent` owns hot user/workspace session snapshots, thread
   switching, Agent connection payloads, and live-session events.
 - Durable Object SQLite owns hot per-thread messages; D1 mirrors compact
   product/control-plane state for authorization and Admin visibility.
@@ -118,7 +118,7 @@ Document status: this page is the concise current system map. Use
 
 The browser is the supported product client in `0.5.1`; the Expo app
 is WIP on `codex/mobile-wip`, outside the web release. Shared clients use the
-runtime-validated `@operloom/workbench-client` contract, while cookie auth
+runtime-validated `@operloom/client` contract, while cookie auth
 and Cloudflare Agent React remain web adapters. The native boundary is specified
 in `docs/mobile-frontends.md`; native clients never receive the web facade
 signing secret or bypass Cloudflare authorization.

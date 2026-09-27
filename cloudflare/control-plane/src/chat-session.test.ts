@@ -20,7 +20,7 @@ const identity = {
 const createEnv = () => {
   const requests: unknown[] = [];
   const env = {
-    WorkbenchSessionAgent: {
+    SessionAgent: {
       idFromName(name: string) {
         return name;
       },

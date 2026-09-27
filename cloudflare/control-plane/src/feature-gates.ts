@@ -3,10 +3,10 @@ import { demoConfigurationValid } from "./demo-policy";
 
 const enabled = (value: string | undefined) => value?.trim().toLowerCase() === "true";
 
-export const retainedDataEnabled = (env: Env) => enabled(env.WORKBENCH_RETAINED_DATA_ENABLED);
-export const connectionsEnabled = (env: Env) => enabled(env.WORKBENCH_CONNECTIONS_ENABLED);
-export const mutationsEnabled = (env: Env) => enabled(env.WORKBENCH_MUTATIONS_ENABLED);
-export const pushEnabled = (env: Env) => enabled(env.WORKBENCH_PUSH_ENABLED);
+export const retainedDataEnabled = (env: Env) => enabled(env.OPERLOOM_RETAINED_DATA_ENABLED);
+export const connectionsEnabled = (env: Env) => enabled(env.OPERLOOM_CONNECTIONS_ENABLED);
+export const mutationsEnabled = (env: Env) => enabled(env.OPERLOOM_MUTATIONS_ENABLED);
+export const pushEnabled = (env: Env) => enabled(env.OPERLOOM_PUSH_ENABLED);
 
 export const releaseFeaturePosture = (env: Env) => ({
   retainedData: retainedDataEnabled(env),
@@ -21,8 +21,8 @@ export const releaseFeatureConfigurationValid = (env: Env) => {
   if (posture.connections && !posture.retainedData) return false;
   if (posture.mutations && (!posture.connections || !posture.retainedData)) return false;
   if (posture.push && (!posture.retainedData || !env.NOTIFICATIONS)) return false;
-  if ((posture.connections || posture.push) && env.WORKBENCH_VAULT_BACKEND === "memory") {
-    return env.WORKBENCH_E2E_MODE === "true";
+  if ((posture.connections || posture.push) && env.OPERLOOM_VAULT_BACKEND === "memory") {
+    return env.OPERLOOM_E2E_MODE === "true";
   }
   if ((posture.connections || posture.push) && !env.WORKOS_API_KEY?.trim()) return false;
   return true;

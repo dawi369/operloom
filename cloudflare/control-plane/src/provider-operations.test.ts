@@ -57,7 +57,7 @@ const fixture = async () => {
     execute(): { success: true; meta: { changes: number } };
   };
   const env = {
-    WORKBENCH_MUTATIONS_ENABLED: "true",
+    OPERLOOM_MUTATIONS_ENABLED: "true",
     DB: {
       prepare(sql: string): Statement {
         let values: unknown[] = [];
@@ -158,10 +158,10 @@ const providerFixture = async (signed = false) => {
   const f = await fixture();
   f.dispatch.mockRestore();
   Object.assign(f.env, {
-    WORKBENCH_CONNECTIONS_ENABLED: "true",
-    WORKBENCH_E2E_MODE: "true",
-    WORKBENCH_VAULT_BACKEND: "memory",
-    WORKBENCH_OAUTH_PROVIDERS_JSON: JSON.stringify([
+    OPERLOOM_CONNECTIONS_ENABLED: "true",
+    OPERLOOM_E2E_MODE: "true",
+    OPERLOOM_VAULT_BACKEND: "memory",
+    OPERLOOM_OAUTH_PROVIDERS_JSON: JSON.stringify([
       {
         id: signed ? "signed-capacity-service" : "capacity-service",
         actionUrl: "https://capacity.example/allocations",
@@ -745,7 +745,7 @@ describe("credential-isolated provider operations", () => {
   it("rejects changed configuration before approval and cross-tenant receipt access", async () => {
     const { env, request, network, binding } = await providerFixture();
     const pending = await request();
-    env.WORKBENCH_OAUTH_PROVIDERS_JSON = JSON.stringify([
+    env.OPERLOOM_OAUTH_PROVIDERS_JSON = JSON.stringify([
       {
         id: "capacity-service",
         actionUrl: "https://other.example/allocations",

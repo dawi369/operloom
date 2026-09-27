@@ -15,8 +15,8 @@ const requestTimeoutMs = 10_000;
 const forwardedHeaderNames = ["content-type", "accept", "idempotency-key", "last-event-id"];
 
 const controlPlaneBaseUrl = () => {
-  const baseUrl = process.env.CLOUDFLARE_CONTROL_PLANE_URL?.trim().replace(/\/$/, "");
-  if (!baseUrl) throw new Error("CLOUDFLARE_CONTROL_PLANE_URL is required");
+  const baseUrl = process.env.OPERLOOM_BACKEND_URL?.trim().replace(/\/$/, "");
+  if (!baseUrl) throw new Error("OPERLOOM_BACKEND_URL is required");
   return baseUrl;
 };
 

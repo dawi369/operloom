@@ -14,7 +14,7 @@ import { cookies } from "next/headers";
 
 export default async function Home() {
   const cookieStore = await cookies();
-  const demoMode = process.env.WORKBENCH_ENVIRONMENT === "demo";
+  const demoMode = process.env.OPERLOOM_ENVIRONMENT === "demo";
   const initialSignedOutPresentation = isSignedOutPresentation(
     cookieStore.get(authPresentationCookieName)?.value,
   );

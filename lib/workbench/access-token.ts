@@ -60,18 +60,18 @@ export const loadAccessTokenConfig = (
       production,
     };
   }
-  const issuer = requiredUrl(source.WORKBENCH_WORKOS_ISSUER, "WORKBENCH_WORKOS_ISSUER");
-  const jwksUrl = requiredUrl(source.WORKBENCH_WORKOS_JWKS_URL, "WORKBENCH_WORKOS_JWKS_URL");
+  const issuer = requiredUrl(source.OPERLOOM_WORKOS_ISSUER, "OPERLOOM_WORKOS_ISSUER");
+  const jwksUrl = requiredUrl(source.OPERLOOM_WORKOS_JWKS_URL, "OPERLOOM_WORKOS_JWKS_URL");
   if (production && (issuer.protocol !== "https:" || jwksUrl.protocol !== "https:")) {
     throw new WorkbenchAuthError("Production WorkOS token verification requires HTTPS", 500);
   }
-  const allowedClientIds = commaSeparatedSet(source.WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS);
+  const allowedClientIds = commaSeparatedSet(source.OPERLOOM_WORKOS_ALLOWED_CLIENT_IDS);
   if (!allowedClientIds.size) {
-    throw new WorkbenchAuthError("WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS is not configured", 500);
+    throw new WorkbenchAuthError("OPERLOOM_WORKOS_ALLOWED_CLIENT_IDS is not configured", 500);
   }
   return {
     enabled,
-    issuer: source.WORKBENCH_WORKOS_ISSUER!.trim(),
+    issuer: source.OPERLOOM_WORKOS_ISSUER!.trim(),
     jwksUrl: jwksUrl.toString(),
     allowedClientIds,
     production,

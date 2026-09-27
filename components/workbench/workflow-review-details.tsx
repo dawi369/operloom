@@ -1,4 +1,4 @@
-import type { WorkflowReviewDescriptor } from "@operloom/workbench-client";
+import type { WorkflowReviewDescriptor } from "@operloom/client";
 
 export function WorkflowReviewDetails({ review }: { review: WorkflowReviewDescriptor }) {
   return (

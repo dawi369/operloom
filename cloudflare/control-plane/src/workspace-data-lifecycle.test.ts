@@ -252,7 +252,7 @@ describe("workspace data lifecycle", () => {
     const response = await handleOperatorRetryWorkspaceDeletion(
       new Request("https://control.test/admin/workspace-purges/orphaned-workspace/retry", {
         method: "POST",
-        headers: { "x-assistant-mk1-platform-operator": "true" },
+        headers: { "x-operloom-platform-operator": "true" },
         body: JSON.stringify({
           workspaceName: "Orphaned Workspace",
           reason: "The initiating owner account is no longer available.",

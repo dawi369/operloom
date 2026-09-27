@@ -15,9 +15,9 @@ vi.mock("../../../lib/workbench/access-token", async (importOriginal) => ({
 }));
 
 const env = {
-  WORKBENCH_LOCAL_API_ENABLED: "true",
-  WORKBENCH_ENVIRONMENT: "local",
-  CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: "local-test-token",
+  OPERLOOM_LOCAL_API_ENABLED: "true",
+  OPERLOOM_ENVIRONMENT: "local",
+  OPERLOOM_LOCAL_API_TOKEN: "local-test-token",
 } as Env;
 const request = (path: string, init?: RequestInit) =>
   new Request(`http://127.0.0.1:8787${path}`, {
@@ -88,18 +88,18 @@ describe("public API boundary", () => {
   it("uses explicit scope and drops forged identity, signatures and cookies", async () => {
     const dispatch = vi.fn(async (command: Request) => {
       expect(new URL(command.url).pathname).toBe("/workbench/history/runs");
-      expect(command.headers.get("x-assistant-mk1-user-id")).toBe("operloom-local");
-      expect(command.headers.get("x-assistant-mk1-workspace-id")).toBe("my-workspace");
-      expect(command.headers.get("x-assistant-mk1-agent-id")).toBe("my-agent");
+      expect(command.headers.get("x-operloom-user-id")).toBe("operloom-local");
+      expect(command.headers.get("x-operloom-workspace-id")).toBe("my-workspace");
+      expect(command.headers.get("x-operloom-agent-id")).toBe("my-agent");
       expect(command.headers.has("cookie")).toBe(false);
-      expect(command.headers.has("x-assistant-mk1-membership-status")).toBe(false);
+      expect(command.headers.has("x-operloom-membership-status")).toBe(false);
       return Response.json({ ok: true });
     });
     const response = await handlePublicApi(
       request("/v1/workspaces/my-workspace/agents/my-agent/workbench/history/runs", {
         headers: {
-          "x-assistant-mk1-user-id": "victim",
-          "x-assistant-mk1-membership-status": "active",
+          "x-operloom-user-id": "victim",
+          "x-operloom-membership-status": "active",
           cookie: "forged=1",
         },
       }),
@@ -135,7 +135,7 @@ describe("public API boundary", () => {
     await expect(
       authenticatePublicApi(request("/v1/account"), {
         ...env,
-        WORKBENCH_ENVIRONMENT: "production",
+        OPERLOOM_ENVIRONMENT: "production",
       }),
     ).rejects.toMatchObject({ status: 503 });
   });
@@ -187,9 +187,9 @@ describe("public API boundary", () => {
       authenticatePublicApi(withUser("alice", { url: "https://runtime.example/v1/account" }), env),
     ).rejects.toMatchObject({ status: 503 });
     const hosted = await authenticatePublicApi(withUser("alice", { token: "workos-jwt" }), {
-      WORKBENCH_WORKOS_ISSUER: "https://auth.example",
-      WORKBENCH_WORKOS_JWKS_URL: "https://auth.example/jwks",
-      WORKBENCH_WORKOS_ALLOWED_CLIENT_IDS: "client_1",
+      OPERLOOM_WORKOS_ISSUER: "https://auth.example",
+      OPERLOOM_WORKOS_JWKS_URL: "https://auth.example/jwks",
+      OPERLOOM_WORKOS_ALLOWED_CLIENT_IDS: "client_1",
     } as Env);
     expect(hosted.context.mode).toBe("access_token");
     expect(hosted.principal.scope.userId).toBe("workos-user");
@@ -204,18 +204,18 @@ describe("public API boundary", () => {
     } as const;
     const forged = new Request("http://127.0.0.1:8787/v1/account", {
       headers: {
-        "x-assistant-mk1-user-email": "forged@example.com",
-        "x-assistant-mk1-user-name": "Forged",
+        "x-operloom-user-email": "forged@example.com",
+        "x-operloom-user-name": "Forged",
       },
     });
     const claimed = publicApiCommandRequest(forged, {
       principal: { ...principal, userEmail: "ada@example.com", userName: "Ada" },
       path: "/workspace-context",
     });
-    expect(claimed.headers.get("x-assistant-mk1-user-email")).toBe("ada@example.com");
-    expect(claimed.headers.get("x-assistant-mk1-user-name")).toBe("Ada");
+    expect(claimed.headers.get("x-operloom-user-email")).toBe("ada@example.com");
+    expect(claimed.headers.get("x-operloom-user-name")).toBe("Ada");
     const unclaimed = publicApiCommandRequest(forged, { principal, path: "/workspace-context" });
-    expect(unclaimed.headers.has("x-assistant-mk1-user-email")).toBe(false);
-    expect(unclaimed.headers.has("x-assistant-mk1-user-name")).toBe(false);
+    expect(unclaimed.headers.has("x-operloom-user-email")).toBe(false);
+    expect(unclaimed.headers.has("x-operloom-user-name")).toBe(false);
   });
 });

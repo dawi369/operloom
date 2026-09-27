@@ -34,11 +34,11 @@ if (valueAfter("--confirm") !== confirmation) {
 }
 if (git("status", "--porcelain")) throw new Error("hosted backup requires a clean worktree");
 const encryptionKey = Buffer.from(
-  process.env.WORKBENCH_BACKUP_ENCRYPTION_KEY?.trim() ?? "",
+  process.env.OPERLOOM_BACKUP_ENCRYPTION_KEY?.trim() ?? "",
   "base64",
 );
 if (encryptionKey.byteLength !== 32) {
-  throw new Error("WORKBENCH_BACKUP_ENCRYPTION_KEY must decode to exactly 32 bytes");
+  throw new Error("OPERLOOM_BACKUP_ENCRYPTION_KEY must decode to exactly 32 bytes");
 }
 
 const directory = resolve(process.cwd(), "output/release", commit, "backups");
@@ -88,7 +88,7 @@ const evidence = {
   checksum: createHash("sha256").update(encrypted).digest("hex"),
   sizeBytes: encrypted.byteLength,
   createdAt: new Date().toISOString(),
-  operator: process.env.WORKBENCH_RELEASE_OPERATOR?.trim() || process.env.USER || "unknown",
+  operator: process.env.OPERLOOM_RELEASE_OPERATOR?.trim() || process.env.USER || "unknown",
 };
 const evidencePath = resolve(directory, `${target}-d1-${stamp}.json`);
 writeFileSync(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });

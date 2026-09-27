@@ -1,14 +1,14 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "assistant-mk1-local-control-plane",
+  "name": "operloom-local-control-plane",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat", "nodejs_als"],
   "vars": {
     "OPENROUTER_MODEL": "openai/gpt-6-luna",
     "OPENROUTER_SITE_URL": "http://localhost:3000",
-    "OPENROUTER_APP_NAME": "assistant-mk1-local-cloudflare-chat",
-    "WORKBENCH_CALLBACK_URL": "http://127.0.0.1:8787/workbench/run-callbacks",
+    "OPENROUTER_APP_NAME": "operloom-local-cloudflare-chat",
+    "OPERLOOM_CALLBACK_URL": "http://127.0.0.1:8787/workbench/run-callbacks",
     "SENTRY_ENVIRONMENT": "local",
     "SENTRY_TRACES_SAMPLE_RATE": "0.02",
   },
@@ -25,7 +25,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "assistant_mk1_local",
+      "database_name": "operloom_local",
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations",
       "migrations_table": "d1_migrations",
@@ -34,30 +34,26 @@
   "r2_buckets": [
     {
       "binding": "ARTIFACTS",
-      "bucket_name": "assistant-mk1-local-artifacts",
-      "preview_bucket_name": "assistant-mk1-local-artifacts",
+      "bucket_name": "operloom-local-artifacts",
+      "preview_bucket_name": "operloom-local-artifacts",
     },
   ],
   "durable_objects": {
     "bindings": [
       {
-        "name": "WorkbenchThreadChatAgent",
-        "class_name": "WorkbenchThreadChatAgent",
+        "name": "ThreadChatAgent",
+        "class_name": "ThreadChatAgent",
       },
       {
-        "name": "WorkbenchSessionAgent",
-        "class_name": "WorkbenchSessionAgent",
+        "name": "SessionAgent",
+        "class_name": "SessionAgent",
       },
     ],
   },
   "migrations": [
     {
-      "tag": "v1-workbench-thread-chat-agent",
-      "new_sqlite_classes": ["WorkbenchThreadChatAgent"],
-    },
-    {
-      "tag": "v2-workbench-session-agent",
-      "new_sqlite_classes": ["WorkbenchSessionAgent"],
+      "tag": "v1",
+      "new_sqlite_classes": ["ThreadChatAgent", "SessionAgent"],
     },
   ],
 }

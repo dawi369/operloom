@@ -7,39 +7,39 @@
   "cloudflare": {
     "workerName": "operloom-control-plane",
     "d1DatabaseName": "operloom",
-    "d1DatabaseId": "${WORKBENCH_PRODUCTION_D1_DATABASE_ID}",
+    "d1DatabaseId": "${OPERLOOM_PRODUCTION_D1_DATABASE_ID}",
     "r2BucketName": "operloom-artifacts",
-    "origin": "${WORKBENCH_PRODUCTION_CLOUDFLARE_ORIGIN}"
+    "origin": "${OPERLOOM_PRODUCTION_CLOUDFLARE_ORIGIN}"
   },
   "fly": {
     "appName": "operloom-runner",
-    "origin": "${WORKBENCH_PRODUCTION_FLY_ORIGIN}"
+    "origin": "${OPERLOOM_PRODUCTION_FLY_ORIGIN}"
   },
   "web": {
     "provider": "vercel",
     "projectName": "operloom",
-    "organizationId": "${WORKBENCH_PRODUCTION_VERCEL_ORG_ID}",
-    "projectId": "${WORKBENCH_PRODUCTION_VERCEL_PROJECT_ID}",
-    "origin": "${WORKBENCH_PRODUCTION_WEB_ORIGIN}",
+    "organizationId": "${OPERLOOM_PRODUCTION_VERCEL_ORG_ID}",
+    "projectId": "${OPERLOOM_PRODUCTION_VERCEL_PROJECT_ID}",
+    "origin": "${OPERLOOM_PRODUCTION_WEB_ORIGIN}",
     "framework": "nextjs",
     "nodeVersion": "24.x"
   },
   "workos": {
     "applicationName": "Operloom",
-    "applicationId": "${WORKBENCH_PRODUCTION_WORKOS_APPLICATION_ID}",
-    "acceptanceWorkspaceId": "${WORKBENCH_PRODUCTION_ACCEPTANCE_WORKSPACE_ID}"
+    "applicationId": "${OPERLOOM_PRODUCTION_WORKOS_APPLICATION_ID}",
+    "acceptanceWorkspaceId": "${OPERLOOM_PRODUCTION_ACCEPTANCE_WORKSPACE_ID}"
   },
   "secretEnvironmentVariables": {
-    "runnerSigning": "WORKBENCH_PRODUCTION_RUNNER_SIGNING_SECRET",
-    "callbackSigning": "WORKBENCH_PRODUCTION_CALLBACK_SIGNING_SECRET",
-    "agentConnection": "WORKBENCH_PRODUCTION_AGENT_CONNECTION_SECRET",
-    "operatorAlertSigning": "WORKBENCH_PRODUCTION_OPERATOR_ALERT_SIGNING_SECRET",
-    "workosCookie": "WORKBENCH_PRODUCTION_WORKOS_COOKIE_PASSWORD",
-    "vault": "WORKBENCH_PRODUCTION_VAULT_SECRET",
-    "openrouter": "WORKBENCH_PRODUCTION_OPENROUTER_API_KEY"
+    "runnerSigning": "OPERLOOM_PRODUCTION_RUNNER_SIGNING_SECRET",
+    "callbackSigning": "OPERLOOM_PRODUCTION_CALLBACK_SIGNING_SECRET",
+    "agentConnection": "OPERLOOM_PRODUCTION_AGENT_CONNECTION_SECRET",
+    "operatorAlertSigning": "OPERLOOM_PRODUCTION_OPERATOR_ALERT_SIGNING_SECRET",
+    "workosCookie": "OPERLOOM_PRODUCTION_WORKOS_COOKIE_PASSWORD",
+    "vault": "OPERLOOM_PRODUCTION_VAULT_SECRET",
+    "openrouter": "OPERLOOM_PRODUCTION_OPENROUTER_API_KEY"
   },
   "observabilityEnvironmentVariables": {
-    "sentryDsn": "WORKBENCH_PRODUCTION_SENTRY_DSN",
-    "sentryAuthToken": "WORKBENCH_PRODUCTION_SENTRY_AUTH_TOKEN"
+    "sentryDsn": "OPERLOOM_PRODUCTION_SENTRY_DSN",
+    "sentryAuthToken": "OPERLOOM_PRODUCTION_SENTRY_AUTH_TOKEN"
   }
 }
