@@ -10,6 +10,7 @@ export default defineWorkbenchConfig({
       conformanceOnly: true,
     },
     { package: "@operloom/pack-operloom", source: "./agent-packs/operloom" },
+    { package: "@operloom/pack-polymancer", source: "./agent-packs/polymancer" },
     {
       package: "@operloom/pack-repo-analyst",
       source: "./agent-packs/repo-analyst",

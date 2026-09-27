@@ -1,8 +1,8 @@
 {
-  "name": "operloom",
+  "name": "polymancer",
   "version": "2.0.0",
   "private": true,
-  "description": "Build and run agent systems you own. TypeScript workflows, durable execution, approvals, and an inspectable workspace.",
+  "description": "Paper-trade Polymarket by copying tracked wallets under your strategy and risk limits.",
   "homepage": "https://github.com/dawi369/operloom#readme",
   "bugs": {
     "url": "https://github.com/dawi369/operloom/issues"

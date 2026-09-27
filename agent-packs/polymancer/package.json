@@ -1,0 +1,16 @@
+{
+  "name": "@operloom/pack-polymancer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./manifest": "./manifest.ts",
+    "./control-plane": "./control-plane.ts",
+    "./runner": "./runner.ts",
+    "./web": "./web.ts"
+  },
+  "dependencies": {
+    "@operloom/agent-sdk": "workspace:*"
+  }
+}

@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
-  "id": "operloom",
-  "displayName": "Operloom",
-  "webTitle": "Operloom",
-  "description": "Build and run agent systems you own. TypeScript workflows, durable execution, approvals, and an inspectable workspace.",
-  "webOrigin": "https://operloom.t23.dev",
+  "id": "polymancer",
+  "displayName": "Polymancer",
+  "webTitle": "Polymancer",
+  "description": "Paper-trade Polymarket by copying tracked wallets under your strategy and risk limits.",
+  "webOrigin": "http://localhost:3000",
   "mobile": {
-    "displayName": "Operloom",
-    "slug": "operloom",
-    "scheme": "operloom",
-    "bundleIdentifier": "com.dawi369.operloom"
+    "displayName": "Polymancer",
+    "slug": "polymancer",
+    "scheme": "polymancer",
+    "bundleIdentifier": "com.dawi369.polymancer"
   },
   "workspace": {
-    "defaultAgentPack": "operloom",
-    "maxAgents": 20
+    "defaultAgentPack": "polymancer",
+    "maxAgents": 1
   }
 }
