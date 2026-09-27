@@ -145,7 +145,6 @@ function main(): void {
 
   const tempRoot = mkdtempSync(join(tmpdir(), "operloom-d1-migrations-"));
   const migratedState = join(tempRoot, "migrated");
-  const adoptionState = join(tempRoot, "adoption");
   const previousState = join(tempRoot, "previous");
   const resetState = join(tempRoot, "reset");
 
@@ -204,23 +203,14 @@ function main(): void {
     );
 
     const markerId = "migration-verification-user";
-    wrangler([
-      "d1",
-      "execute",
-      ...localArgs(adoptionState),
-      "--file",
-      join(migrationsPath, migrationFiles[0].name),
-      "--yes",
-    ]);
     executeJson(
-      adoptionState,
+      migratedState,
       `INSERT INTO users (id, status, created_at, updated_at) VALUES ('${markerId}', 'active', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z') RETURNING id`,
     );
-    applyMigrations(adoptionState);
-    applyMigrations(adoptionState);
+    applyMigrations(migratedState);
 
     const marker = executeJson<{ count: number }>(
-      adoptionState,
+      migratedState,
       `SELECT COUNT(*) AS count FROM users WHERE id = '${markerId}'`,
     );
     if (marker[0]?.count !== 1) {
@@ -228,7 +218,7 @@ function main(): void {
     }
 
     const ledger = executeJson<{ count: number }>(
-      adoptionState,
+      migratedState,
       "SELECT COUNT(*) AS count FROM d1_migrations",
     );
     if (ledger[0]?.count !== migrationFiles.length) {
@@ -238,77 +228,12 @@ function main(): void {
     }
 
     if (migrationFiles.length > 1) {
-      const previousMigrations = migrationFiles.slice(0, -1);
-      const previousMarkerId = "previous-baseline-managed-state";
-      const previousTriggerId = "previous-baseline-trigger";
-      const previousArtifactId = "previous-baseline-artifact";
-      applyMigrationPrefix(previousState, tempRoot, previousMigrations);
-      executeJson(
-        previousState,
-        `INSERT INTO control_managed_state (id, user_id, workspace_id, agent_id, namespace, state_type, state_key, status, created_at, updated_at) VALUES ('${previousMarkerId}', 'migration-user', 'migration-workspace', 'migration-agent', 'migration-verifier', 'checkpoint', 'latest', 'active', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z') RETURNING id`,
-      );
-      executeJson(
-        previousState,
-        `INSERT INTO control_triggers (id, user_id, workspace_id, agent_id, pack_id, pack_trigger_id, kind, workflow_type, status, execution_json, config_json, input_json, max_concurrent_runs, created_by_user_id, created_at, updated_at) VALUES ('${previousTriggerId}', 'migration-user', 'migration-workspace', 'migration-agent', 'repo-analyst', 'scheduled-readiness', 'schedule', 'repo.readiness_report', 'paused', '{}', '{}', '{}', 1, 'migration-user', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z') RETURNING id`,
-      );
-      executeJson(
-        previousState,
-        `INSERT INTO control_artifacts (id, user_id, workspace_id, kind, uri, data_json, created_at) VALUES ('${previousArtifactId}', 'migration-user', 'migration-workspace', 'report', 'artifact://${previousArtifactId}', '{}', '2026-01-01T00:00:00.000Z') RETURNING id`,
-      );
+      applyMigrationPrefix(previousState, tempRoot, migrationFiles.slice(0, -1));
       applyMigrations(previousState);
-      applyMigrations(previousState);
-
-      const previousMarker = executeJson<{ count: number }>(
-        previousState,
-        `SELECT COUNT(*) AS count FROM control_managed_state WHERE id = '${previousMarkerId}'`,
-      );
-      if (previousMarker[0]?.count !== 1) {
-        throw new Error(
-          "Upgrading the previous migration baseline did not preserve managed state.",
-        );
-      }
-
-      const upgradedTrigger = executeJson<{
-        public_id: string | null;
-        secret_hash: string | null;
-      }>(
-        previousState,
-        `SELECT public_id, secret_hash FROM control_triggers WHERE id = '${previousTriggerId}'`,
-      );
-      if (
-        upgradedTrigger.length !== 1 ||
-        upgradedTrigger[0]?.public_id !== null ||
-        upgradedTrigger[0]?.secret_hash !== null
-      ) {
-        throw new Error(
-          "Upgrading the previous trigger baseline did not preserve the trigger with empty webhook credentials.",
-        );
-      }
-
-      const upgradedArtifact = executeJson<{
-        storage_provider: string;
-        retention_class: string;
-        expires_at: string | null;
-      }>(
-        previousState,
-        `SELECT storage_provider, retention_class, expires_at FROM control_artifacts WHERE id = '${previousArtifactId}'`,
-      );
-      if (
-        upgradedArtifact.length !== 1 ||
-        upgradedArtifact[0]?.storage_provider !== "external" ||
-        upgradedArtifact[0]?.retention_class !== "standard" ||
-        upgradedArtifact[0]?.expires_at !== "2026-04-01T00:00:00.000Z"
-      ) {
-        throw new Error(
-          "Upgrading the previous artifact baseline did not apply safe storage and retention defaults.",
-        );
-      }
 
       const upgradedSchema = normalizeSchema(executeJson<SchemaRow>(previousState, schemaQuery));
       if (JSON.stringify(upgradedSchema) !== JSON.stringify(migratedSchema)) {
-        throw new Error(
-          "Upgrading the previous migration baseline did not reach the current schema.",
-        );
+        throw new Error("Applying the latest migration last did not reach the current schema.");
       }
 
       const upgradedLedger = executeJson<{ count: number }>(
@@ -323,7 +248,7 @@ function main(): void {
     }
 
     console.log(
-      `Verified ${migrationFiles.length} D1 migration(s): empty apply, pre-ledger adoption, previous-baseline trigger upgrade, schema parity, retained-data reapply, and ledger integrity.`,
+      `Verified ${migrationFiles.length} D1 migration(s): empty apply, schema parity, retained-data reapply, ledger integrity${migrationFiles.length > 1 ? ", and latest-migration upgrade parity" : ""}.`,
     );
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });

@@ -17,6 +17,19 @@ const readMatching = (directory: string, pattern: RegExp) =>
     .sort()
     .map(read)
     .join("\n");
+const finalTableSql = (table: string) => {
+  const database = new DatabaseSync(":memory:");
+  try {
+    database.exec(read("cloudflare/control-plane/schema.sql"));
+    const row = database
+      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name=?")
+      .get(table);
+    if (!row) throw new Error(`schema.sql does not create ${table}`);
+    return String(row.sql);
+  } finally {
+    database.close();
+  }
+};
 
 describe("runtime extension architecture", () => {
   it("keeps executable runner registries outside the Worker graph", () => {
@@ -150,12 +163,9 @@ describe("runtime extension architecture", () => {
     expect(runnerInvocation).not.toMatch(
       /accessToken\??:|refreshToken\??:|apiKey\??:|clientSecret\??:/,
     );
-    expect(read("cloudflare/control-plane/migrations/0009_connection_capabilities.sql")).toContain(
-      "token_sha256",
-    );
-    expect(
-      read("cloudflare/control-plane/migrations/0009_connection_capabilities.sql"),
-    ).not.toMatch(/credential|access_token|refresh_token/i);
+    const capabilities = finalTableSql("control_connection_capabilities");
+    expect(capabilities).toContain("token_sha256");
+    expect(capabilities).not.toMatch(/credential|access_token|refresh_token/i);
   });
 
   it("keys Vault objects by tenant-scoped connection records", () => {
@@ -182,9 +192,9 @@ describe("runtime extension architecture", () => {
       "FROM control_connections WHERE workspace_id = ? AND status <> 'revoked'",
     );
     expect(lifecycle).not.toContain("name = 'Deleted workspace'");
-    expect(
-      read("cloudflare/control-plane/migrations/0010_nonidentifying_deletion_receipts.sql"),
-    ).not.toMatch(/user_id|workspace_id|account_id|email|name/i);
+    expect(finalTableSql("control_deletion_receipts")).not.toMatch(
+      /user_id|workspace_id|account_id|email|name/i,
+    );
   });
 
   it("purges Durable Object chat storage without starting a model turn", () => {

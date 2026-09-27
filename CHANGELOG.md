@@ -20,3 +20,4 @@ the baseline schema.
   simulations, durable workflows, package upgrades and provider operations are
   always on; their rollout flags are removed. Workspaces without an
   administrator budget receive default limits on first use.
+- D1 history is squashed into `0001_baseline.sql`; recreate databases instead of upgrading.

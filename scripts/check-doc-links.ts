@@ -71,28 +71,6 @@ if (!currentTopology.includes("R2 artifacts + exports")) {
   failures.push("current implementation topology must show active R2 artifact/export storage");
 }
 
-const migrationDirectory = join(repositoryRoot, "cloudflare/control-plane/migrations");
-const migrations = readdirSync(migrationDirectory)
-  .filter((name) => /^\d{4}_.+\.sql$/.test(name))
-  .sort();
-const migrationDoc = readRepositoryFile("docs/migrations-and-retention.md");
-const releaseReadiness = readRepositoryFile("docs/release-readiness.md");
-const latestMigration = migrations.at(-1)?.slice(0, 4);
-
-if (!migrationDoc.includes(`contains ${migrations.length} migrations`)) {
-  failures.push(
-    `docs/migrations-and-retention.md must state the current ${migrations.length}-migration count`,
-  );
-}
-for (const migration of migrations) {
-  if (!migrationDoc.includes(`\`${migration}\``)) {
-    failures.push(`docs/migrations-and-retention.md does not account for ${migration}`);
-  }
-}
-if (latestMigration && !releaseReadiness.includes(`\`${latestMigration}\``)) {
-  failures.push(`docs/release-readiness.md does not name latest migration ${latestMigration}`);
-}
-
 if (failures.length > 0) {
   console.error(`Found ${failures.length} broken local Markdown link(s):`);
   for (const failure of failures) console.error(`- ${failure}`);

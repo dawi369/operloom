@@ -397,20 +397,16 @@ describe("canonical scoped context", () => {
   });
 });
 
-it("migrates historical snapshot IDs and JSON byte-for-byte into revision zero", () => {
+it("stores snapshots without capture fields byte-for-byte as immutable revision zero", () => {
   const db = new DatabaseSync(":memory:");
   databases.push(db);
-  db.exec(
-    "CREATE TABLE control_workspace_write_fences (workspace_id TEXT,status TEXT,lease_expires_at TEXT)",
-  );
-  db.exec(readFileSync(new URL("../migrations/0022_runtime_context.sql", import.meta.url), "utf8"));
+  db.exec(readFileSync(new URL("../schema.sql", import.meta.url), "utf8"));
   const original = '{ "retained": true, "id": "historical" }';
   db.prepare(
-    "INSERT INTO control_context_snapshots VALUES ('historical','u','w','a','run','workflow',0,'pack','request',?,'ready','now',1)",
+    `INSERT INTO control_context_snapshots
+      (id,user_id,workspace_id,agent_id,run_id,run_kind,agent_revision,pack_id,request_hash,snapshot_json,status,created_at,preconditions_met)
+      VALUES ('historical','u','w','a','run','workflow',0,'pack','request',?,'ready','now',1)`,
   ).run(original);
-  db.exec(
-    readFileSync(new URL("../migrations/0026_context_captures.sql", import.meta.url), "utf8"),
-  );
   expect(
     db
       .prepare(

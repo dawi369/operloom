@@ -52,42 +52,15 @@ cloudflare/control-plane/.wrangler/
 
 .jj
 /.playwright-cli/
-/output/playwright/
-/output/conformance/
-/output/sdk-consumer/
-/output/sdk-consumer-document-review/
-/output/runtime-conformance/
-/output/workbench-client-consumer/
-/output/workbench-client-distribution/
-/output/mobile/
-/output/mobile-deploy-*/
+/output/
 /apps/mobile/.expo/
 /apps/mobile/ios/
 /apps/mobile/android/
-/output/extension-contract/
 /packages/agent-sdk/dist/
 /packages/workbench-client/dist/
 /packages/workbench-react/dist/
 /packages/observability/dist/
 /examples/complex-operator/dist/
 /examples/document-review/dist/
-/output/release/
-/output/backups/
-/output/environments/
-/output/provider-links/
-/output/*.png
 
-# Supervised local development logs
-/output/dev/
-
-# Private provider migration backups and deployment scratch files
-/output/operloom-deployment/
-/output/runtime-distribution/
-
-# Local verification logs and action-review browser scratch artifacts
-/output/*.log
-/output/action-review-browser/
-/output/action-review-playwright.config.ts
 /tests/fixtures/provider-operation-package/dist/
-/output/provider-operation-conformance/
-/output/sdk-consumer-provider-operations/

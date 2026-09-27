@@ -40,31 +40,14 @@ const definitions: RuntimeStateDefinition[] = [
 const fixture = async () => {
   const db = new DatabaseSync(":memory:");
   databases.push(db);
-  db.exec(`CREATE TABLE workspaces (id TEXT PRIMARY KEY, status TEXT); INSERT INTO workspaces VALUES ('w','active');
-    CREATE TABLE users (id TEXT PRIMARY KEY, status TEXT); INSERT INTO users VALUES ('u','active');
-    CREATE TABLE agents (id TEXT PRIMARY KEY, workspace_id TEXT, status TEXT, data_json TEXT, runtime_revision INTEGER NOT NULL DEFAULT 0); INSERT INTO agents (id,workspace_id,status,data_json) VALUES ('a','w','active','{}');
-    CREATE TABLE memberships (user_id TEXT, workspace_id TEXT, status TEXT, role TEXT); INSERT INTO memberships VALUES ('u','w','active','owner');
-    CREATE TABLE control_runs (id TEXT, user_id TEXT, workspace_id TEXT, agent_id TEXT, status TEXT);
-    CREATE TABLE control_kill_switches (user_id TEXT, workspace_id TEXT, enabled INTEGER, scope_kind TEXT, scope_id TEXT);
-    CREATE TABLE control_workspace_write_fences (workspace_id TEXT, status TEXT, lease_expires_at TEXT);
-    CREATE TABLE control_plane_events (id TEXT PRIMARY KEY, user_id TEXT, workspace_id TEXT, agent_id TEXT, type TEXT, summary TEXT, target_type TEXT, target_id TEXT, data_json TEXT, created_at TEXT);`);
-  db.exec(readFileSync(new URL("../migrations/0016_runtime_state.sql", import.meta.url), "utf8"));
-  db.exec(readFileSync(new URL("../migrations/0022_runtime_context.sql", import.meta.url), "utf8"));
-  db.exec(
-    readFileSync(new URL("../migrations/0024_durable_execution.sql", import.meta.url), "utf8"),
-  );
-  db.exec(
-    readFileSync(
-      new URL("../migrations/0017_runtime_state_migrations.sql", import.meta.url),
-      "utf8",
-    ),
-  );
-  db.exec(
-    readFileSync(
-      new URL("../migrations/0018_runtime_state_migration_repairs.sql", import.meta.url),
-      "utf8",
-    ),
-  );
+  db.exec(readFileSync(new URL("../schema.sql", import.meta.url), "utf8"));
+  db.exec(`INSERT INTO users (id,status,created_at,updated_at) VALUES ('u','active','now','now');
+    INSERT INTO workspaces (id,account_id,account_source,name,status,created_by_user_id,created_at,updated_at)
+      VALUES ('w','acct','local','Workspace','active','u','now','now');
+    INSERT INTO agents (id,workspace_id,name,status,created_by_user_id,created_at,updated_at)
+      VALUES ('a','w','Agent','active','u','now','now');
+    INSERT INTO memberships (id,user_id,workspace_id,role,status,created_at,updated_at)
+      VALUES ('m','u','w','owner','active','now','now');`);
   db.prepare("UPDATE agents SET data_json = ?").run(
     JSON.stringify({
       behavior: {
@@ -365,7 +348,7 @@ describe("atomic runtime state", () => {
       }),
     ).rejects.toMatchObject({ code: "state_migration_invalid" });
     db.exec(
-      "INSERT INTO control_workspace_write_fences VALUES ('w','active','9999-01-01T00:00:00Z')",
+      "INSERT INTO control_workspace_write_fences (workspace_id,job_id,status,lease_owner,lease_expires_at,acquired_at,updated_at) VALUES ('w','export','active','test','9999-01-01T00:00:00Z','now','now')",
     );
     await expect(repairRuntimeStateMigration(env, identity, repairInput)).rejects.toThrow(
       "workspace_export_in_progress",
@@ -633,7 +616,7 @@ describe("atomic runtime state", () => {
     env.DB.batch = batch;
     db.exec("UPDATE memberships SET status = 'active'");
     db.exec(
-      "INSERT INTO control_workspace_write_fences VALUES ('w','active','9999-01-01T00:00:00Z')",
+      "INSERT INTO control_workspace_write_fences (workspace_id,job_id,status,lease_owner,lease_expires_at,acquired_at,updated_at) VALUES ('w','export','active','test','9999-01-01T00:00:00Z','now','now')",
     );
     await expect(advance()).rejects.toThrow("workspace_export_in_progress");
     db.exec("DELETE FROM control_workspace_write_fences");
@@ -707,7 +690,7 @@ describe("atomic runtime state", () => {
     expect((await retry()).status).toBe(403);
     db.exec("UPDATE memberships SET role = 'admin'");
     db.exec(
-      "INSERT INTO control_workspace_write_fences VALUES ('w','active','9999-01-01T00:00:00Z')",
+      "INSERT INTO control_workspace_write_fences (workspace_id,job_id,status,lease_owner,lease_expires_at,acquired_at,updated_at) VALUES ('w','export','active','test','9999-01-01T00:00:00Z','now','now')",
     );
     expect((await retry()).status).toBe(409);
     expect(db.prepare("SELECT count(*) AS count FROM control_plane_events").get()!.count).toBe(0);
@@ -877,7 +860,7 @@ describe("atomic runtime state", () => {
       code: "state_scope_denied",
     });
     db.exec(
-      "INSERT INTO control_workspace_write_fences VALUES ('w','active','2999-01-01T00:00:00.000Z')",
+      "INSERT INTO control_workspace_write_fences (workspace_id,job_id,status,lease_owner,lease_expires_at,acquired_at,updated_at) VALUES ('w','export','active','test','2999-01-01T00:00:00.000Z','now','now')",
     );
     await expect(port.commit(commit("export-write", 1, 9))).rejects.toThrow(
       "workspace_export_in_progress",

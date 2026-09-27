@@ -78,15 +78,10 @@ afterEach(() => {
   vi.useRealTimers();
 });
 const identity: AgentIdentity = { scope: { userId: "u", workspaceId: "w" }, agentId: "a" };
-const fixture = (legacyEngine = false) => {
+const fixture = () => {
   const db = new DatabaseSync(":memory:");
   databases.push(db);
-  const schema = readFileSync(new URL("../schema.sql", import.meta.url), "utf8");
-  db.exec(
-    legacyEngine
-      ? schema.split("-- D1 cannot atomically acknowledge native engine calls.")[0]!
-      : schema,
-  );
+  db.exec(readFileSync(new URL("../schema.sql", import.meta.url), "utf8"));
   db.exec(`INSERT INTO agents (id,workspace_id,name,status,created_by_user_id,created_at,updated_at)
     VALUES ('a','w','Agent','active','u','now','now');
     INSERT INTO users (id,status,created_at,updated_at) VALUES ('u','active','now','now');
@@ -954,24 +949,19 @@ describe("native workflow deletion", () => {
       (await admitDurableExecution(second.env, identity, submission)).execution.instance_id,
     ).toBe(recreated.execution.instance_id);
   });
-  it("migrates historical executions as uncertain without changing their pinned input", async () => {
+  it("records executions without engine lifecycle evidence as uncertain without changing their pinned input", async () => {
     const modern = fixture();
     const { execution } = await admitDurableExecution(modern.env, identity, submission);
-    const { env, db } = fixture(true);
+    const { env, db } = fixture();
     const columns = db
       .prepare("PRAGMA table_info(control_durable_executions)")
       .all()
-      .map((row) => row.name as string);
+      .map((row) => row.name as string)
+      .filter((name) => name !== "engine_lifecycle_version");
     const original = modern.db.prepare("SELECT * FROM control_durable_executions").get()!;
     db.prepare(
       `INSERT INTO control_durable_executions (${columns.join(",")}) VALUES (${columns.map(() => "?").join(",")})`,
     ).run(...columns.map((name) => original[name]!));
-    db.exec(
-      readFileSync(
-        new URL("../migrations/0027_durable_engine_lifecycle.sql", import.meta.url),
-        "utf8",
-      ),
-    );
     expect(
       db.prepare("SELECT input_json,engine_deleted_at FROM control_durable_executions").get(),
     ).toMatchObject({ input_json: execution.input_json, engine_deleted_at: null });

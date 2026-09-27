@@ -5,10 +5,13 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { D1_MIGRATION_FILE_PATTERN } from "./d1-migration-policy";
+
 type D1Result<Row> = Array<{ results: Row[]; success: boolean }>;
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const configPath = join(repoRoot, "cloudflare/control-plane/wrangler.jsonc");
+const migrationsPath = join(repoRoot, "cloudflare/control-plane/migrations");
 const database = "assistant_mk1_local";
 
 const wrangler = (args: string[]) =>
@@ -118,11 +121,14 @@ const main = () => {
       throw new Error("Restored D1 state did not preserve the verification artifact.");
     }
 
+    const expectedMigrations = readdirSync(migrationsPath).filter((name) =>
+      D1_MIGRATION_FILE_PATTERN.test(name),
+    ).length;
     const migrationCount = sqliteJson<{ count: number }>(
       restoredDatabase,
       "SELECT COUNT(*) AS count FROM d1_migrations",
     )[0]?.count;
-    if (!migrationCount || migrationCount < 5) {
+    if (!migrationCount || migrationCount !== expectedMigrations) {
       throw new Error("Restored D1 state did not preserve the migration ledger.");
     }
 
