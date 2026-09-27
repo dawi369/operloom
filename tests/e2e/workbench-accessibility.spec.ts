@@ -100,6 +100,12 @@ test("keyboard, focus, responsive, and accessibility contracts cover workbench s
     await route.fulfill({ response, json: body });
   });
 
+  // Earlier specs may switch agents; the seeded approval belongs to the default agent.
+  const defaultAgent = await page.request.post("/api/workbench/chat-session/agent-switch", {
+    data: { agentId: "agent-workspace:local-api:e2e-owner:default" },
+  });
+  expect(defaultAgent.ok(), await defaultAgent.text()).toBe(true);
+
   await page.goto("/");
   const composer = page.getByRole("textbox", { name: "Message input" });
   await expect(composer).toBeEditable();

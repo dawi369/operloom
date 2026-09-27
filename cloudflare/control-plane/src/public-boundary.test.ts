@@ -132,4 +132,20 @@ describe("public control-plane boundary", () => {
     ).toBe(200);
     expect((await call(env, scoped, { headers: { ...bob, ...forgedIdentity } })).status).toBe(403);
   });
+
+  it("resolves /v1/me operations to the caller's own active workspace agent", async () => {
+    const { env } = fixture();
+    const alice = { "x-operloom-local-user": "alice" };
+    const viaMe = (await (
+      await call(env, "/v1/me/workspace-context", { headers: { ...alice, ...forgedIdentity } })
+    ).json()) as AccountBody;
+    expect(viaMe.context.identity).toMatchObject({
+      userId: "alice",
+      workspaceId: "workspace:local-api:alice:default",
+      agentId: "agent-workspace:local-api:alice:default",
+    });
+    expect((await call(env, "/v1/me/workbench/run-callbacks", { method: "POST" })).status).toBe(
+      404,
+    );
+  });
 });

@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "applicationVersion": "2.0.0",
-  "status": "candidate",
-  "publishedTag": null,
-  "acceptedForkBase": "v1.0.0",
-  "releaseDocument": "docs/release-1.0.md"
-}

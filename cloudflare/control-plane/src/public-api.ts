@@ -27,10 +27,13 @@ export const handlePublicApi = async (
     } else {
       const { principal, context } = await authenticatePublicApi(request, env);
       const match = url.pathname.match(/^\/v1\/workspaces\/([^/]+)\/agents\/([^/]+)(\/.*)$/);
+      // `/v1/me` resolves the caller's active workspace and agent inside this request.
+      const active = url.pathname.match(/^\/v1\/me(\/.*)$/);
       const account = url.pathname === "/v1/account" && request.method === "GET";
-      if (!account && (!match || !matchesPublicApiRoute(request.method, match[3]!))) {
+      const operation = match?.[3] ?? active?.[1];
+      if (!account && (!operation || !matchesPublicApiRoute(request.method, operation))) {
         throw new WorkbenchAuthError(
-          "Unknown public operation; commands require an explicit workspace and agent",
+          "Unknown public operation; use /v1/me or an explicit workspace and agent",
           404,
         );
       }
@@ -50,7 +53,7 @@ export const handlePublicApi = async (
       )
         throw new WorkbenchAuthError("Invalid target", 400);
       let commandSource = request;
-      const actionContract = findPublicActionContract(request.method, match?.[3] ?? "");
+      const actionContract = findPublicActionContract(request.method, operation ?? "");
       if (
         actionContract &&
         "query" in actionContract &&
@@ -60,7 +63,7 @@ export const handlePublicApi = async (
       }
       if (
         request.method === "POST" &&
-        /^\/workbench\/workspace-deletion(?:\/retry)?$/.test(match?.[3] ?? "")
+        /^\/workbench\/workspace-deletion(?:\/retry)?$/.test(operation ?? "")
       ) {
         if (
           !principal.verifiedAuthenticationTime ||
@@ -85,7 +88,7 @@ export const handlePublicApi = async (
       response = await dispatch(
         publicApiCommandRequest(commandSource, {
           principal,
-          path: account ? "/workspace-context" : match![3]!,
+          path: account ? "/workspace-context" : operation!,
           target,
         }),
         context,
