@@ -92,5 +92,9 @@ describe("workspace defaults", () => {
 
     db.exec("UPDATE agents SET status = 'archived' WHERE name = 'Agent 1'");
     expect((await createAgent(env, "Replacement")).status).toBe(201);
+
+    // Conformance fixtures exist only in E2E/conformance modes and never count against the cap.
+    env.OPERLOOM_E2E_MODE = "true";
+    expect((await handleInstantiateAgentPack(env, identity, "document-review")).status).toBe(201);
   });
 });

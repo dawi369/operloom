@@ -80,6 +80,7 @@ describe("tool policy catalog", () => {
       "operator.action.execute",
       "capacity.allocate",
       "capacity.allocate-signed",
+      "resource-allocator.allocate",
     ]);
     for (const [toolName, policy] of Object.entries(toolPolicyCatalog)) {
       if (mutationTools.has(toolName)) {

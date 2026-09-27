@@ -350,6 +350,8 @@ export const bindRuntimeContext = (
           },
         }
       : {}),
+    // Inspection reads recorded receipts only, so it needs no fresh evidence.
+    ...(actions.inspect ? { inspect: actions.inspect } : {}),
   };
   context.tools = {
     async invoke(id, input) {

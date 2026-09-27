@@ -226,6 +226,7 @@ export const handleInstantiateAgentPack = async (
     agentId,
     provisionedBy: "agent_pack",
     idempotent: true,
+    exemptFromAgentLimit: Boolean(conformanceTemplate),
   });
   const agent = await selectAgent(env, agentId, identity.scope.workspaceId);
   if (!agent) return agentLimitReached();

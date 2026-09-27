@@ -488,6 +488,16 @@ function ActionsTab({ client, agentId }: { client: BrowserRuntimeClient; agentId
       setNotice(messageOf(error));
     }
   };
+  const requestExecution = async (proposalId: string) => {
+    setNotice(null);
+    try {
+      await client.admin.requestAction(proposalId);
+      setNotice("Approval requested. Approve it in Admin → Controls.");
+      actions.reload();
+    } catch (error) {
+      setNotice(messageOf(error));
+    }
+  };
   return (
     <Section title="Action proposals" action={<Reload loaded={actions} />}>
       <Status loaded={actions} empty={actions.data?.proposals.length === 0} />
@@ -505,6 +515,16 @@ function ActionsTab({ client, agentId }: { client: BrowserRuntimeClient; agentId
                 ? ` · operation ${proposal.providerOperation.status}`
                 : ""}
             </p>
+            {proposal.status === "proposed" ? (
+              <Button
+                className="mt-2"
+                size="sm"
+                variant="outline"
+                onClick={() => void requestExecution(proposal.id)}
+              >
+                Request execution
+              </Button>
+            ) : null}
             {proposal.providerOperation?.status === "outcome_unknown" ? (
               <Button
                 className="mt-2"

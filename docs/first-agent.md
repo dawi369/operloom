@@ -52,6 +52,7 @@ protect runtime boundaries; they do not sandbox arbitrary code you install.
 
 For a working repository example, read
 [Repository Analyst](../agent-packs/repo-analyst/control-plane.ts). For the full
-contract, read [Agent packs](agent-packs.md). For a larger example with typed
-state, simulations and approvals, read
-[Complex Operator](../examples/complex-operator/control-plane.ts).
+contract, read [Agent packs](agent-packs.md). For the full operator loop with a
+monitor, settings, typed state, a structured decision, reviewed actions, a
+ledger and queries, read
+[Resource Allocator](../examples/resource-allocator/control-plane.ts).

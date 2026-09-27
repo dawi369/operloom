@@ -5,7 +5,8 @@ import { manifest as module2 } from "../../agent-packs/repo-analyst/manifest";
 import { manifest as module3 } from "../../agent-packs/baby-polymancer/manifest";
 import { manifest as module4 } from "../../agent-packs/baby-swordfish/manifest";
 import { manifest as module5 } from "../../examples/complex-operator/manifest";
-import { manifest as module6 } from "../../tests/fixtures/provider-operation-package/manifest";
+import { manifest as module6 } from "../../examples/resource-allocator/manifest";
+import { manifest as module7 } from "../../tests/fixtures/provider-operation-package/manifest";
 
 export const agentManifestRegistry = {
   "document-review": {
@@ -34,8 +35,13 @@ export const agentManifestRegistry = {
     package: "@operloom/pack-complex-operator",
     conformanceOnly: true,
   },
-  "provider-operation-fixture": {
+  "resource-allocator": {
     module: module6,
+    package: "@operloom/pack-resource-allocator",
+    conformanceOnly: true,
+  },
+  "provider-operation-fixture": {
+    module: module7,
     package: "@operloom/provider-operation-fixture",
     conformanceOnly: true,
   },

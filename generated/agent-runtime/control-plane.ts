@@ -5,7 +5,8 @@ import { controlPlane as module2 } from "../../agent-packs/repo-analyst/control-
 import { controlPlane as module3 } from "../../agent-packs/baby-polymancer/control-plane";
 import { controlPlane as module4 } from "../../agent-packs/baby-swordfish/control-plane";
 import { controlPlane as module5 } from "../../examples/complex-operator/control-plane";
-import { controlPlane as module6 } from "../../tests/fixtures/provider-operation-package/control-plane";
+import { controlPlane as module6 } from "../../examples/resource-allocator/control-plane";
+import { controlPlane as module7 } from "../../tests/fixtures/provider-operation-package/control-plane";
 
 export const agentControlPlaneRegistry = {
   "document-review": {
@@ -34,8 +35,13 @@ export const agentControlPlaneRegistry = {
     package: "@operloom/pack-complex-operator",
     conformanceOnly: true,
   },
-  "provider-operation-fixture": {
+  "resource-allocator": {
     module: module6,
+    package: "@operloom/pack-resource-allocator",
+    conformanceOnly: true,
+  },
+  "provider-operation-fixture": {
+    module: module7,
     package: "@operloom/provider-operation-fixture",
     conformanceOnly: true,
   },

@@ -28,6 +28,11 @@ export default defineWorkbenchConfig({
       conformanceOnly: true,
     },
     {
+      package: "@operloom/pack-resource-allocator",
+      source: "./examples/resource-allocator",
+      conformanceOnly: true,
+    },
+    {
       package: "@operloom/provider-operation-fixture",
       source: "./tests/fixtures/provider-operation-package",
       conformanceOnly: true,

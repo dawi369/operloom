@@ -225,6 +225,8 @@ export const insertAgent = async (
     agentId?: string;
     provisionedBy?: "manual" | "agent_pack";
     idempotent?: boolean;
+    /** Conformance fixtures, instantiable only in E2E and conformance modes, bypass the product cap. */
+    exemptFromAgentLimit?: boolean;
   },
 ) => {
   const timestamp = new Date().toISOString();
@@ -270,7 +272,7 @@ export const insertAgent = async (
       timestamp,
       timestamp,
       input.workspaceId,
-      maxWorkspaceAgents,
+      input.exemptFromAgentLimit ? Number.MAX_SAFE_INTEGER : maxWorkspaceAgents,
     )
     .run()) as D1Result;
   return { agentId, created: (result.meta?.changes ?? 0) > 0 };

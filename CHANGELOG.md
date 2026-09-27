@@ -61,3 +61,10 @@ the baseline schema.
   through a same-origin `/api/v1/me` bridge that forwards only allowlisted
   operations with the server-side session token. OpenAPI publishes every
   operation under both `/v1/workspaces/{id}/agents/{id}` and `/v1/me`.
+- `examples/resource-allocator` is the reference operator loop: minute monitor
+  over a mock capacity feed, `noop`/escalate, a structured model decision,
+  reserved allocation proposals under operator approval, simulator or reviewed
+  provider operation, and a ledger projection with derived pool state and
+  queries. Runtime conformance proves the loop and that replay changes nothing.
+- The local model fixture now satisfies any structured output schema (schema
+  `default`, then `const`, first `enum` value, or a minimal typed value).

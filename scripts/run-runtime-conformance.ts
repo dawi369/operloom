@@ -401,6 +401,78 @@ const main = async () => {
       reviewSummary.output.reviews.map((review) => review.documentId).join() !== "guide"
     )
       throw new Error("Package settings or queries did not round-trip through /v1");
+    const allocator = await client.request<{ agent: { id: string } }>(
+      "/agent-packs/resource-allocator/instantiate",
+      { method: "POST" },
+    );
+    const allocatorClient = createRuntimeClient({
+      baseUrl,
+      target: { workspaceId, agentId: allocator.agent.id },
+      getAccessToken: async () => token,
+    });
+    await allocatorClient.request("/workbench/retention-policy", {
+      method: "PATCH",
+      body: {
+        artifactRetentionDays: 90,
+        operationalEventRetentionDays: 30,
+        runtimeTraceRetentionDays: 14,
+        chatMessageRetentionDays: 90,
+        runPayloadRetentionDays: 90,
+        auditActionRetentionDays: 365,
+        confirm: true,
+      },
+    });
+    await allocatorClient.request("/tools/policy", {
+      method: "POST",
+      body: { toolName: "resource-allocator.allocate", mutationEnabled: true },
+    });
+    type AllocationCycle = {
+      report: { outcome: string; allocated: number; settled: string[]; proposalId?: string };
+    };
+    const cycle = (demand: number) =>
+      allocatorClient.request<AllocationCycle>("/workbench/workflows/resource-allocator.cycle", {
+        method: "POST",
+        body: { executionMode: "dry_run", input: { pool: "primary", demand } },
+      });
+    const quiet = await cycle(1);
+    const escalated = await cycle(10);
+    if (quiet.report.outcome !== "noop" || escalated.report.outcome !== "escalated")
+      throw new Error(
+        `Allocator did not no-op then escalate: ${JSON.stringify([quiet, escalated])}`,
+      );
+    const proposalId = escalated.report.proposalId!;
+    if ((await cycle(10)).report.outcome !== "no_change")
+      throw new Error("A repeated observation proposed again");
+    const execution = await allocatorClient.admin.requestAction(proposalId);
+    const approvedAllocation = await allocatorClient.request<{
+      approvalRequest: { status: string };
+    }>(`/tools/approvals/${encodeURIComponent(execution.approvalRequest.id)}/approve`, {
+      method: "POST",
+    });
+    if (approvedAllocation.approvalRequest.status !== "approved")
+      throw new Error("Allocation approval did not complete");
+    const settledCycle = await cycle(10);
+    if (
+      settledCycle.report.settled.join() !== proposalId ||
+      settledCycle.report.allocated !== 5 ||
+      settledCycle.report.outcome !== "escalated"
+    )
+      throw new Error(`Approved allocation was not projected: ${JSON.stringify(settledCycle)}`);
+    if ((await cycle(10)).report.settled.length)
+      throw new Error("Replaying the cycle projected an allocation twice");
+    const overview = await allocatorClient.queries.run<{
+      pools: { pool: string; available: number }[];
+      requests: { id: string; status: string }[];
+    }>("resource-allocator.overview");
+    const ledger = (
+      await allocatorClient.state.entries({ target: "simulation", type: "effect" })
+    ).entries.filter((entry) => entry.data.proposalId === proposalId);
+    if (
+      overview.output.pools.find((item) => item.pool === "primary")?.available !== 15 ||
+      overview.output.requests.find((item) => item.id === proposalId)?.status !== "allocated" ||
+      ledger.length !== 1
+    )
+      throw new Error(`Allocator ledger or query drifted: ${JSON.stringify({ overview, ledger })}`);
     const reviewEvidence = await reviewerClient.context.snapshot(firstReview.report.snapshotId);
     if (
       reviewEvidence.snapshot.status !== "ready" ||

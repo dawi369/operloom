@@ -29,6 +29,39 @@ const validUsage = (value: unknown) =>
     ? value
     : undefined;
 
+const fixtureText = "Deterministic local model fixture.";
+/** Local fixture output: schema default, const or first enum value, else a minimal typed value. */
+export const fixtureOutput = (schema: Record<string, unknown>): unknown => {
+  if (schema.default !== undefined) return schema.default;
+  if (schema.const !== undefined) return schema.const;
+  if (Array.isArray(schema.enum)) return schema.enum[0];
+  const properties = (schema.properties ?? {}) as Record<string, Record<string, unknown>>;
+  const number = (key: "minimum" | "maximum") =>
+    typeof schema[key] === "number" ? (schema[key] as number) : undefined;
+  switch (schema.type) {
+    case "object":
+      return Object.fromEntries(
+        ((schema.required as string[] | undefined) ?? Object.keys(properties)).map((key) => [
+          key,
+          fixtureOutput(properties[key] ?? {}),
+        ]),
+      );
+    case "array":
+      return Array.from({ length: Number(schema.minItems ?? 0) }, () =>
+        fixtureOutput((schema.items ?? {}) as Record<string, unknown>),
+      );
+    case "integer":
+    case "number":
+      return number("minimum") ?? Math.min(0, number("maximum") ?? 0);
+    case "boolean":
+      return false;
+    default: {
+      const text = fixtureText.slice(0, Number(schema.maxLength ?? fixtureText.length));
+      return text.padEnd(Number(schema.minLength ?? 0), ".");
+    }
+  }
+};
+
 export const createRuntimeModelPort = (
   env: Env,
   identity: AgentIdentity,
@@ -121,7 +154,7 @@ export const createRuntimeModelPort = (
       input.signal.throwIfAborted();
       input.context?.assertReady();
       if (fixture) {
-        output = { summary: "Deterministic local model fixture." };
+        output = fixtureOutput(request.outputSchema) as RuntimeRecord;
         inputTokens = estimatedInputTokens;
         outputTokens = 10;
       } else {

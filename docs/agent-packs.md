@@ -223,6 +223,28 @@ values as data in the system prompt. `queries` are bounded, read-only
 projections for clients (`GET /queries`, `POST /queries/{id}`) that see
 `settings` and the `get`/`list` state port for the agent's current effect target.
 
+### Reference loop and ledger pattern
+
+`examples/resource-allocator` is the reference operator loop, registered with
+one `workbench.config.ts` entry. Each monitor tick:
+
+1. **Settles** approved allocations. For each open request whose provider
+   receipt succeeded, one commit carries `projection: { proposalId }`, the
+   append-only ledger entry (`type: "effect"`, id `ledger-<proposalId>`), the
+   pool's derived `available` and the request status. The projection identity
+   and versioned reads make a replayed tick a no-op.
+2. **Observes** the capacity feed context and calls `observeMonitor`; an
+   unchanged fingerprint returns `no_change` without writing.
+3. Records a cheap `noop` decision below `settings.escalateAbove`, or
+   **escalates**: a structured model decision over the evidence, then
+   `actions.propose` with a reservation on the pool's `available` field. The
+   request record, decision entry and cursor advance commit together.
+4. The proposal runs only after operator approval. Under `simulation` the
+   binding's `simulate` returns the provider-shaped receipt; under `external`
+   the reviewed `capacity.allocate` provider operation runs.
+
+The `resource-allocator.overview` query serves pools and requests to clients.
+
 Connection descriptors are part of Pack API v2. They bind declared tools
 to a provider, principal, credential class, scopes, required/optional posture,
 and either `none` or `external_broker` custody. Credentialed descriptors use the
@@ -244,6 +266,10 @@ earns a shared platform contract.
 | Repository Analyst  | `repo-analyst`    | `repo.readiness_report`      | `repo_readiness_report`  |
 | Polymancer Research | `baby-polymancer` | `polymancer.market_research` | `market_research_report` |
 | Swordfish Runtime   | `baby-swordfish`  | parked                       | none                     |
+
+`examples/resource-allocator`, `examples/document-review` and
+`examples/complex-operator` are registered for conformance and local
+development only.
 
 Repository Analyst calls the signed Fly `repo.snapshot` adapter and produces a
 bounded repository-readiness report. It also declares disabled-by-default

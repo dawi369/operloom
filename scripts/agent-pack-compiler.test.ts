@@ -124,6 +124,7 @@ describe("agent pack compiler", () => {
       "baby-polymancer",
       "baby-swordfish",
       "complex-operator",
+      "resource-allocator",
       "provider-operation-fixture",
     ]);
     expect(

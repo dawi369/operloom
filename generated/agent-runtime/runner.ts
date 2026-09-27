@@ -5,7 +5,8 @@ import { runner as module2 } from "../../agent-packs/repo-analyst/runner";
 import { runner as module3 } from "../../agent-packs/baby-polymancer/runner";
 import { runner as module4 } from "../../agent-packs/baby-swordfish/runner";
 import { runner as module5 } from "../../examples/complex-operator/runner";
-import { runner as module6 } from "../../tests/fixtures/provider-operation-package/runner";
+import { runner as module6 } from "../../examples/resource-allocator/runner";
+import { runner as module7 } from "../../tests/fixtures/provider-operation-package/runner";
 
 export const agentRunnerRegistry = {
   "document-review": {
@@ -34,8 +35,13 @@ export const agentRunnerRegistry = {
     package: "@operloom/pack-complex-operator",
     conformanceOnly: true,
   },
-  "provider-operation-fixture": {
+  "resource-allocator": {
     module: module6,
+    package: "@operloom/pack-resource-allocator",
+    conformanceOnly: true,
+  },
+  "provider-operation-fixture": {
+    module: module7,
     package: "@operloom/provider-operation-fixture",
     conformanceOnly: true,
   },
