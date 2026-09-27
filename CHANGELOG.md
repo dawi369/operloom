@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Model-visible chat tools receive the typed state port for the agent's current
+  effect target, so chat commands can record package state.
+- `createPackTestRuntime` (`cloudflare/control-plane/src/pack-test-runtime.ts`)
+  runs package acceptance tests on the real workflow, settings, query and state
+  paths over in-memory SQLite, with one isolated workspace per test user.
+
 ## 2.0.0
 
 Clean-slate baseline. There is no upgrade path from 1.x; rebuild databases from

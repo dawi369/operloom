@@ -56,6 +56,9 @@ Agents start with the `simulation` effect target, so a package can run end to
 end on paper before any external binding exists. Packs use scoped execution
 contexts; they never receive platform credentials or raw control-plane state.
 Keep fork-only tests beside the package and run them with `pnpm test:unit`.
+`createPackTestRuntime` from `cloudflare/control-plane/src/pack-test-runtime.ts`
+runs workflows, queries and settings through the real control-plane code on
+in-memory SQLite; see `examples/resource-allocator/loop.test.ts`.
 
 ## Bring in an update
 

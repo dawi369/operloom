@@ -20,6 +20,8 @@ import {
 } from "./tool-policy";
 import { parseDataJson } from "./http";
 import type { AgentIdentity, Env } from "./types";
+import { effectTargetOf } from "./types";
+import { createRuntimeStatePort } from "./runtime-state";
 import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import {
   finishPackWorkflowRun,
@@ -256,6 +258,17 @@ const buildRuntimeModelTool = (input: {
       };
 
       if (input.request.context) bindRuntimeContext(context, input.request.context);
+      const packRuntime = resolvePackRuntime(input.pack.id, input.pack.version);
+      const stateDefinitions = packRuntime.runnable ? (packRuntime.controlPlane.state ?? []) : [];
+      if (stateDefinitions.length)
+        context.state = await createRuntimeStatePort(input.env, input.identity, {
+          packId: input.pack.id,
+          target: effectTargetOf(input.identity),
+          definitions: stateDefinitions,
+          signal: controller.signal,
+          runId: started.runId,
+          contextSnapshotId: input.request.context?.snapshot.id,
+        });
       try {
         const result = await executeRuntimeToolBinding({
           env: input.env,
