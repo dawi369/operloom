@@ -74,7 +74,6 @@ export const babyPolymancerPack = defineAgentPack({
   workflows: [
     {
       type: "polymancer.market_research",
-      engine: "cloudflare",
       status: "declared",
       userInvocable: true,
       description:
@@ -197,7 +196,7 @@ export const babyPolymancerPack = defineAgentPack({
       required: true,
     },
   ],
-  compatibility: { packApi: 2, minimumWorkbenchVersion: "0.5.0" },
+  compatibility: { packApi: 2, minimumWorkbenchVersion: "2.0.0" },
   resourceLimits: {
     maxRunSeconds: 90,
     maxToolCallsPerRun: 6,

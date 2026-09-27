@@ -6,7 +6,7 @@ export type AgentModuleEntry = {
 };
 
 export type WorkbenchConfig = {
-  runtimeApiVersion: 1;
+  runtimeApiVersion: 2;
   workbenchVersion: string;
   modules: readonly AgentModuleEntry[];
 };

@@ -1,6 +1,6 @@
 {
   "name": "@operloom/workbench-client",
-  "version": "0.2.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Platform-neutral client contracts for Operloom frontends.",
   "license": "PolyForm-Noncommercial-1.0.0",

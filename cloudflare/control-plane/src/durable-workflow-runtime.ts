@@ -84,8 +84,7 @@ const resolveExecution = async (env: Env, execution: DurableHandlerPin) => {
   const workflow = runtime.controlPlane.workflows.find(
     (item) => item.type === execution.workflow_type,
   );
-  if (!workflow?.durable || runtime.controlPlane.apiVersion !== 2)
-    return fail("durable_handler_unavailable");
+  if (!workflow?.durable) return fail("durable_handler_unavailable");
   if (
     runtime.controlPlane.tools.some(
       (tool) => workflow.toolIds.includes(tool.id) && tool.action?.target === "simulation",
@@ -96,7 +95,7 @@ const resolveExecution = async (env: Env, execution: DurableHandlerPin) => {
   if (
     !runtimeUsageCapabilitiesEnabled(env, runtime.controlPlane.requirements.capabilities) ||
     (contextIsRequired(runtime) && env.WORKBENCH_CONTEXT_ENABLED !== "true") ||
-    (runtime.controlPlane.requirements.capabilities.includes("state.atomic.v2") &&
+    (runtime.controlPlane.requirements.capabilities.includes("state.atomic") &&
       env.WORKBENCH_TYPED_STATE_ENABLED !== "true")
   )
     return fail("runtime_capability_disabled");
@@ -321,7 +320,7 @@ export const runDurableWorkflow = async (
                 durableAttempt,
                 contextSnapshotId: context.context?.snapshot.id,
               });
-            if (runtime.controlPlane.requirements.capabilities.includes("models.structured.v2"))
+            if (runtime.controlPlane.requirements.capabilities.includes("models.structured"))
               context.models = createRuntimeModelPort(env, identity, {
                 runId,
                 durableAttempt,

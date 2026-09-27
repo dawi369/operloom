@@ -35,6 +35,6 @@
     "prepack": "pnpm clean && pnpm build"
   },
   "dependencies": {
-    "@operloom/agent-sdk": "^1.1.0"
+    "@operloom/agent-sdk": "^2.0.0"
   }
 }

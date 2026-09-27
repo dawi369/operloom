@@ -1,14 +1,18 @@
 {
   "schemaVersion": 1,
-  "sdkVersion": "1.1.0",
+  "sdkVersion": "2.0.0",
   "files": [
+    {
+      "path": "dist/capabilities.d.ts",
+      "sha256": "4c0884410437dc2291d66cb0ce947cab3620ebb5e71ac5a2b6ce4e7ed3452ba2"
+    },
     {
       "path": "dist/compatibility.d.ts",
       "sha256": "77b021afceb838c8b9c227526b2b2106892fb303c6d7e0d5e0f52e6e2c2b57f5"
     },
     {
       "path": "dist/config.d.ts",
-      "sha256": "792cbb85418c94b167060389d14b24d2c124ddec781f3785bc0ab72d5dc6662f"
+      "sha256": "ea1555ccc78e02ff3083373031c653ceba56b6e369c6e52e2ff960318fe92637"
     },
     {
       "path": "dist/context.d.ts",
@@ -16,7 +20,7 @@
     },
     {
       "path": "dist/control-plane.d.ts",
-      "sha256": "befb7d0b6c1fd32df3efb16e2089987fd9cb158a390a0be0529e4521ee20985b"
+      "sha256": "890cc4ed2a68e991e3a8bb002b2c901cf34b9777d4b35cb11ac06b0f65a3a548"
     },
     {
       "path": "dist/durable.d.ts",
@@ -24,11 +28,11 @@
     },
     {
       "path": "dist/index.d.ts",
-      "sha256": "69d4cc4d8f1103e2a1d54933253d9155cca2258e67814eb55f47b3d066384db9"
+      "sha256": "d8caf510df5d56a3d6ba81bb3099c964a5d60206aec21e2876f6a274348e2a38"
     },
     {
       "path": "dist/manifest.d.ts",
-      "sha256": "51faa9ba93a6685534f27c9ad04dddcbef36ef51f2d37c161e3b5c431ff4006e"
+      "sha256": "738e1e82767db032c8a84392204bbf4114f9e2333521bcc0f78b7547980b8fff"
     },
     {
       "path": "dist/models.d.ts",
@@ -39,12 +43,8 @@
       "sha256": "5590123aa5f7bb8b4a2b025996c19cb0bce94f4b28a5fadcaa0394c7ce92110d"
     },
     {
-      "path": "dist/runtime-v2.d.ts",
-      "sha256": "4b4730368db79a896c3b567b06e799081b7400d0c8bf044083788cc11fc33698"
-    },
-    {
       "path": "dist/runtime.d.ts",
-      "sha256": "6a6d4a5cd63eef4aec40c85cd0ae9fd2c5e2d1e3e72a422164ce664c561a0445"
+      "sha256": "656e9fcdad6dd20a633986fe888b79cd887a84cf09278b168ea9f7426281976d"
     },
     {
       "path": "dist/schema.d.ts",
@@ -52,7 +52,7 @@
     },
     {
       "path": "dist/simulation.d.ts",
-      "sha256": "c28dc089b235455157e61ea21219b32596e31e87143776fb8f7d12d63f0851ec"
+      "sha256": "ade00f9f23fa7ab028d101566548db8cd53c1f497bf7858f60503ef8a170da06"
     },
     {
       "path": "dist/state-migrations.d.ts",
@@ -60,23 +60,19 @@
     },
     {
       "path": "dist/state.d.ts",
-      "sha256": "b67fd29604acd3daafdf1bd68ea2e134690893d36cdd350085abe7f35c04d93c"
+      "sha256": "d611b9a8b953d2da6491f1d1f88e6f2a1b186c37bfcc42b1a0d6ad1aeb91f8f6"
     },
     {
       "path": "dist/web.d.ts",
       "sha256": "29023b2b7eb8ec02358d113b2281bb83363cce63d794473878bd4feddca00fc8"
     },
     {
-      "path": "schemas/agent-pack-v2.schema.json",
-      "sha256": "25ce84cec417e87926cdcfb76e7b951b600f7b39bbaa9764e2f71a31539a2bd1"
+      "path": "schemas/agent-pack.schema.json",
+      "sha256": "473399b255134252dd989c91cd97c2a741ad9fe4ecc4ddffad3c77119b879191"
     },
     {
-      "path": "schemas/runtime-module-v1.schema.json",
-      "sha256": "04256191afa8cff75aca5a9600a54a477c8764770a27f64f9e3a0ce976ba6d9b"
-    },
-    {
-      "path": "schemas/runtime-module-v2.schema.json",
-      "sha256": "706d9c17f0ec89758ecfaa85a899a762d49c100dbec72100f5c0d33c22268a6e"
+      "path": "schemas/runtime-module.schema.json",
+      "sha256": "81c84376106c36035a17a592d1f88530c112c9e7c0059872051bfd39b97255bb"
     }
   ]
 }

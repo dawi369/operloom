@@ -48,14 +48,12 @@ export const manifest: LocalAgentPackManifest = defineAgentPack({
   workflows: [
     {
       type: "complex-operator.observe",
-      engine: "cloudflare",
       status: "declared",
       userInvocable: true,
       description: "Combine inline and signed-runner evidence into a structured operator report.",
     },
     {
       type: "complex-operator.status",
-      engine: "cloudflare",
       status: "declared",
       userInvocable: true,
       description: "Check deterministic operator status with explicit input.",
@@ -193,7 +191,7 @@ export const manifest: LocalAgentPackManifest = defineAgentPack({
       required: true,
     },
   ],
-  compatibility: { packApi: 2, minimumWorkbenchVersion: "0.5.0" },
+  compatibility: { packApi: 2, minimumWorkbenchVersion: "2.0.0" },
   resourceLimits: {
     maxRunSeconds: 15,
     maxToolCallsPerRun: 3,

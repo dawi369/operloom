@@ -22,14 +22,12 @@ export const manifest = defineAgentPack({
   workflows: [
     ...["capacity.seed", "capacity.project"].map((type) => ({
       type,
-      engine: "cloudflare" as const,
       status: "declared" as const,
       userInvocable: true,
       description: "Manage canonical capacity state.",
     })),
     {
       type: "capacity.request",
-      engine: "cloudflare",
       status: "declared",
       userInvocable: true,
       description: "Propose a capacity allocation for operator review.",
@@ -72,7 +70,7 @@ export const manifest = defineAgentPack({
   artifactRenderers: [],
   healthChecks: [],
   evals: [],
-  compatibility: { packApi: 2, minimumWorkbenchVersion: "1.0.0" },
+  compatibility: { packApi: 2, minimumWorkbenchVersion: "2.0.0" },
   resourceLimits: {
     maxRunSeconds: 10,
     maxToolCallsPerRun: 2,

@@ -24,7 +24,7 @@ export {
   validateSchemaValue,
 } from "./schema.js";
 
-export * from "./runtime-v2.js";
+export * from "./capabilities.js";
 export * from "./state.js";
 export * from "./state-migrations.js";
 export * from "./context.js";

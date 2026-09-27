@@ -1,5 +1,5 @@
 import type {
-  AnyControlPlaneRuntimeModule,
+  ControlPlaneRuntimeModule,
   LocalAgentPackManifest,
   RuntimeRecord,
   RuntimeWorkflowBinding,
@@ -10,7 +10,6 @@ import {
   isPackVersionCompatible,
   isWorkbenchVersionCompatible,
   negotiateRuntimeCapabilities,
-  adaptControlPlaneModule,
 } from "@operloom/agent-sdk";
 
 import { agentControlPlaneRegistry } from "../../generated/agent-runtime/control-plane";
@@ -118,21 +117,19 @@ export const resolveRuntimeCompatibility = (input: {
   workbenchVersion: string;
   packVersion: string;
   manifest: Pick<LocalAgentPackManifest, "compatibility">;
-  controlPlane: AnyControlPlaneRuntimeModule;
+  controlPlane: ControlPlaneRuntimeModule;
 }) => {
-  if (input.controlPlane.apiVersion === 2) {
-    const negotiation = negotiateRuntimeCapabilities(
-      input.controlPlane.requirements,
-      input.workbenchVersion,
-    );
-    if (!negotiation.ok)
-      return {
-        runnable: false as const,
-        reason: negotiation.code,
-        message: negotiation.message,
-        runtimeVersion: input.controlPlane.runtimeVersion,
-      };
-  }
+  const negotiation = negotiateRuntimeCapabilities(
+    input.controlPlane.requirements,
+    input.workbenchVersion,
+  );
+  if (!negotiation.ok)
+    return {
+      runnable: false as const,
+      reason: negotiation.code,
+      message: negotiation.message,
+      runtimeVersion: input.controlPlane.runtimeVersion,
+    };
   if (
     !isWorkbenchVersionCompatible(
       input.workbenchVersion,
@@ -156,7 +153,7 @@ export const resolveRuntimeCompatibility = (input: {
   return {
     runnable: true as const,
     runtimeVersion: input.controlPlane.runtimeVersion,
-    controlPlane: adaptControlPlaneModule(input.controlPlane),
+    controlPlane: input.controlPlane,
   };
 };
 

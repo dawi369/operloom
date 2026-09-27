@@ -13,7 +13,7 @@ import {
 
 const validateLoadedModules = (
   modules: Parameters<typeof validateLoadedModulesForWorkbench>[0],
-  workbenchVersion = "1.0.0",
+  workbenchVersion = "2.0.0",
 ) => validateLoadedModulesForWorkbench(modules, workbenchVersion);
 
 const temporaryRoots: string[] = [];
@@ -29,7 +29,7 @@ afterEach(() => {
 });
 
 describe("agent pack compiler", () => {
-  it("requires explicit v2 typed-state capability for workflow state targets", async () => {
+  it("requires the typed-state capability for workflow state targets", async () => {
     const source = (await loadAgentModules(process.cwd())).find(
       (item) => item.manifest.id === "document-review",
     )!;
@@ -52,22 +52,22 @@ describe("agent pack compiler", () => {
             controlPlane: {
               ...candidate.controlPlane,
               requirements: {
-                minimumBackendVersion: "1.0.0",
+                minimumBackendVersion: "2.0.0",
                 capabilities: [
-                  "runtime.module.v2",
-                  "context.snapshots.v2",
-                  "state.migrations.v2",
-                  "models.structured.v2",
-                  "usage.reservations.v2",
+                  "workflow.request",
+                  "context.snapshots",
+                  "state.migrations",
+                  "models.structured",
+                  "usage.reservations",
                 ],
               },
             },
           } as typeof source,
         ]),
-      ).toThrow("stateTarget requires v2 typed state");
+      ).toThrow("stateTarget requires state.atomic");
     }
   });
-  it("accepts declarative v2 provider bindings and rejects callback or transport authority", async () => {
+  it("accepts declarative provider bindings and rejects callback or transport authority", async () => {
     const modules = await loadAgentModules(process.cwd());
     const source = modules.find((item) => item.manifest.id === "complex-operator")!;
     const tool = source.controlPlane.tools.find((item) => item.id === "operator.action.execute")!;
@@ -85,22 +85,12 @@ describe("agent pack compiler", () => {
       },
       controlPlane: {
         ...source.controlPlane,
-        apiVersion: 2 as const,
-        requirements: { minimumBackendVersion: "1.0.0", capabilities: ["runtime.module.v2"] },
         tools: source.controlPlane.tools.map((item) =>
           item.id === tool.id ? { ...item, transport: "cloudflare_inline" as const, action } : item,
         ),
       },
     } as typeof source;
     expect(() => validateLoadedModules([candidate])).not.toThrow();
-    expect(() =>
-      validateLoadedModules([
-        {
-          ...candidate,
-          controlPlane: { ...candidate.controlPlane, apiVersion: 1 },
-        } as typeof source,
-      ]),
-    ).toThrow("provider operations require v2");
     for (const change of [
       { action: { ...action, execute: () => ({}) } },
       { action: { ...action, reconcile: () => ({}) } },
@@ -117,11 +107,13 @@ describe("agent pack compiler", () => {
           ),
         },
       } as typeof source;
-      expect(() => validateLoadedModules([invalid])).toThrow("provider operations require v2");
+      expect(() => validateLoadedModules([invalid])).toThrow(
+        "provider operations require inline external bindings",
+      );
     }
   });
 
-  it("requires explicit v2 action targets and forbids external authority in simulation bindings", async () => {
+  it("requires explicit action targets and forbids external authority in simulation bindings", async () => {
     const [source] = await loadAgentModules(process.cwd());
     if (!source) throw new Error("Fixture package missing");
     const tool = source.controlPlane.tools[0]!;
@@ -137,11 +129,9 @@ describe("agent pack compiler", () => {
       } as unknown as typeof source;
       expect(() => validateLoadedModules([candidate])).toThrow(/target|simulation actions/);
     }
-    const v1 = { ...source, controlPlane: { ...source.controlPlane, apiVersion: 1 as const } };
-    expect(() => validateLoadedModules([v1])).toThrow("simulation actions require v2");
   });
 
-  it("validates durable declarations without changing request-mode v1 bindings", async () => {
+  it("validates durable declarations", async () => {
     const [source] = await loadAgentModules(process.cwd());
     if (!source) throw new Error("Fixture package missing");
     const workflow = source.controlPlane.workflows.find((item) => item.durable)!;
@@ -156,14 +146,8 @@ describe("agent pack compiler", () => {
           ),
         },
       };
-      expect(() => validateLoadedModules([candidate])).toThrow("invalid v2 durable binding");
+      expect(() => validateLoadedModules([candidate])).toThrow("invalid durable binding");
     }
-    const v1 = {
-      ...source,
-      manifest: { ...source.manifest, tools: [] },
-      controlPlane: { ...source.controlPlane, tools: [], apiVersion: 1 as const },
-    };
-    expect(() => validateLoadedModules([v1])).toThrow("invalid v2 durable binding");
   });
 
   it("loads the configured modules and verifies complete bindings", async () => {
@@ -220,9 +204,9 @@ describe("agent pack compiler", () => {
       },
     ];
 
-    expect(() => validateLoadedModules(withCompatibility("1.0.0"))).not.toThrow();
-    expect(() => validateLoadedModules(withCompatibility("0.9.0"))).not.toThrow();
-    expect(() => validateLoadedModules(withCompatibility("0.9.0", "1.0.0"))).not.toThrow();
+    expect(() => validateLoadedModules(withCompatibility("2.0.0"))).not.toThrow();
+    expect(() => validateLoadedModules(withCompatibility("1.9.0"))).not.toThrow();
+    expect(() => validateLoadedModules(withCompatibility("1.9.0", "2.0.0"))).not.toThrow();
   });
 
   it("rejects malformed and incompatible workbench declarations", async () => {
@@ -243,11 +227,11 @@ describe("agent pack compiler", () => {
     ];
 
     expect(() => validateLoadedModules(changed("later"))).toThrow("malformed minimum");
-    expect(() => validateLoadedModules(changed("1.1.0"))).toThrow("incompatible with workbench");
-    expect(() => validateLoadedModules(changed("0.9.0", "0.9.9"))).toThrow(
+    expect(() => validateLoadedModules(changed("2.1.0"))).toThrow("incompatible with workbench");
+    expect(() => validateLoadedModules(changed("1.9.0", "1.9.9"))).toThrow(
       "incompatible with workbench",
     );
-    expect(() => validateLoadedModules(changed("1.1.0", "1.0.0"))).toThrow(
+    expect(() => validateLoadedModules(changed("2.1.0", "2.0.0"))).toThrow(
       "inverted workbench compatibility range",
     );
   });

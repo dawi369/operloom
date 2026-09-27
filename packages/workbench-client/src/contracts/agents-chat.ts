@@ -35,7 +35,7 @@ export type AgentBehaviorAuthoringMetadata = {
 };
 
 export type AgentPackTemplateMetadata = {
-  apiVersion?: 1 | 2;
+  apiVersion?: 2;
   id: string;
   name?: string;
   description?: string;
@@ -54,7 +54,6 @@ export type AgentPackTemplateMetadata = {
   }>;
   workflows: Array<{
     type: string;
-    engine?: "cloudflare" | string;
     status?: "declared" | string;
     userInvocable?: boolean;
     description?: string;

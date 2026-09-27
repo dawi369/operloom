@@ -69,7 +69,6 @@ export const repoAnalystPack = defineAgentPack({
   workflows: [
     {
       type: "repo.readiness_report",
-      engine: "cloudflare",
       status: "declared",
       userInvocable: true,
       description: "Create a bounded repository readiness report from the read-only snapshot.",
@@ -228,7 +227,7 @@ export const repoAnalystPack = defineAgentPack({
       required: true,
     },
   ],
-  compatibility: { packApi: 2, minimumWorkbenchVersion: "0.5.0" },
+  compatibility: { packApi: 2, minimumWorkbenchVersion: "2.0.0" },
   resourceLimits: {
     maxRunSeconds: 90,
     maxToolCallsPerRun: 4,

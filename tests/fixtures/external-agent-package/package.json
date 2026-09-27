@@ -26,6 +26,6 @@
     }
   },
   "dependencies": {
-    "@operloom/agent-sdk": "^1.0.0"
+    "@operloom/agent-sdk": "^2.0.0"
   }
 }

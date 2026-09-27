@@ -164,7 +164,6 @@ describe("agent behavior authoring metadata", () => {
     expect(template?.pack?.workflows).toEqual([
       expect.objectContaining({
         type: "polymancer.market_research",
-        engine: "cloudflare",
         status: "declared",
       }),
     ]);

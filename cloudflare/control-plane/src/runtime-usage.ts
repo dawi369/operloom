@@ -23,11 +23,10 @@ const fail = (code: string, message: string): never => {
 };
 const hash = (value: unknown) => sha256Hex(runtimeStateCanonicalJson(value));
 export const runtimeUsageCapabilitiesEnabled = (env: Env, capabilities: readonly string[]) =>
-  (!capabilities.includes("models.structured.v2") ||
+  (!capabilities.includes("models.structured") ||
     (env.WORKBENCH_STRUCTURED_MODELS_ENABLED === "true" &&
       env.WORKBENCH_USAGE_LIMITS_ENABLED === "true")) &&
-  (!capabilities.includes("usage.reservations.v2") ||
-    env.WORKBENCH_USAGE_LIMITS_ENABLED === "true");
+  (!capabilities.includes("usage.reservations") || env.WORKBENCH_USAGE_LIMITS_ENABLED === "true");
 const table = (kind: "workflow" | "chat") => (kind === "workflow" ? "control_runs" : "chat_runs");
 const metadata = (kind: "workflow" | "chat") =>
   kind === "workflow" ? "data_json" : "metadata_json";

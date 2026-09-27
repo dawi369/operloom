@@ -61,7 +61,6 @@ export const ${exportName} = defineAgentPack({
   workflows: [
     {
       type: "${id.replaceAll("-", "_")}.inspect",
-      engine: "cloudflare",
       status: "declared",
       userInvocable: true,
       description: "Run the starter deterministic read-only workflow.",
@@ -132,7 +131,7 @@ export const ${exportName} = defineAgentPack({
       required: true,
     },
   ],
-  compatibility: { packApi: 2, minimumWorkbenchVersion: "0.5.0" },
+  compatibility: { packApi: 2, minimumWorkbenchVersion: "2.0.0" },
   resourceLimits: {
     maxRunSeconds: 30,
     maxToolCallsPerRun: 4,
@@ -180,6 +179,7 @@ export const controlPlane = defineControlPlaneModule({
   packId: ${JSON.stringify(id)},
   runtimeVersion: "1.0.0",
   compatiblePackVersions: "^0.1.0",
+  requirements: { minimumBackendVersion: "2.0.0", capabilities: ["workflow.request"] },
   tools: [{
     id: ${JSON.stringify(`${id.replaceAll("-", "_")}.inspect`)},
     description: "Starter deterministic read-only tool.",
@@ -206,7 +206,6 @@ export const controlPlane = defineControlPlaneModule({
   }],
   workflows: [{
     type: ${JSON.stringify(`${id.replaceAll("-", "_")}.inspect`)},
-    engine: "cloudflare",
     label: "Inspect",
     description: "Run the starter deterministic read-only workflow.",
     inputSchema: { type: "object", additionalProperties: false },

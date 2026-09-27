@@ -1,7 +1,7 @@
 import {
-  defineControlPlaneModuleV2,
+  defineControlPlaneModule,
   requireRuntimeState,
-  type ControlPlaneRuntimeModuleV2,
+  type ControlPlaneRuntimeModule,
   type AgentExecutionContext,
   type RuntimeRecord,
   type RuntimeSimulationCommit,
@@ -72,20 +72,20 @@ const commitReviewSimulation = async (
     receiptId: committed.receipt.id,
   };
 };
-export const controlPlane: ControlPlaneRuntimeModuleV2 = defineControlPlaneModuleV2<
-  Omit<ControlPlaneRuntimeModuleV2, "apiVersion" | "kind">
+export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
+  Omit<ControlPlaneRuntimeModule, "apiVersion" | "kind">
 >({
   packId: "document-review",
   runtimeVersion: "1.0.0",
   compatiblePackVersions: "^1.0.0",
   requirements: {
-    minimumBackendVersion: "1.0.0",
+    minimumBackendVersion: "2.0.0",
     capabilities: [
-      "runtime.module.v2",
-      "context.snapshots.v2",
-      "state.atomic.v2",
-      "models.structured.v2",
-      "usage.reservations.v2",
+      "workflow.request",
+      "context.snapshots",
+      "state.atomic",
+      "models.structured",
+      "usage.reservations",
     ],
   },
   tools: [
@@ -205,7 +205,6 @@ export const controlPlane: ControlPlaneRuntimeModuleV2 = defineControlPlaneModul
   workflows: [
     {
       type: "document-review.summarize",
-      engine: "cloudflare",
       label: "Summarize document",
       description:
         "Use the configured model with validated output and reserved workspace usage; skip unchanged evidence.",
@@ -303,7 +302,6 @@ export const controlPlane: ControlPlaneRuntimeModuleV2 = defineControlPlaneModul
     },
     {
       type: "document-review.review",
-      engine: "cloudflare",
       label: "Review document",
       description: "Record word count and detect unchanged input without a model call.",
       inputSchema: {
@@ -510,7 +508,6 @@ export const controlPlane: ControlPlaneRuntimeModuleV2 = defineControlPlaneModul
     },
     {
       type: "document-review.simulate",
-      engine: "cloudflare",
       label: "Simulate review",
       description: "Commit a review, decision and simulated effect atomically.",
       inputSchema: {

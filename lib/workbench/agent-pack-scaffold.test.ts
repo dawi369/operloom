@@ -16,7 +16,7 @@ describe("Agent Pack scaffold", () => {
     expect(source).toContain('id: "trade-watcher"');
     expect(source).toContain("externalMutation: false");
     expect(source).toContain('executionModes: ["dry_run"]');
-    expect(source).toContain('minimumWorkbenchVersion: "0.5.0"');
+    expect(source).toContain('minimumWorkbenchVersion: "2.0.0"');
     expect(source).toContain(JSON.stringify(renderAgentPackPrompt("Trade Watcher")));
   });
 
@@ -30,7 +30,7 @@ describe("Agent Pack scaffold", () => {
   });
 
   it("adds one package entry to workbench config and rejects duplicate registration", () => {
-    const registry = `export default defineWorkbenchConfig({\n  runtimeApiVersion: 1,\n  workbenchVersion: "0.5.0",\n  modules: [\n  ],\n});\n`;
+    const registry = `export default defineWorkbenchConfig({\n  runtimeApiVersion: 2,\n  workbenchVersion: "2.0.0",\n  modules: [\n  ],\n});\n`;
     const updated = registerAgentPackSource(registry, "trade-watcher");
 
     expect(updated).toContain('package: "@operloom/pack-trade-watcher"');

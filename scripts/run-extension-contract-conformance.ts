@@ -193,8 +193,8 @@ const main = async () => {
     `import { defineWorkbenchConfig } from "@operloom/agent-sdk";
 
 export default defineWorkbenchConfig({
-  runtimeApiVersion: 1,
-  workbenchVersion: "0.5.0",
+  runtimeApiVersion: 2,
+  workbenchVersion: "2.0.0",
   modules: [{ package: "@operloom/pack-complex-operator" }],
 });
 `,

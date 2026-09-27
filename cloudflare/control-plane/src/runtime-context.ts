@@ -6,7 +6,7 @@ import {
   type RuntimeContextPort,
   type RuntimeRecord,
   type AgentExecutionContext,
-  type AnyControlPlaneRuntimeModule,
+  type ControlPlaneRuntimeModule,
 } from "@operloom/agent-sdk";
 import { agentControlPlaneRegistry } from "../../../generated/agent-runtime/control-plane";
 import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
@@ -37,8 +37,7 @@ const frozen = <T>(value: T): T => {
   return value;
 };
 export const contextIsRequired = (runtime: ReturnType<typeof resolvePackRuntime>) =>
-  runtime.runnable &&
-  runtime.controlPlane.requirements.capabilities.includes("context.snapshots.v2");
+  runtime.runnable && runtime.controlPlane.requirements.capabilities.includes("context.snapshots");
 
 /** One capture per logical step (or legacy run). Retries retain evidence; later steps recapture it. */
 export const captureRuntimeContext = async (
@@ -67,14 +66,13 @@ export const captureRuntimeContext = async (
   if (!pack) return undefined;
   const runtime = resolvePackRuntime(pack.id, pack.version);
   if (!runtime.runnable) {
-    // Historical agents without executable v2 context retain the v1 chat contract.
+    // Unrunnable runtimes may still chat unless they require context.
     const saved = JSON.parse(agent.data_json).runtimeModuleSnapshot;
     const installed = agentControlPlaneRegistry[pack.id as keyof typeof agentControlPlaneRegistry]
-      ?.module as AnyControlPlaneRuntimeModule | undefined;
+      ?.module as ControlPlaneRuntimeModule | undefined;
     if (
-      saved?.requirements?.capabilities?.includes("context.snapshots.v2") ||
-      (installed?.apiVersion === 2 &&
-        installed.requirements.capabilities.includes("context.snapshots.v2"))
+      saved?.requirements?.capabilities?.includes("context.snapshots") ||
+      installed?.requirements.capabilities.includes("context.snapshots")
     )
       return fail(
         "context_runtime_unavailable",
@@ -388,7 +386,7 @@ export const agentRequiresRuntimeContext = (agent: AgentRow) => {
     pack &&
     (contextIsRequired(resolvePackRuntime(pack.id, pack.version)) ||
       JSON.parse(agent.data_json).runtimeModuleSnapshot?.requirements?.capabilities?.includes(
-        "context.snapshots.v2",
+        "context.snapshots",
       )),
   );
 };

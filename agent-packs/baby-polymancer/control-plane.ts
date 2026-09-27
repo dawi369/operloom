@@ -111,6 +111,7 @@ export const controlPlane = defineControlPlaneModule({
   packId: "baby-polymancer",
   runtimeVersion: "1.1.1",
   compatiblePackVersions: "^1.1.0",
+  requirements: { minimumBackendVersion: "2.0.0", capabilities: ["workflow.request"] },
   tools: [
     {
       id: "polymarket.market.search",
@@ -178,7 +179,6 @@ export const controlPlane = defineControlPlaneModule({
   workflows: [
     {
       type: "polymancer.market_research",
-      engine: "cloudflare",
       label: "Market research",
       description: "Search public Polymarket markets and write a compact report.",
       inputSchema: {

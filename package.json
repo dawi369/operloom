@@ -1,6 +1,6 @@
 {
   "name": "operloom",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Build and run agent systems you own. TypeScript workflows, durable execution, approvals, and an inspectable workspace.",
   "homepage": "https://github.com/dawi369/operloom#readme",
@@ -90,7 +90,7 @@
     "agent-packs:test": "tsx scripts/test-agent-pack.ts",
     "agent-packs:check": "tsx scripts/check-agent-pack.ts",
     "agent-sdk:build": "pnpm --filter @operloom/agent-sdk build",
-    "agent-sdk:verify": "pnpm agent-sdk:build && tsx scripts/verify-agent-sdk-consumer.ts && tsx scripts/verify-agent-sdk-consumer.ts --v2 && tsx scripts/verify-agent-sdk-consumer.ts --document-review && tsx scripts/verify-agent-sdk-consumer.ts --provider-operations",
+    "agent-sdk:verify": "pnpm agent-sdk:build && tsx scripts/verify-agent-sdk-consumer.ts && tsx scripts/verify-agent-sdk-consumer.ts --document-review && tsx scripts/verify-agent-sdk-consumer.ts --provider-operations",
     "agent-sdk:contract": "pnpm agent-sdk:build && tsx scripts/check-agent-sdk-contract.ts",
     "workbench-client:build": "pnpm --filter @operloom/workbench-client build && pnpm --filter @operloom/workbench-react build",
     "workbench-client:pack": "pnpm workbench-client:build && tsx scripts/pack-workbench-client.ts",

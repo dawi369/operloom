@@ -182,8 +182,7 @@ export type RuntimeToolBinding = {
   };
   action?:
     | ({
-        /** V1 omissions retain external semantics. V2 action bindings name their target. */
-        target?: "external";
+        target: "external";
         connectionId?: string;
         proposalSchema: JsonSchema;
         resultSchema: JsonSchema;
@@ -229,9 +228,8 @@ export type RuntimeToolBinding = {
 
 export type RuntimeWorkflowBinding = {
   type: string;
-  /** v2 only. Default simulation preserves existing package state scopes. */
+  /** Typed-state scope for workflow commits; defaults to simulation. */
   stateTarget?: "simulation" | "external";
-  engine: "cloudflare";
   label: string;
   runDisplayName?: string;
   description: string;
@@ -245,7 +243,6 @@ export type RuntimeWorkflowBinding = {
     physicalAbort: "unsupported" | "best_effort";
   };
   smokeCommand?: string;
-  /** Opt-in v2 durable execution. Request-mode execute remains a separate compatibility path. */
   durable?: import("./durable.js").RuntimeDurableWorkflow;
   normalizeInput?: (input: RuntimeRecord) => RuntimeRecord;
   execute?: (
@@ -267,19 +264,23 @@ export type RuntimeEvalBinding = {
 };
 
 export type ControlPlaneRuntimeModule = {
-  apiVersion: 1;
+  apiVersion: 2;
   kind: "agent_control_plane_module";
   packId: string;
   runtimeVersion: string;
   compatiblePackVersions: string;
+  requirements: import("./capabilities.js").RuntimeRequirements;
   tools: readonly RuntimeToolBinding[];
   workflows: readonly RuntimeWorkflowBinding[];
   health: readonly RuntimeHealthBinding[];
   evals: readonly RuntimeEvalBinding[];
+  context?: readonly import("./context.js").RuntimeContextBinding[];
+  state?: readonly import("./state.js").RuntimeStateDefinition[];
+  stateMigrations?: readonly import("./state.js").RuntimeStateMigration[];
 };
 
 export type RunnerRuntimeModule = {
-  apiVersion: 1;
+  apiVersion: 2;
   kind: "agent_runner_module";
   packId: string;
   runtimeVersion: string;
@@ -311,7 +312,7 @@ export type ManagedStateRendererProps = {
 };
 
 export type WebRuntimeModule = {
-  apiVersion: 1;
+  apiVersion: 2;
   kind: "agent_web_module";
   packId: string;
   runtimeVersion: string;
@@ -322,7 +323,7 @@ export type WebRuntimeModule = {
 
 export type AgentModulePackage = {
   manifest: LocalAgentPackManifest;
-  controlPlane?: import("./runtime-v2.js").AnyControlPlaneRuntimeModule;
+  controlPlane?: ControlPlaneRuntimeModule;
   runner?: RunnerRuntimeModule;
   web?: WebRuntimeModule;
 };
@@ -332,9 +333,9 @@ export const defineControlPlaneModule = <
 >(
   value: T,
 ): T & Pick<ControlPlaneRuntimeModule, "apiVersion" | "kind"> => ({
-  apiVersion: 1,
-  kind: "agent_control_plane_module",
   ...value,
+  apiVersion: 2,
+  kind: "agent_control_plane_module",
 });
 
 export const defineRunnerModule = <
@@ -342,17 +343,17 @@ export const defineRunnerModule = <
 >(
   value: T,
 ): T & Pick<RunnerRuntimeModule, "apiVersion" | "kind"> => ({
-  apiVersion: 1,
-  kind: "agent_runner_module",
   ...value,
+  apiVersion: 2,
+  kind: "agent_runner_module",
 });
 
 export const defineWebModule = <const T extends Omit<WebRuntimeModule, "apiVersion" | "kind">>(
   value: T,
 ): T & Pick<WebRuntimeModule, "apiVersion" | "kind"> => ({
-  apiVersion: 1,
-  kind: "agent_web_module",
   ...value,
+  apiVersion: 2,
+  kind: "agent_web_module",
 });
 
 export const defaultConnectionPort = (

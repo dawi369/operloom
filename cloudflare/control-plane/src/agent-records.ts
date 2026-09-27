@@ -241,8 +241,7 @@ export const insertAgent = async (
     ? resolvePackRuntime(behavior.pack.id, behavior.pack.version)
     : undefined;
   const runtimeModuleSnapshot =
-    module?.runnable &&
-    module.controlPlane.requirements.capabilities.includes("context.snapshots.v2")
+    module?.runnable && module.controlPlane.requirements.capabilities.includes("context.snapshots")
       ? { runtimeVersion: module.runtimeVersion, requirements: module.controlPlane.requirements }
       : undefined;
   const result = (await env.DB.prepare(

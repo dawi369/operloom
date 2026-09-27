@@ -93,6 +93,7 @@ export const controlPlane = defineControlPlaneModule({
   packId: "repo-analyst",
   runtimeVersion: "1.1.0",
   compatiblePackVersions: "^1.2.0",
+  requirements: { minimumBackendVersion: "2.0.0", capabilities: ["workflow.request"] },
   tools: [
     {
       id: "repo.snapshot",
@@ -188,7 +189,6 @@ export const controlPlane = defineControlPlaneModule({
   workflows: [
     {
       type: "repo.readiness_report",
-      engine: "cloudflare",
       label: "Readiness report",
       runDisplayName: "Repository readiness report",
       description: "Inspect repository structure and produce a bounded readiness report.",

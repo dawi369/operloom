@@ -3,7 +3,7 @@
   "runtimeSchemas": [
     {
       "path": "workbench-client/src/response-schemas.ts",
-      "sha256": "2cf4858fdf0782eb3625b2257f874480db04928e4b6f9bd44a5901dc6b4dacd3"
+      "sha256": "3aaa9ddc1e307caad7088b22d5ce51135a6833ade7699d59cf3a44fdfefc4a76"
     },
     {
       "path": "workbench-client/src/validation.ts",
@@ -41,7 +41,7 @@
   "packages": [
     {
       "name": "@operloom/workbench-client",
-      "version": "0.2.0",
+      "version": "2.0.0",
       "files": [
         {
           "path": "workbench-client/dist/chat.d.ts",
@@ -53,11 +53,11 @@
         },
         {
           "path": "workbench-client/dist/contracts/agents-chat.d.ts",
-          "sha256": "079620f13edeba0b24a9db8b6fa73caa58654ada54d5538be3da5a6b53e481e9"
+          "sha256": "388d8c171338b4abd8605c77971a7ffe273d7ce89710212f2bc6537431c434b9"
         },
         {
           "path": "workbench-client/dist/contracts/automation.d.ts",
-          "sha256": "970342e57f98bd7d17f36ecaf12ea1c90de268c22ea328bfecee5626091ffd0c"
+          "sha256": "d40703a2d9e62002365e007a85252293c8c8ae93111c76225e7c684c45df4c11"
         },
         {
           "path": "workbench-client/dist/contracts/execution.d.ts",
@@ -125,7 +125,7 @@
         },
         {
           "path": "workbench-client/dist/response-schemas.d.ts",
-          "sha256": "2c6c51926536354a7989a9faec8b6328253641aa0e7acd7dc15adf3760830184"
+          "sha256": "efb4770c936098fed65932bc48af8949a6b4fec9328d89e1a6e44e29f112b355"
         },
         {
           "path": "workbench-client/dist/runtime-client.d.ts",
@@ -139,7 +139,7 @@
     },
     {
       "name": "@operloom/workbench-react",
-      "version": "0.1.1",
+      "version": "2.0.0",
       "files": [
         {
           "path": "workbench-react/dist/index.d.ts",

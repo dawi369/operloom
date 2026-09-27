@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://operloom.dev/schemas/runtime-module-v2.schema.json",
-  "title": "Operloom Runtime Module v2 metadata",
+  "$id": "https://operloom.dev/schemas/runtime-module.schema.json",
+  "title": "Operloom Runtime Module metadata",
   "type": "object",
   "required": [
     "apiVersion",

@@ -243,7 +243,7 @@ export function WorkbenchCapabilitiesPanel({
                       key={workflow.type}
                       name={action?.label ?? workflow.type}
                       description={workflow.description ?? "Bounded workflow."}
-                      badge={`${workflow.engine} flow`}
+                      badge="workflow"
                       action={
                         action ? (
                           <Button

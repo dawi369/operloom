@@ -48,7 +48,7 @@ describe("agent pack developer loop", () => {
     expect(() => JSON.stringify(localAgentPacks)).not.toThrow();
   });
 
-  it("validates executable v2 extension descriptors with default authority disabled", () => {
+  it("validates executable extension descriptors with default authority disabled", () => {
     const pack = withPack({
       managedState: [
         {
@@ -232,7 +232,6 @@ describe("agent pack developer loop", () => {
       workflows: [
         {
           type: "missing.workflow",
-          engine: "cloudflare",
           status: "declared",
           userInvocable: true,
           description: "Missing route binding for test.",

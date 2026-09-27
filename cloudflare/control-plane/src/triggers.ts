@@ -164,9 +164,7 @@ export const resolveCheckedInTrigger = async (
     !snapshotTrigger ||
     !snapshotWorkflow ||
     !binding ||
-    binding.requiredPackId !== pack.id ||
-    binding.engine !== workflow.engine ||
-    binding.engine !== snapshotWorkflow.engine
+    binding.requiredPackId !== pack.id
   )
     return null;
   const config =
@@ -258,7 +256,6 @@ export const handleCreateTrigger = async (request: Request, env: Env, identity: 
       env.WORKBENCH_DURABLE_WORKFLOWS_ENABLED !== "true" ||
       !env.DURABLE_WORKFLOWS ||
       !runtime.runnable ||
-      runtime.controlPlane.apiVersion !== 2 ||
       !runtime.controlPlane.workflows.find(
         (workflow) => workflow.type === declared.trigger.workflowType,
       )?.durable

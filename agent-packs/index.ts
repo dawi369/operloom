@@ -1,6 +1,5 @@
 import type { LocalAgentPackManifest } from "./types";
 import { agentPackProfiles, agentPackToolInvocations } from "./types";
-import { packWorkflowBindings } from "../lib/agent-runtime/registry";
 import { agentManifestRegistry } from "../generated/agent-runtime/manifests";
 
 export const localAgentPacks = Object.values(agentManifestRegistry)
@@ -198,9 +197,6 @@ export const validateLocalAgentPack = (pack: LocalAgentPackManifest) => {
   const workflowTypes = new Set(pack.workflows.map((workflow) => workflow.type));
   for (const workflow of pack.workflows) {
     if (!workflow.type.trim()) throw new Error(`Agent pack ${pack.id} workflow type is required.`);
-    if (workflow.engine !== "cloudflare") {
-      throw new Error(`Agent pack ${pack.id} workflow ${workflow.type} engine is invalid.`);
-    }
     if (workflow.status !== "declared") {
       throw new Error(`Agent pack ${pack.id} workflow ${workflow.type} must be declared.`);
     }
@@ -209,12 +205,6 @@ export const validateLocalAgentPack = (pack: LocalAgentPackManifest) => {
     }
     if (!workflow.description.trim()) {
       throw new Error(`Agent pack ${pack.id} workflow ${workflow.type} description is required.`);
-    }
-    const binding = packWorkflowBindings[workflow.type as keyof typeof packWorkflowBindings];
-    if (binding && binding.engine !== workflow.engine) {
-      throw new Error(
-        `Agent pack ${pack.id} workflow ${workflow.type} engine must match registered binding ${binding.engine}.`,
-      );
     }
   }
   requireUnique(

@@ -195,8 +195,6 @@ const providerFixture = async (signed = false) => {
     ...original,
     controlPlane: {
       ...original.controlPlane,
-      apiVersion: 2,
-      requirements: { minimumBackendVersion: "1.0.0", capabilities: ["runtime.module.v2"] },
       state: capacityDefinitions,
       tools: original.controlPlane.tools.map((tool) => (tool.id === binding.id ? binding : tool)),
     },

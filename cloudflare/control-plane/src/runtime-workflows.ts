@@ -99,7 +99,7 @@ export const listRuntimeWorkflows = async (env: Env, identity: AgentIdentity) =>
   }
   if (
     runtime.controlPlane.requirements.capabilities.some((capability) =>
-      ["state.atomic.v2", "state.migrations.v2"].includes(capability),
+      ["state.atomic", "state.migrations"].includes(capability),
     ) &&
     env.WORKBENCH_TYPED_STATE_ENABLED !== "true"
   ) {
@@ -145,7 +145,6 @@ export const listRuntimeWorkflows = async (env: Env, identity: AgentIdentity) =>
         type: workflow.type,
         label: workflow.label,
         description: workflow.description,
-        engine: workflow.engine,
         inputSchema: workflow.inputSchema,
         outputSchema: workflow.outputSchema,
         toolIds: workflow.toolIds,
@@ -188,9 +187,8 @@ export const executeRuntimeWorkflowRequest = async (
     );
   }
   if (
-    runtime.controlPlane.apiVersion === 2 &&
     runtime.controlPlane.requirements.capabilities.some((capability) =>
-      ["state.atomic.v2", "state.migrations.v2"].includes(capability),
+      ["state.atomic", "state.migrations"].includes(capability),
     ) &&
     env.WORKBENCH_TYPED_STATE_ENABLED !== "true"
   ) {
@@ -383,7 +381,7 @@ export const executeRuntimeWorkflowRequest = async (
     packId: pack.id,
     toolInput: input,
     executionMode: "dry_run",
-    engine: workflow.engine,
+    engine: "cloudflare",
     invocation,
     runtimeMetadata: {
       packVersion: pack.version,
@@ -480,7 +478,7 @@ export const executeRuntimeWorkflowRequest = async (
     }),
     tools: { invoke: invokeTool },
     state:
-      runtime.controlPlane.apiVersion === 2 && env.WORKBENCH_TYPED_STATE_ENABLED === "true"
+      env.WORKBENCH_TYPED_STATE_ENABLED === "true"
         ? await createRuntimeStatePort(env, identity, {
             packId: pack.id,
             target: workflow.stateTarget ?? "simulation",
@@ -556,7 +554,7 @@ export const executeRuntimeWorkflowRequest = async (
               });
           }
         }
-        if (runtime.controlPlane.requirements.capabilities.includes("models.structured.v2"))
+        if (runtime.controlPlane.requirements.capabilities.includes("models.structured"))
           context.models = createRuntimeModelPort(env, identity, {
             runId: started.runId,
             signal: controller.signal,
@@ -626,7 +624,7 @@ export const executeRuntimeWorkflowRequest = async (
         id: started.runId,
         workflowIntentId: started.workflowIntentId,
         status: result.ok ? "completed" : blocked ? "blocked" : "failed",
-        engine: workflow.engine,
+        engine: "cloudflare",
         workflowType,
         runtimeVersion: runtime.runtimeVersion,
       },

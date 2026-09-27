@@ -26,12 +26,12 @@ describe("pack workflow bindings", () => {
     const controlPlane = agentControlPlaneRegistry["repo-analyst"].module;
     expect(
       resolveRuntimeCompatibility({
-        workbenchVersion: "0.5.0",
+        workbenchVersion: "2.0.0",
         packVersion: manifest.version,
         manifest: {
           compatibility: {
             ...manifest.compatibility,
-            minimumWorkbenchVersion: "0.6.0",
+            minimumWorkbenchVersion: "2.1.0",
           },
         },
         controlPlane,
@@ -42,7 +42,6 @@ describe("pack workflow bindings", () => {
     expect(
       resolvePackWorkflowBinding({
         type: "polymancer.market_research",
-        engine: "cloudflare",
         status: "declared",
         description: "Market research",
       }),
@@ -57,7 +56,6 @@ describe("pack workflow bindings", () => {
     expect(
       resolvePackWorkflowBinding({
         type: "swordfish.runtime_research",
-        engine: "cloudflare",
         status: "declared",
         description: "Runtime research",
       }),
@@ -72,7 +70,6 @@ describe("pack workflow bindings", () => {
     expect(
       resolvePackWorkflowBinding({
         type: "example.future_workflow",
-        engine: "cloudflare",
         status: "declared",
         description: "Future workflow",
       }),
@@ -80,7 +77,6 @@ describe("pack workflow bindings", () => {
       runnable: false,
       workflow: {
         type: "example.future_workflow",
-        engine: "cloudflare",
         status: "declared",
         description: "Future workflow",
       },

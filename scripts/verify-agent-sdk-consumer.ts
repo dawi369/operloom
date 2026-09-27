@@ -26,32 +26,23 @@ const main = async () => {
   const root = process.cwd();
   const documentReview = process.argv.includes("--document-review");
   const providerOperations = process.argv.includes("--provider-operations");
-  const v2 = documentReview || providerOperations || process.argv.includes("--v2");
   const fixture = providerOperations
     ? "provider-operation-fixture"
     : documentReview
       ? "pack-document-review"
-      : v2
-        ? "external-agent-v2-fixture"
-        : "external-agent-fixture";
+      : "external-agent-fixture";
   const fixtureDirectory = providerOperations
     ? resolve(root, "tests/fixtures/provider-operation-package")
     : documentReview
       ? resolve(root, "examples/document-review")
-      : resolve(
-          root,
-          "tests/fixtures",
-          v2 ? "external-agent-v2-package" : "external-agent-package",
-        );
+      : resolve(root, "tests/fixtures/external-agent-package");
   const output = resolve(
     root,
     providerOperations
       ? "output/sdk-consumer-provider-operations"
       : documentReview
         ? "output/sdk-consumer-document-review"
-        : v2
-          ? "output/sdk-consumer-v2"
-          : "output/sdk-consumer",
+        : "output/sdk-consumer",
   );
   const consumer = resolve(output, "consumer");
   rmSync(output, { recursive: true, force: true });
@@ -73,9 +64,8 @@ const main = async () => {
     "package/dist/runner.d.ts",
     "package/dist/web.js",
     "package/dist/web.d.ts",
-    "package/schemas/agent-pack-v2.schema.json",
-    "package/schemas/runtime-module-v1.schema.json",
-    "package/schemas/runtime-module-v2.schema.json",
+    "package/schemas/agent-pack.schema.json",
+    "package/schemas/runtime-module.schema.json",
     "package/README.md",
   ]) {
     if (!sdkArchiveEntries.includes(required)) {
@@ -150,9 +140,7 @@ import { defineControlPlaneModule } from "@operloom/agent-sdk/control-plane";
 import { defineRunnerModule } from "@operloom/agent-sdk/runner";
 import { defineWebModule } from "@operloom/agent-sdk/web";
 void [defineWorkbenchConfig, defineAgentPack, defineControlPlaneModule, defineRunnerModule, defineWebModule];
-${
-  v2
-    ? `
+
 import type { RuntimeToolBinding } from "@operloom/agent-sdk/control-plane";
 const providerAction: NonNullable<RuntimeToolBinding["action"]> = {
   target: "external", connectionId: "capacity.service", proposalSchema: { type: "object" },
@@ -160,9 +148,6 @@ const providerAction: NonNullable<RuntimeToolBinding["action"]> = {
   providerOperation: { id: "capacity.allocate", version: "1" },
 };
 void providerAction;
-`
-    : ""
-}
 `,
   );
   writeFileSync(
@@ -189,8 +174,8 @@ void providerAction;
     `import { defineWorkbenchConfig } from "@operloom/agent-sdk";
 
 export default defineWorkbenchConfig({
-  runtimeApiVersion: 1,
-  workbenchVersion: "${v2 ? "1.0.0" : "0.5.0"}",
+  runtimeApiVersion: 2,
+  workbenchVersion: "2.0.0",
   modules: [{ package: "@operloom/${fixture}" }],
 });
 `,

@@ -70,7 +70,6 @@ describe("createWorkbenchClient", () => {
           {
             type: "operator.inspect",
             label: "Inspect",
-            engine: "cloudflare",
             inputSchema: { type: "object" },
             outputSchema: { type: "object" },
             toolIds: [],

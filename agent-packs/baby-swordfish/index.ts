@@ -127,7 +127,7 @@ export const babySwordfishPack = defineAgentPack({
       required: true,
     },
   ],
-  compatibility: { packApi: 2, minimumWorkbenchVersion: "0.5.0" },
+  compatibility: { packApi: 2, minimumWorkbenchVersion: "2.0.0" },
   resourceLimits: {
     maxRunSeconds: 30,
     maxToolCallsPerRun: 6,

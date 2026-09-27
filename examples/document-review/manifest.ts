@@ -23,21 +23,18 @@ export const manifest = defineAgentPack({
   workflows: [
     {
       type: "document-review.simulate",
-      engine: "cloudflare",
       status: "declared",
       userInvocable: true,
       description: "Simulate a review with atomic state, decision and effect receipts.",
     },
     {
       type: "document-review.summarize",
-      engine: "cloudflare",
       status: "declared",
       userInvocable: true,
       description: "Summarize scoped document evidence using a budgeted structured model call.",
     },
     {
       type: "document-review.review",
-      engine: "cloudflare",
       status: "declared",
       userInvocable: true,
       description: "Count words and record whether document content changed.",
@@ -99,7 +96,7 @@ export const manifest = defineAgentPack({
   artifactRenderers: [],
   healthChecks: [],
   evals: [],
-  compatibility: { packApi: 2, minimumWorkbenchVersion: "1.0.0" },
+  compatibility: { packApi: 2, minimumWorkbenchVersion: "2.0.0" },
   resourceLimits: {
     maxRunSeconds: 15,
     maxToolCallsPerRun: 1,

@@ -1,6 +1,6 @@
 {
   "name": "@operloom/workbench-react",
-  "version": "0.1.1",
+  "version": "2.0.0",
   "private": true,
   "description": "React query bindings for the Operloom workbench client.",
   "license": "PolyForm-Noncommercial-1.0.0",

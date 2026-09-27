@@ -4,6 +4,7 @@ export const controlPlane = defineControlPlaneModule({
   packId: "operloom",
   runtimeVersion: "1.0.0",
   compatiblePackVersions: "^1.0.0",
+  requirements: { minimumBackendVersion: "2.0.0", capabilities: [] },
   tools: [],
   workflows: [],
   health: [],

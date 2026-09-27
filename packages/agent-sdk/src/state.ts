@@ -59,7 +59,7 @@ export const requireRuntimeState = (context: AgentExecutionContext): RuntimeStat
   if (!context.state)
     throw Object.assign(
       new Error(
-        "This execution does not provide typed state. Require state.atomic.v2 in the package.",
+        "This execution does not provide typed state. Require state.atomic in the package.",
       ),
       { code: "runtime_capability_missing" },
     );

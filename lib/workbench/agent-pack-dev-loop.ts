@@ -37,7 +37,6 @@ export type AgentPackRuntimeToolBinding = {
 export type AgentPackRuntimeWorkflowBinding = {
   type: string;
   registered: boolean;
-  engine: string;
   workerRoute?: string;
   vercelRoute?: string;
   smokeCommand?: string;
@@ -106,7 +105,6 @@ export const knownAgentPackWorkflowBindings: Record<
   Object.values(packWorkflowBindings).map((binding) => [
     binding.workflowType,
     {
-      engine: binding.engine,
       workerRoute: binding.workerRoute,
       vercelRoute: binding.route,
       smokeCommand: binding.smokeCommand,
@@ -435,7 +433,6 @@ export const inspectAgentPackForDeveloperLoop = (
         type: workflow.type,
         registered: Boolean(binding),
         ...binding,
-        engine: workflow.engine,
       };
     }),
     validation,

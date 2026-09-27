@@ -1,4 +1,4 @@
-import { defineControlPlaneModuleV2 } from "@operloom/agent-sdk/control-plane";
+import { defineControlPlaneModule } from "@operloom/agent-sdk/control-plane";
 
 const proposalSchema = {
   type: "object",
@@ -9,13 +9,13 @@ const proposalSchema = {
     units: { type: "integer", minimum: 1, maximum: 1000000 },
   },
 };
-export const controlPlane = defineControlPlaneModuleV2({
+export const controlPlane = defineControlPlaneModule({
   packId: "provider-operation-fixture",
   runtimeVersion: "1.0.0",
   compatiblePackVersions: "^1.0.0",
   requirements: {
-    minimumBackendVersion: "1.0.0",
-    capabilities: ["runtime.module.v2", "state.atomic.v2"],
+    minimumBackendVersion: "2.0.0",
+    capabilities: ["workflow.request", "state.atomic"],
   },
   state: [
     {
@@ -66,7 +66,6 @@ export const controlPlane = defineControlPlaneModuleV2({
     {
       type: "capacity.request",
       stateTarget: "external",
-      engine: "cloudflare",
       label: "Propose allocation",
       description: "Propose capacity with an explicit operator review.",
       inputSchema: {
@@ -118,7 +117,6 @@ export const controlPlane = defineControlPlaneModuleV2({
     {
       type: "capacity.seed",
       stateTarget: "external",
-      engine: "cloudflare",
       label: "Initialize capacity",
       description: "Initialize a canonical external capacity record.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
@@ -149,7 +147,6 @@ export const controlPlane = defineControlPlaneModuleV2({
     {
       type: "capacity.project",
       stateTarget: "external",
-      engine: "cloudflare",
       label: "Project allocation",
       description: "Project a recorded provider result without submitting an allocation.",
       inputSchema: {

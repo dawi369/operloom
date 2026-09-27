@@ -116,7 +116,7 @@ export const operloomPack = defineAgentPack({
   ],
   compatibility: {
     packApi: 2,
-    minimumWorkbenchVersion: "0.5.0",
+    minimumWorkbenchVersion: "2.0.0",
   },
   resourceLimits: {
     maxRunSeconds: 30,

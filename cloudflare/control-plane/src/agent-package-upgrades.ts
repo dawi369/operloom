@@ -221,7 +221,7 @@ export const handleAgentPackageUpgrade = async (
       "The destination requires enabled typed state",
     );
   if (
-    runtime.controlPlane.requirements.capabilities.includes("context.snapshots.v2") &&
+    runtime.controlPlane.requirements.capabilities.includes("context.snapshots") &&
     env.WORKBENCH_CONTEXT_ENABLED !== "true"
   )
     return failure(

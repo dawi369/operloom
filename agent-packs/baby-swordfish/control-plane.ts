@@ -4,6 +4,7 @@ export const controlPlane = defineControlPlaneModule({
   packId: "baby-swordfish",
   runtimeVersion: "1.1.0",
   compatiblePackVersions: "^1.2.0",
+  requirements: { minimumBackendVersion: "2.0.0", capabilities: [] },
   tools: [],
   workflows: [],
   health: [

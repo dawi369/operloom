@@ -102,7 +102,6 @@ export type AgentPackDeclaredTool = {
 
 export type AgentPackWorkflow = {
   type: string;
-  engine: "cloudflare";
   status: "declared";
   userInvocable: boolean;
   description: string;

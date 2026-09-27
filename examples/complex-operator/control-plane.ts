@@ -70,6 +70,7 @@ const controlPlaneDefinition: Omit<ControlPlaneRuntimeModule, "apiVersion" | "ki
   packId: "complex-operator",
   runtimeVersion: "1.2.3",
   compatiblePackVersions: "^1.1.0",
+  requirements: { minimumBackendVersion: "2.0.0", capabilities: ["workflow.request"] },
   tools: [
     {
       id: "operator.signal.read",
@@ -168,6 +169,7 @@ const controlPlaneDefinition: Omit<ControlPlaneRuntimeModule, "apiVersion" | "ki
       },
       policy: mutationPolicy,
       action: {
+        target: "external",
         connectionId: "operator.external-account",
         proposalSchema: {
           type: "object",
@@ -261,7 +263,6 @@ const controlPlaneDefinition: Omit<ControlPlaneRuntimeModule, "apiVersion" | "ki
   workflows: [
     {
       type: "complex-operator.observe",
-      engine: "cloudflare",
       label: "Observe system",
       description: "Combine inline and signed-runner evidence into a report.",
       inputSchema: {
@@ -331,7 +332,6 @@ const controlPlaneDefinition: Omit<ControlPlaneRuntimeModule, "apiVersion" | "ki
     },
     {
       type: "complex-operator.status",
-      engine: "cloudflare",
       label: "Check operator status",
       description: "Exercise a second isolated workflow with explicit conformance input.",
       inputSchema: {

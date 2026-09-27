@@ -35,7 +35,6 @@ describe("agent slash actions", () => {
         workflows: [
           {
             type: "future.research",
-            engine: "cloudflare",
             status: "declared",
             description: "Future research workflow",
           },
