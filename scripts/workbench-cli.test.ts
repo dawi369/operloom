@@ -5,6 +5,10 @@ import { resolveWorkbenchCommand } from "./workbench-cli";
 describe("workbench command facade", () => {
   it("maps the task-oriented developer commands onto stable package scripts", () => {
     expect(resolveWorkbenchCommand(["dev"])).toEqual({ script: "workbench:dev", args: [] });
+    expect(resolveWorkbenchCommand(["start"])).toEqual({
+      script: "workbench:dev",
+      args: ["--production"],
+    });
     expect(resolveWorkbenchCommand(["doctor", "--offline"])).toEqual({
       script: "workbench:doctor",
       args: ["--offline"],
