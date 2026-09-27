@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Chat stack on AI SDK 7 (`ai` 7, `@openrouter/ai-sdk-provider` 3), `agents`
+  0.24, `@cloudflare/ai-chat` 0.12 and assistant-ui 0.15; verified by
+  `verify:fast`, `conformance:runtime` and the local release browser suite.
 - Model-visible chat tools receive the typed state port for the agent's current
   effect target, so chat commands can record package state.
 - `createPackTestRuntime` (`cloudflare/control-plane/src/pack-test-runtime.ts`)
