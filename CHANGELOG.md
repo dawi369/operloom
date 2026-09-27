@@ -1,5 +1,32 @@
 # Changelog
 
+## Polymancer 1.0.0 (fork)
+
+Local acceptance on 2026-09-27, `pnpm operloom dev` on macOS (Worker 8787,
+signed runner 3101, console 3000, minute scheduler), local API auth with a fresh
+user, real OpenRouter model:
+
+- Health: Worker, runner and console `/api/health` return 200.
+- Bootstrap: the workspace gets exactly one agent, Polymancer, with effect
+  target `simulation`.
+- Settings: strategy and `maxPositionUsd` saved (version 1) and pinned on every
+  later run.
+- Simulated order: `polymancer.copy.start` tracks the wallet; `copy.sync` with
+  one fixture trade records one paper fill; the replay is a duplicate.
+- Queries: `polymancer.portfolio` returns cash 990.70, exposure 9.30 and one
+  position; `polymancer.operator-state` lists the copied activity.
+- Chat: thread create and a turn complete over the session SSE stream; the
+  model answers holdings and strategy from recorded evidence.
+- Monitors: `heartbeat` and `wallet-activity` dispatched by the scheduler and
+  completed; the wallet monitor reads live Polymarket activity; the heartbeat
+  records a `noop` decision with its settings version and context snapshot.
+- Found and fixed upstream: request-mode monitor ticks failed with
+  `trigger_input_invalid`.
+
+Not covered locally: WorkOS Google sign-in (the local stack uses local API auth,
+which the console only allows under `NODE_ENV=development`), live market quotes
+for the heartbeat, and live order placement (fails closed outside simulation).
+
 ## Unreleased
 
 - Model-visible chat tools receive the typed state port for the agent's current

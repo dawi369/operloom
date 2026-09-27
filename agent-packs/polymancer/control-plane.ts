@@ -29,7 +29,7 @@ import {
   type MarketQuote,
   type PositionState,
   type WalletActivity,
-} from "./domain.js";
+} from "./domain";
 
 const namespace = "polymancer";
 const key = (kind: string, recordKey: string) => ({ namespace, kind, key: recordKey });
