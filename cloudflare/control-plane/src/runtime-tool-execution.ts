@@ -15,7 +15,7 @@ import {
   runnerMetadataFor,
   type ToolRunnerSandboxContract,
 } from "./tool-runner";
-import type { AgentIdentity, Env } from "./types";
+import { effectTargetOf, type AgentIdentity, type Env } from "./types";
 import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import { bindRuntimeContext, captureRuntimeContext, contextIsRequired } from "./runtime-context";
 import {
@@ -111,7 +111,7 @@ export const executeRuntimeToolBinding = async (input: {
         durableAttempt: execution.durableAttempt,
         runKind: "workflow",
         input: input.toolInput,
-        target: "simulation",
+        target: effectTargetOf(input.identity),
         signal: AbortSignal.any([input.context.signal, AbortSignal.timeout(binding.timeoutMs)]),
       });
       if (!evidence)

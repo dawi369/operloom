@@ -23,7 +23,11 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
-const identity: AgentIdentity = { scope: { userId: "u", workspaceId: "w" }, agentId: "a" };
+const identity: AgentIdentity = {
+  scope: { userId: "u", workspaceId: "w" },
+  agentId: "a",
+  effectTarget: "external",
+};
 const runtimeIdentity = {
   packId: "complex-operator",
   packVersion: manifest.version,
@@ -46,7 +50,7 @@ const fixture = async () => {
   db.exec(`INSERT INTO users(id,status,created_at,updated_at) VALUES ('u','active','now','now');
     INSERT INTO workspaces(id,account_id,account_source,name,status,created_by_user_id,created_at,updated_at) VALUES ('w','acct','local','Workspace','active','u','now','now');
     INSERT INTO memberships(id,user_id,workspace_id,role,status,created_at,updated_at) VALUES ('m','u','w','owner','active','now','now');
-    INSERT INTO agents(id,workspace_id,name,status,created_by_user_id,created_at,updated_at) VALUES ('a','w','Operator','active','u','now','now');
+    INSERT INTO agents(id,workspace_id,name,status,effect_target,created_by_user_id,created_at,updated_at) VALUES ('a','w','Operator','active','external','u','now','now');
     INSERT INTO control_retention_policies(user_id,workspace_id,created_at,updated_at,confirmed_at) VALUES ('u','w','now','now','now');
     INSERT INTO control_connections(id,user_id,workspace_id,agent_id,pack_id,connection_id,provider_id,principal,credential_class,status,scopes_json,vault_object_id,vault_version,created_at,updated_at)
       VALUES ('connection','u','w','a','complex-operator','operator.external-account','test-provider','user','api_key','authorized','[]','test-vault-reference','1','now','now');`);

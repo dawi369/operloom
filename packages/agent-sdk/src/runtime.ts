@@ -228,8 +228,6 @@ export type RuntimeToolBinding = {
 
 export type RuntimeWorkflowBinding = {
   type: string;
-  /** Typed-state scope for workflow commits; defaults to simulation. */
-  stateTarget?: "simulation" | "external";
   label: string;
   runDisplayName?: string;
   description: string;

@@ -97,7 +97,7 @@
         },
         {
           "path": "client/dist/public-api.d.ts",
-          "sha256": "354234421bc2ba7cf6406aa45ac6e4a7185a4b1f001ce4a6221b27e97626927e"
+          "sha256": "5cfd321bfe3fd5d18102a8324dadf37b0cb203de3a9663a2f3098034077e06bc"
         },
         {
           "path": "client/dist/public-budget-contracts.d.ts",
@@ -129,7 +129,7 @@
         },
         {
           "path": "client/dist/runtime-client.d.ts",
-          "sha256": "7dba7a58aeffb04c0caf8f09316150c74e937678fe97ce70a60dc78c6e7894c1"
+          "sha256": "4a912ba8fd949be1a67ec3afc3d60d498625f5f806e6aab2675bb8b408e0a8e2"
         },
         {
           "path": "client/dist/validation.d.ts",

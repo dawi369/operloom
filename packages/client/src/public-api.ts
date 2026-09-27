@@ -44,6 +44,8 @@ export const publicApiRoutes = [
   ["GET", "/agents"],
   ["POST", "/agents"],
   ["POST", "/agents/{id}/activate"],
+  ["GET", "/agents/{id}/effect-target"],
+  ["PUT", "/agents/{id}/effect-target"],
   ["GET", "/agent-behavior-templates"],
   ["POST", "/agent-packs/{id}/instantiate"],
   ["GET", "/chat/runtime-summary"],

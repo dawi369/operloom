@@ -8,6 +8,7 @@ import {
   type AgentIdentity,
   type ControlActionProposalRow,
   type D1PreparedStatement,
+  type EffectTarget,
   type Env,
   type ToolPermissionRow,
 } from "./types";
@@ -148,10 +149,10 @@ export const createActionReview = async (
   const proposal = JSON.parse(row.proposal_json) as ActionProposal;
   const reads = validateActionPreconditions(proposal, row);
   const agent = await env.DB.prepare(
-    "SELECT runtime_revision,data_json FROM agents WHERE id=? AND workspace_id=? AND status='active'",
+    "SELECT runtime_revision,effect_target,data_json FROM agents WHERE id=? AND workspace_id=? AND status='active'",
   )
     .bind(identity.agentId, identity.scope.workspaceId)
-    .first<{ runtime_revision: number; data_json: string }>();
+    .first<{ runtime_revision: number; effect_target: EffectTarget; data_json: string }>();
   if (!agent || !input.permission)
     return fail("action_review_conflict", "Current agent and tool policy are required");
   const connection = row.connection_record_id
@@ -202,7 +203,7 @@ export const createActionReview = async (
     approvalId: input.approvalId,
     runId: input.runId,
     intentId: input.intentId,
-    stateScopeId: await runtimeStateScopeId(identity, row.pack_id, "external"),
+    stateScopeId: await runtimeStateScopeId(identity, row.pack_id, agent.effect_target),
     reads,
     permission: {
       id: input.permission.id,

@@ -48,6 +48,7 @@ export const handlePublicThreadOperation = async (
     accountSource: identity.accountSource,
     agentUpdatedAt: agent.updated_at,
     agentRevision: agent.runtime_revision ?? 0,
+    effectTarget: agent.effect_target ?? "simulation",
     threadId,
     sessionId: thread.session_id,
     instanceName,

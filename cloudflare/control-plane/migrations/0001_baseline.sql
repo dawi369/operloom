@@ -78,7 +78,8 @@ CREATE TABLE agents (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL, runtime_revision INTEGER NOT NULL DEFAULT 0
   CHECK (typeof(runtime_revision) = 'integer' AND runtime_revision >= 0 AND runtime_revision <= 9007199254740991), upgrade_validation_revision INTEGER NOT NULL DEFAULT 0
-  CHECK (typeof(upgrade_validation_revision) = 'integer' AND upgrade_validation_revision >= 0 AND upgrade_validation_revision <= 9007199254740991)
+  CHECK (typeof(upgrade_validation_revision) = 'integer' AND upgrade_validation_revision >= 0 AND upgrade_validation_revision <= 9007199254740991),
+  effect_target TEXT NOT NULL DEFAULT 'simulation' CHECK (effect_target IN ('simulation','external'))
 );
 
 CREATE UNIQUE INDEX idx_agents_workspace_default
@@ -2400,7 +2401,8 @@ BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
 CREATE TRIGGER agent_revision_control_run_insert
 BEFORE INSERT ON control_runs
 WHEN EXISTS (SELECT 1 FROM agents a WHERE a.id = NEW.agent_id AND a.workspace_id = NEW.workspace_id
-  AND (COALESCE(json_extract(NEW.data_json, '$.agentRevision'), 0) IS NOT a.runtime_revision))
+  AND (COALESCE(json_extract(NEW.data_json, '$.agentRevision'), 0) IS NOT a.runtime_revision
+    OR COALESCE(json_extract(NEW.data_json, '$.effectTarget'), 'simulation') IS NOT a.effect_target))
 BEGIN SELECT RAISE(ABORT, 'agent_runtime_revision_conflict'); END;
 
 CREATE TRIGGER agent_revision_control_run_resume
@@ -2413,7 +2415,8 @@ BEGIN SELECT RAISE(ABORT, 'agent_runtime_revision_conflict'); END;
 CREATE TRIGGER agent_revision_chat_run_insert
 BEFORE INSERT ON chat_runs
 WHEN EXISTS (SELECT 1 FROM agents a WHERE a.id = NEW.agent_id AND a.workspace_id = NEW.workspace_id
-  AND (COALESCE(json_extract(NEW.metadata_json, '$.agentRevision'), 0) IS NOT a.runtime_revision))
+  AND (COALESCE(json_extract(NEW.metadata_json, '$.agentRevision'), 0) IS NOT a.runtime_revision
+    OR COALESCE(json_extract(NEW.metadata_json, '$.effectTarget'), 'simulation') IS NOT a.effect_target))
 BEGIN SELECT RAISE(ABORT, 'agent_runtime_revision_conflict'); END;
 
 CREATE TRIGGER agent_revision_chat_run_resume
@@ -2442,6 +2445,12 @@ CREATE TRIGGER agent_revision_monotonic
 BEFORE UPDATE OF runtime_revision ON agents
 WHEN NEW.runtime_revision != OLD.runtime_revision AND NEW.runtime_revision != OLD.runtime_revision + 1
 BEGIN SELECT RAISE(ABORT, 'agent_runtime_revision_invalid'); END;
+
+-- The effect target belongs to the execution generation, so runs pinned to a revision keep one target.
+CREATE TRIGGER agent_effect_target_revision
+BEFORE UPDATE OF effect_target ON agents
+WHEN NEW.effect_target IS NOT OLD.effect_target AND NEW.runtime_revision = OLD.runtime_revision
+BEGIN SELECT RAISE(ABORT, 'agent_effect_target_revision_required'); END;
 
 CREATE TRIGGER agent_revision_active_work
 BEFORE UPDATE OF runtime_revision ON agents
@@ -2819,7 +2828,9 @@ CREATE TABLE control_durable_executions (
   submission_key TEXT NOT NULL, request_hash TEXT NOT NULL,
   pack_id TEXT NOT NULL, pack_version TEXT NOT NULL, runtime_version TEXT NOT NULL,
   workflow_type TEXT NOT NULL, workflow_version TEXT NOT NULL, definition_hash TEXT NOT NULL,
-  agent_revision INTEGER NOT NULL, agent_data_json TEXT NOT NULL, configuration_hash TEXT NOT NULL,
+  agent_revision INTEGER NOT NULL,
+  effect_target TEXT NOT NULL DEFAULT 'simulation' CHECK(effect_target IN ('simulation','external')),
+  agent_data_json TEXT NOT NULL, configuration_hash TEXT NOT NULL,
   input_json TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('pending','started','closed')),
   max_steps INTEGER NOT NULL CHECK(max_steps BETWEEN 1 AND 128),
   deadline TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,

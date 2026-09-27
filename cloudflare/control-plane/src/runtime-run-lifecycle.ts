@@ -2,7 +2,14 @@ import { registerRuntimeDeadline } from "./runtime-watchdog";
 import { buildControlRunRelation, toControlRunRelationEventData } from "./run-relations";
 import type { ControlRunRelation } from "./run-relations";
 import type { WorkflowInvocationContext } from "./pack-workflow-runtime";
-import { createId, toJson, type AgentIdentity, type Env, type ExecutionMode } from "./types";
+import {
+  createId,
+  effectTargetOf,
+  toJson,
+  type AgentIdentity,
+  type Env,
+  type ExecutionMode,
+} from "./types";
 import { packWorkflowBindings, resolveRuntimeTool } from "../../../lib/agent-runtime/registry";
 import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
 
@@ -136,6 +143,7 @@ export const startPackWorkflowRun = async (
     ...input.runtimeMetadata,
     ...triggerData,
     agentRevision: identity.agentRevision ?? 0,
+    effectTarget: effectTargetOf(identity),
   });
   const auditData = toJson({
     eventName: "intent.created",

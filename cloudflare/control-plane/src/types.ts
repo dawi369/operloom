@@ -173,11 +173,15 @@ export type TenantScope = {
   workspaceId: string;
 };
 
+export type EffectTarget = "simulation" | "external";
+
 export type AgentIdentity = {
   scope: TenantScope;
   agentId: string;
   /** Server-resolved execution generation; never accepted from client headers. */
   agentRevision?: number;
+  /** Resolved from the same agent row as agentRevision; absent means simulation. */
+  effectTarget?: EffectTarget;
   accountId?: string;
   accountSource?: string;
   authMode?: "access_token" | "local_api";
@@ -253,6 +257,8 @@ export type AgentRow = {
   id: string;
   /** Missing only in legacy fixtures; persisted agents start at revision zero. */
   runtime_revision?: number;
+  /** Missing only in legacy fixtures; persisted agents start in simulation. */
+  effect_target?: EffectTarget;
   workspace_id: string;
   name: string;
   description: string | null;
@@ -737,3 +743,6 @@ export const allowedStatuses = new Set<RunStatus>([
 export const createId = (prefix: string) => `${prefix}-${crypto.randomUUID()}`;
 
 export const toJson = (value: unknown) => JSON.stringify(value ?? {});
+
+export const effectTargetOf = (identity: AgentIdentity): EffectTarget =>
+  identity.effectTarget ?? "simulation";

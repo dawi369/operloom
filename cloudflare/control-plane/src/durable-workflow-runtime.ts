@@ -62,6 +62,7 @@ const identityFor = (execution: DurableExecution): AgentIdentity => ({
   scope: { userId: execution.user_id, workspaceId: execution.workspace_id },
   agentId: execution.agent_id,
   agentRevision: execution.agent_revision,
+  effectTarget: execution.effect_target,
 });
 export const durableWorkflowDefinitionHash = async (
   runtime: ReturnType<typeof resolvePackRuntime>,
@@ -287,7 +288,7 @@ export const runDurableWorkflow = async (
                 runId,
                 runKind: "workflow",
                 input,
-                target: workflow.stateTarget ?? "simulation",
+                target: execution.effect_target,
                 signal: controller.signal,
                 durableAttempt,
               });
@@ -295,7 +296,7 @@ export const runDurableWorkflow = async (
             }
             context.state = await createRuntimeStatePort(env, identity, {
               packId: execution.pack_id,
-              target: workflow.stateTarget ?? "simulation",
+              target: execution.effect_target,
               definitions: runtime.controlPlane.state ?? [],
               signal: controller.signal,
               runId,

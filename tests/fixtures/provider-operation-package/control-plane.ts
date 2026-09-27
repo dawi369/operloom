@@ -65,7 +65,6 @@ export const controlPlane = defineControlPlaneModule({
   workflows: [
     {
       type: "capacity.request",
-      stateTarget: "external",
       label: "Propose allocation",
       description: "Propose capacity with an explicit operator review.",
       inputSchema: {
@@ -116,7 +115,6 @@ export const controlPlane = defineControlPlaneModule({
     },
     {
       type: "capacity.seed",
-      stateTarget: "external",
       label: "Initialize capacity",
       description: "Initialize a canonical external capacity record.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
@@ -146,7 +144,6 @@ export const controlPlane = defineControlPlaneModule({
     },
     {
       type: "capacity.project",
-      stateTarget: "external",
       label: "Project allocation",
       description: "Project a recorded provider result without submitting an allocation.",
       inputSchema: {

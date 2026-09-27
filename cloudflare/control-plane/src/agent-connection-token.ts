@@ -1,4 +1,4 @@
-import type { AgentIdentity, AgentRow, ChatThreadRow } from "./types";
+import type { AgentIdentity, AgentRow, ChatThreadRow, EffectTarget } from "./types";
 
 export type AgentConnectionClaims = {
   v: 1;
@@ -11,6 +11,7 @@ export type AgentConnectionClaims = {
   agentId: string;
   agentUpdatedAt?: string;
   agentRevision?: number;
+  effectTarget?: EffectTarget;
   threadId: string;
   sessionId: string;
   instanceName: string;
@@ -79,6 +80,12 @@ const normalizeClaims = (value: unknown): AgentConnectionClaims | null => {
     (!Number.isSafeInteger(value.agentRevision) || (value.agentRevision as number) < 0)
   )
     return null;
+  if (
+    value.effectTarget !== undefined &&
+    value.effectTarget !== "simulation" &&
+    value.effectTarget !== "external"
+  )
+    return null;
   return value as AgentConnectionClaims;
 };
 
@@ -113,6 +120,7 @@ export const claimsToIdentity = (claims: AgentConnectionClaims): AgentIdentity =
   },
   agentId: claims.agentId,
   agentRevision: claims.agentRevision ?? 0,
+  effectTarget: claims.effectTarget ?? "simulation",
   accountId: claims.accountId,
   accountSource: claims.accountSource,
 });
@@ -137,6 +145,9 @@ export const assertCurrentAgentConnectionScope = (
   }
   if ((claims.agentRevision ?? 0) !== (agent.runtime_revision ?? 0)) {
     throw new Error("Agent token runtime revision is stale");
+  }
+  if ((claims.effectTarget ?? "simulation") !== (agent.effect_target ?? "simulation")) {
+    throw new Error("Agent token effect target is stale");
   }
   if (claims.agentUpdatedAt && claims.agentUpdatedAt !== agent.updated_at) {
     throw new Error("Agent token agent version is stale");

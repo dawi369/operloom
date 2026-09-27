@@ -11,7 +11,7 @@ import { contextIsRequired } from "./runtime-context";
 import { evaluateToolPolicy } from "./tool-policy";
 import { createRuntimeStatePort, runtimeStateCanonicalJson } from "./runtime-state";
 import type { DurableAttemptAuthority } from "./durable-attempt-authority";
-import type { AgentIdentity, Env } from "./types";
+import { effectTargetOf, type AgentIdentity, type Env } from "./types";
 
 const fail = (code: string, message: string): never => {
   throw Object.assign(new Error(message), { code });
@@ -107,7 +107,7 @@ export const createSimulationActionPort = (
     };
     const state = await createRuntimeStatePort(env, identity, {
       packId: pack.id,
-      target: "simulation",
+      target: effectTargetOf(identity),
       definitions: runtime.controlPlane.state ?? [],
       runId: run.id,
       signal: signal,

@@ -356,6 +356,7 @@ export const sweepExpiredOperationalData = async (
          'displayName', json_extract(data_json, '$.displayName'),
          'summary', json_extract(data_json, '$.summary'),
          'agentRevision', COALESCE(json_extract(data_json, '$.agentRevision'), 0),
+         'effectTarget', COALESCE(json_extract(data_json, '$.effectTarget'), 'simulation'),
          'payloadPrunedAt', ?
        )
        WHERE rowid IN (

@@ -72,6 +72,7 @@ export const handleWorkspaceContext = async (
             name: agent.name,
             status: agent.status,
             isDefault: agent.is_default === 1,
+            effectTarget: agent.effect_target ?? "simulation",
           }
         : null,
     },

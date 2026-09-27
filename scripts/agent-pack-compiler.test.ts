@@ -29,44 +29,6 @@ afterEach(() => {
 });
 
 describe("agent pack compiler", () => {
-  it("requires the typed-state capability for workflow state targets", async () => {
-    const source = (await loadAgentModules(process.cwd())).find(
-      (item) => item.manifest.id === "document-review",
-    )!;
-    for (const stateTarget of ["external", "simulation"] as const) {
-      const candidate = {
-        ...source,
-        controlPlane: {
-          ...source.controlPlane,
-          workflows: source.controlPlane.workflows.map((workflow) => ({
-            ...workflow,
-            stateTarget,
-          })),
-        },
-      };
-      expect(() => validateLoadedModules([candidate])).not.toThrow();
-      expect(() =>
-        validateLoadedModules([
-          {
-            ...candidate,
-            controlPlane: {
-              ...candidate.controlPlane,
-              requirements: {
-                minimumBackendVersion: "2.0.0",
-                capabilities: [
-                  "workflow.request",
-                  "context.snapshots",
-                  "state.migrations",
-                  "models.structured",
-                  "usage.reservations",
-                ],
-              },
-            },
-          } as typeof source,
-        ]),
-      ).toThrow("stateTarget requires state.atomic");
-    }
-  });
   it("accepts declarative provider bindings and rejects callback or transport authority", async () => {
     const modules = await loadAgentModules(process.cwd());
     const source = modules.find((item) => item.manifest.id === "complex-operator")!;

@@ -14,6 +14,7 @@ import { approveAndExecuteActionApproval, cancelActionForDeniedApproval } from "
 import { enqueueNotificationEvent } from "./notification-delivery";
 import {
   createId,
+  effectTargetOf,
   toJson,
   type AgentIdentity,
   type ControlApprovalRequestRow,
@@ -125,6 +126,7 @@ export const createRuntimeToolApproval = async (input: {
         approvalRequestId,
         ...payload,
         agentRevision: input.identity.agentRevision ?? 0,
+        effectTarget: effectTargetOf(input.identity),
       }),
       timestamp,
       timestamp,

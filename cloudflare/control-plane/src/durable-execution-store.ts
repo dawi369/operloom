@@ -9,7 +9,14 @@ import { sha256Hex } from "../../../lib/workbench/control-plane-signing";
 import { resolveAgentBehaviorConfig, resolveAgentRuntimeConfig } from "./agent-records";
 import { runtimeStateCanonicalJson } from "./runtime-state";
 import { buildControlRunRelation } from "./run-relations";
-import { createId, type AgentIdentity, type AgentRow, type Env } from "./types";
+import {
+  createId,
+  effectTargetOf,
+  type AgentIdentity,
+  type AgentRow,
+  type EffectTarget,
+  type Env,
+} from "./types";
 import {
   durableTriggerLinkStatement,
   type DurableTriggerInvocation,
@@ -24,6 +31,7 @@ export type DurableExecution = {
   workspace_id: string;
   agent_id: string;
   agent_revision: number;
+  effect_target: EffectTarget;
   pack_id: string;
   pack_version: string;
   runtime_version: string;
@@ -202,6 +210,8 @@ export const admitDurableExecution = async (
     .bind(...scope(identity), identity.agentRevision ?? 0)
     .first<AgentRow>();
   if (!agent) return fail("durable_authority_revoked", "Current execution authority is required");
+  if ((agent.effect_target ?? "simulation") !== effectTargetOf(identity))
+    return fail("durable_authority_revoked", "The pinned effect target is not current");
   const pack = resolveAgentBehaviorConfig(agent).pack;
   if (
     !pack ||
@@ -253,6 +263,7 @@ export const admitDurableExecution = async (
     runtimeVersion: input.runtimeVersion,
     workflowVersion: input.workflowVersion,
     agentRevision: identity.agentRevision ?? 0,
+    effectTarget: effectTargetOf(identity),
     relation: relation.relation,
     logicalEventId: invocation?.dispatchId ?? runId,
     ...(invocation
@@ -268,8 +279,8 @@ export const admitDurableExecution = async (
     await env.DB.batch([
       env.DB.prepare(`INSERT INTO control_durable_executions
         (run_id,user_id,workspace_id,agent_id,workflow_intent_id,instance_id,submission_key,request_hash,pack_id,pack_version,runtime_version,
-         workflow_type,workflow_version,definition_hash,agent_revision,agent_data_json,configuration_hash,input_json,status,max_steps,deadline,created_at,updated_at,engine_lifecycle_version,deployment_id,preconditions_met)
-        SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,1,?,CASE WHEN EXISTS (${actorAuthority} AND a.data_json=?)
+         workflow_type,workflow_version,definition_hash,agent_revision,effect_target,agent_data_json,configuration_hash,input_json,status,max_steps,deadline,created_at,updated_at,engine_lifecycle_version,deployment_id,preconditions_met)
+        SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,1,?,CASE WHEN EXISTS (${actorAuthority} AND a.data_json=?)
         AND NOT EXISTS (SELECT 1 FROM control_kill_switches WHERE user_id=? AND workspace_id=? AND enabled=1
           AND ((scope_kind='workspace' AND scope_id=?) OR (scope_kind='pack' AND scope_id=?)))
         AND (SELECT COUNT(*) FROM control_runs WHERE user_id=? AND workspace_id=? AND agent_id=?
@@ -288,6 +299,7 @@ export const admitDurableExecution = async (
         input.workflowVersion,
         input.definitionHash,
         identity.agentRevision ?? 0,
+        effectTargetOf(identity),
         agent.data_json,
         configHash,
         inputJson,

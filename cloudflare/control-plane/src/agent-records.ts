@@ -186,6 +186,7 @@ export const toAgentSummary = (env: Env, row: AgentRow, activeAgentId: string) =
   profile: getAgentProfile(row),
   runtime: resolveAgentRuntimeConfig(env, row),
   behavior: resolveAgentBehaviorConfig(row, { includePreview: true }),
+  effectTarget: row.effect_target ?? "simulation",
   isDefault: row.is_default === 1,
   isActive: row.id === activeAgentId,
   createdAt: row.created_at,

@@ -5,6 +5,7 @@ import { prepareOperatorAlertStatement } from "./operator-alerts";
 import { dispatchWorkbenchSessionEvent } from "./session-coordinator";
 import {
   createId,
+  effectTargetOf,
   toJson,
   type AgentIdentity,
   type ControlActionProposalRow,
@@ -287,6 +288,7 @@ export const handleRequestActionExecution = async (
           actionProposalId: row.id,
           summary: "Action approval required.",
           agentRevision: identity.agentRevision ?? 0,
+          effectTarget: effectTargetOf(identity),
         }),
         timestamp,
         timestamp,

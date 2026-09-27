@@ -31,3 +31,7 @@ the baseline schema.
   `OPERLOOM_LOCAL_API_TOKEN`, `@operloom/workbench-client` → `@operloom/client`,
   `@operloom/workbench-react` → `@operloom/react`, Durable Objects
   `ThreadChatAgent`/`SessionAgent`, and `operloom-*` resource names.
+- Effect target (`simulation` | `external`) is an agent setting
+  (`GET/PUT /agents/{id}/effect-target`, owner/admin, revision-fenced and
+  audited). Every run pins its target; packages no longer declare
+  `stateTarget`. Agents start in simulation.

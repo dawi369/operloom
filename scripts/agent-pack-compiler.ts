@@ -417,14 +417,6 @@ export const validateLoadedModules = (
       if (!binding) {
         throw new Error(`${entry.package} is missing workflow binding ${declared.type}.`);
       }
-      if (
-        binding.stateTarget !== undefined &&
-        (!["simulation", "external"].includes(binding.stateTarget) ||
-          !capabilities.includes("state.atomic"))
-      )
-        throw new Error(
-          `${entry.package} workflow ${declared.type} stateTarget requires state.atomic and must be simulation or external.`,
-        );
       if (binding.execute && !capabilities.includes("workflow.request"))
         throw new Error(
           `${entry.package} workflow ${declared.type} must require workflow.request for request-mode execution.`,

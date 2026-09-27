@@ -29,7 +29,7 @@ import {
 } from "./runtime-run-lifecycle";
 import type { WorkflowInvocationContext } from "./pack-workflow-runtime";
 import { executeRuntimeToolBinding } from "./runtime-tool-execution";
-import type { AgentIdentity, Env } from "./types";
+import { effectTargetOf, type AgentIdentity, type Env } from "./types";
 import { authorizeWorkflowTools } from "./workflow-tool-policy";
 import { createBrokeredConnectionPort } from "./connection-broker";
 import { createDurableActionPort } from "./action-authority";
@@ -130,7 +130,11 @@ export const executeRuntimeWorkflowRequest = async (
   if (!binding) return runtimeError("workflow_not_found", "Workflow not found.", 404);
   const agent = await selectAgent(env, identity.agentId, identity.scope.workspaceId);
   // Pin the same row used to resolve executable code, including scheduler requests.
-  identity = { ...identity, agentRevision: agent?.runtime_revision ?? 0 };
+  identity = {
+    ...identity,
+    agentRevision: agent?.runtime_revision ?? 0,
+    effectTarget: agent?.effect_target ?? "simulation",
+  };
   const pack = resolveAgentBehaviorConfig(agent).pack;
   if (!pack || pack.id !== binding.requiredPackId) {
     return runtimeError(
@@ -412,7 +416,7 @@ export const executeRuntimeWorkflowRequest = async (
     tools: { invoke: invokeTool },
     state: await createRuntimeStatePort(env, identity, {
       packId: pack.id,
-      target: workflow.stateTarget ?? "simulation",
+      target: effectTargetOf(identity),
       definitions: runtime.controlPlane.state ?? [],
       signal: controller.signal,
       runId: started.runId,
@@ -467,7 +471,7 @@ export const executeRuntimeWorkflowRequest = async (
             runId: started.runId,
             runKind: "workflow",
             input,
-            target: workflow.stateTarget ?? "simulation",
+            target: effectTargetOf(identity),
             signal: controller.signal,
           });
           if (evidence) {
@@ -476,7 +480,7 @@ export const executeRuntimeWorkflowRequest = async (
             if (context.state)
               context.state = await createRuntimeStatePort(env, identity, {
                 packId: pack.id,
-                target: workflow.stateTarget ?? "simulation",
+                target: effectTargetOf(identity),
                 definitions: runtime.controlPlane.state ?? [],
                 signal: controller.signal,
                 runId: started.runId,

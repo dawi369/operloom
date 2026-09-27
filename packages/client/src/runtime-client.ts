@@ -26,6 +26,13 @@ import {
   type RuntimeUsageResponse,
 } from "./public-budget-contracts.js";
 import { publicApiScopePath } from "./public-api.js";
+
+export type AgentEffectTargetResponse = {
+  ok: true;
+  agentId: string;
+  effectTarget: "simulation" | "external";
+  runtimeRevision: number;
+};
 import type { PublicMessage } from "./messages.js";
 import { findPublicChatContract, type ChatCommandResponse } from "./public-chat-contracts.js";
 import {
@@ -410,6 +417,16 @@ export const createRuntimeClient = (options: RuntimeClientOptions) => {
           { method: "POST" },
         ),
       summary: () => request("/admin/workspace-summary"),
+      effectTarget: (agentId: string) =>
+        request<AgentEffectTargetResponse>(`/agents/${encodeURIComponent(agentId)}/effect-target`),
+      setEffectTarget: (
+        agentId: string,
+        input: { effectTarget: "simulation" | "external"; expectedRevision: number },
+      ) =>
+        request<AgentEffectTargetResponse>(`/agents/${encodeURIComponent(agentId)}/effect-target`, {
+          method: "PUT",
+          body: input,
+        }),
       export: () => request("/workbench/data-exports", { method: "POST" }),
       retention: () => request("/workbench/retention-policy"),
       triggers: () => request("/triggers"),

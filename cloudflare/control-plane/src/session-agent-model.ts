@@ -16,6 +16,7 @@ import {
   type AgentIdentity,
   type AgentRow,
   type ChatThreadRow,
+  type EffectTarget,
   type Env,
 } from "./types";
 
@@ -30,6 +31,7 @@ export type ChatThreadListRow = ChatThreadRow & {
   agent_created_at: string | null;
   agent_updated_at: string | null;
   agent_runtime_revision?: number | null;
+  agent_effect_target?: EffectTarget | null;
 };
 
 export type CoordinatorAction =
@@ -101,6 +103,7 @@ export type SessionContext = {
   agentId: string;
   agentUpdatedAt?: string;
   agentRevision?: number;
+  effectTarget?: EffectTarget;
   accountId?: string;
   accountSource?: string;
 };
@@ -279,6 +282,7 @@ export const rowAgent = (row: ChatThreadListRow): AgentRow | null => {
     created_at: row.agent_created_at ?? row.created_at,
     updated_at: row.agent_updated_at ?? row.updated_at,
     runtime_revision: row.agent_runtime_revision ?? 0,
+    effect_target: row.agent_effect_target ?? "simulation",
   };
 };
 
@@ -375,6 +379,7 @@ export const listWorkspaceThreads = async (
             a.created_at AS agent_created_at,
             a.updated_at AS agent_updated_at,
             a.runtime_revision AS agent_runtime_revision,
+            a.effect_target AS agent_effect_target,
             (
               SELECT r.status
               FROM chat_runs r
@@ -506,6 +511,7 @@ export const sessionContext = async (
   agentId: input.agent.id,
   agentUpdatedAt: input.agent.updated_at,
   agentRevision: input.agent.runtime_revision ?? 0,
+  effectTarget: input.agent.effect_target ?? "simulation",
   accountId: input.accountId,
   accountSource: input.accountSource,
 });
@@ -594,6 +600,7 @@ export const responseFromSnapshot = async (
           agentId: snapshot.context.agentId,
           agentUpdatedAt: snapshot.context.agentUpdatedAt,
           agentRevision: snapshot.context.agentRevision ?? 0,
+          effectTarget: snapshot.context.effectTarget ?? "simulation",
           threadId: snapshot.context.threadId,
           sessionId: snapshot.context.sessionId,
           instanceName: snapshot.context.instanceName,

@@ -60,7 +60,7 @@ import { dispatchWorkbenchSessionEvent } from "./session-coordinator";
 import { resolveModelVisibleTools } from "./model-tools";
 import { existingProgrammaticTurnMessageId } from "./thread-chat-idempotency";
 import { ChatTurnReceipts } from "./thread-chat-receipts";
-import type { AgentRow, Env, WorkerExecutionContext } from "./types";
+import { effectTargetOf, type AgentRow, type Env, type WorkerExecutionContext } from "./types";
 
 const getRequiredSecret = (env: Env) => {
   const secret = env.OPERLOOM_AGENT_CONNECTION_SECRET?.trim();
@@ -671,7 +671,7 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
             runId: run.runId,
             runKind: "chat",
             input: runtimeChatContextInput(this.messages),
-            target: "simulation",
+            target: effectTargetOf(identity),
             signal: options?.abortSignal ?? new AbortController().signal,
           });
           evidence?.assertReady();
@@ -873,7 +873,7 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
               runId,
               runKind: "chat",
               input: runtimeChatContextInput(this.messages),
-              target: "simulation",
+              target: effectTargetOf(identity),
               signal: contextSignal,
             })
           : undefined;

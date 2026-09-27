@@ -20,7 +20,7 @@ import { upsertActiveAgentPreference } from "./authz";
 import { selectAgent, selectMembership, selectWorkspaceAgents } from "./authz-store";
 import { isRecord, json, parseJson } from "./http";
 import { requireActiveMembership, requireAdminMembership } from "./membership-policy";
-import type { AgentIdentity, Env } from "./types";
+import { createId, toJson, type AgentIdentity, type Env } from "./types";
 import { demoPackAllowed, resolveDemoPolicy } from "./demo-policy";
 
 const agentNameMaxLength = 80;
@@ -264,4 +264,126 @@ export const handleActivateAgent = async (env: Env, identity: AgentIdentity, age
     activeAgentId: agent.id,
     agent: toAgentSummary(env, agent, agent.id),
   });
+};
+
+const effectTargetState = (agent: {
+  id: string;
+  effect_target?: string;
+  runtime_revision?: number;
+}) => ({
+  ok: true,
+  agentId: agent.id,
+  effectTarget: agent.effect_target ?? "simulation",
+  runtimeRevision: agent.runtime_revision ?? 0,
+});
+
+export const handleGetAgentEffectTarget = async (
+  env: Env,
+  identity: AgentIdentity,
+  agentId: string,
+) => {
+  const membershipError = requireActiveMembership(
+    await selectMembership(env, identity.scope.userId, identity.scope.workspaceId),
+  );
+  if (membershipError) return membershipError;
+  const agent = await selectAgent(env, agentId, identity.scope.workspaceId);
+  if (!agent) return json({ ok: false, error: "Agent not found" }, { status: 404 });
+  return json(effectTargetState(agent));
+};
+
+/** Changing the target starts a new execution generation so no run mixes simulated and external effects. */
+export const handleUpdateAgentEffectTarget = async (
+  request: Request,
+  env: Env,
+  identity: AgentIdentity,
+  agentId: string,
+) => {
+  const adminError = requireAdminMembership(
+    await selectMembership(env, identity.scope.userId, identity.scope.workspaceId),
+  );
+  if (adminError) return adminError;
+  const body = parseJson(await request.text());
+  const effectTarget = isRecord(body) ? body.effectTarget : undefined;
+  const expectedRevision = isRecord(body) ? body.expectedRevision : undefined;
+  if (
+    (effectTarget !== "simulation" && effectTarget !== "external") ||
+    typeof expectedRevision !== "number" ||
+    !Number.isSafeInteger(expectedRevision) ||
+    expectedRevision < 0
+  ) {
+    return json(
+      { ok: false, error: "effectTarget (simulation|external) and expectedRevision are required" },
+      { status: 400 },
+    );
+  }
+  const agent = await selectAgent(env, agentId, identity.scope.workspaceId);
+  if (!agent) return json({ ok: false, error: "Agent not found" }, { status: 404 });
+  if ((agent.runtime_revision ?? 0) !== expectedRevision) {
+    return json(
+      {
+        ...effectTargetState(agent),
+        ok: false,
+        code: "agent_revision_conflict",
+        error: "Agent revision changed",
+      },
+      { status: 409 },
+    );
+  }
+  if ((agent.effect_target ?? "simulation") === effectTarget) return json(effectTargetState(agent));
+  const timestamp = new Date().toISOString();
+  const nextRevision = expectedRevision + 1;
+  const [update] = await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE agents SET effect_target = ?, runtime_revision = ?, updated_at = ?
+       WHERE id = ? AND workspace_id = ? AND status = 'active' AND runtime_revision = ?`,
+    ).bind(
+      effectTarget,
+      nextRevision,
+      timestamp,
+      agent.id,
+      identity.scope.workspaceId,
+      expectedRevision,
+    ),
+    env.DB.prepare(
+      `INSERT INTO control_plane_events (
+         id, user_id, workspace_id, agent_id, type, summary, target_type, target_id, data_json, created_at
+       )
+       SELECT ?, ?, ?, ?, 'agent.effect_target.changed', ?, 'agent', ?, ?, ?
+       WHERE EXISTS (
+         SELECT 1 FROM agents WHERE id = ? AND workspace_id = ? AND runtime_revision = ? AND effect_target = ?
+       )`,
+    ).bind(
+      createId("cf-event"),
+      identity.scope.userId,
+      identity.scope.workspaceId,
+      agent.id,
+      `Effect target changed to ${effectTarget}`,
+      agent.id,
+      toJson({
+        from: agent.effect_target ?? "simulation",
+        to: effectTarget,
+        runtimeRevision: nextRevision,
+        actorUserId: identity.scope.userId,
+      }),
+      timestamp,
+      agent.id,
+      identity.scope.workspaceId,
+      nextRevision,
+      effectTarget,
+    ),
+  ]);
+  const current = await selectAgent(env, agent.id, identity.scope.workspaceId);
+  if (!current) return json({ ok: false, error: "Agent not found" }, { status: 404 });
+  if (!update?.meta?.changes) {
+    return json(
+      {
+        ...effectTargetState(current),
+        ok: false,
+        code: "agent_revision_conflict",
+        error: "Agent revision changed",
+      },
+      { status: 409 },
+    );
+  }
+  return json(effectTargetState(current));
 };

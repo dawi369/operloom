@@ -28,6 +28,8 @@ import {
 } from "./admin-tools";
 import {
   handleActivateAgent,
+  handleGetAgentEffectTarget,
+  handleUpdateAgentEffectTarget,
   handleCreateAgent,
   handleInstantiateAgentPack,
   handleListAgentBehaviorTemplates,
@@ -243,7 +245,7 @@ const handleRequest = async (
     }
   }
 
-  if (isCloudflareAgentSdkPath(url.pathname)) {
+  if (!publicAuth && isCloudflareAgentSdkPath(url.pathname)) {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeadersForRequest(request, env) });
     }
@@ -836,6 +838,14 @@ const handleRequest = async (
   const activateAgentMatch = url.pathname.match(/^\/agents\/([^/]+)\/activate$/);
   if (request.method === "POST" && activateAgentMatch?.[1]) {
     return handleActivateAgent(env, identity, decodeURIComponent(activateAgentMatch[1]));
+  }
+
+  const effectTargetMatch = url.pathname.match(/^\/agents\/([^/]+)\/effect-target$/);
+  if (effectTargetMatch?.[1]) {
+    const agentId = decodeURIComponent(effectTargetMatch[1]);
+    if (request.method === "GET") return handleGetAgentEffectTarget(env, identity, agentId);
+    if (request.method === "PUT")
+      return handleUpdateAgentEffectTarget(request, env, identity, agentId);
   }
 
   if (request.method === "GET" && url.pathname === "/events/latest") {

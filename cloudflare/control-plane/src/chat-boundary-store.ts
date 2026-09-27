@@ -1,6 +1,7 @@
 import { parseDataJson } from "./http";
 import {
   createId,
+  effectTargetOf,
   toJson,
   type AgentIdentity,
   type ChatIntentRow,
@@ -376,7 +377,11 @@ export const createAllowedChatRunBoundary = async (
       identity.scope.workspaceId,
       identity.agentId,
       "running",
-      toJson({ ...input.metadata, agentRevision: identity.agentRevision ?? 0 }),
+      toJson({
+        ...input.metadata,
+        agentRevision: identity.agentRevision ?? 0,
+        effectTarget: effectTargetOf(identity),
+      }),
       timestamp,
       timestamp,
     ),
@@ -574,6 +579,7 @@ export const createAgentChatRunStartMirror = async (
         behavior: input.behavior,
         commandId: input.commandId,
         agentRevision: identity.agentRevision ?? 0,
+        effectTarget: effectTargetOf(identity),
       }),
       timestamp,
       timestamp,
