@@ -91,7 +91,8 @@ import {
 
 export type RuntimeClientOptions = {
   baseUrl: string;
-  target: Readonly<{ workspaceId: string; agentId: string }>;
+  /** `"me"` runs every operation against the caller's active workspace agent (`/v1/me`). */
+  target: Readonly<{ workspaceId: string; agentId: string }> | "me";
   getAccessToken: (input: {
     minValidityMs: number;
     forceRefresh: boolean;
@@ -127,7 +128,7 @@ const wait = (ms: number, signal: AbortSignal) =>
 
 export const createRuntimeClient = (options: RuntimeClientOptions) => {
   const origin = options.baseUrl.replace(/\/$/, "");
-  const scope = publicApiScopePath({ ...options.target });
+  const scope = options.target === "me" ? "/v1/me" : publicApiScopePath({ ...options.target });
   const fetcher = options.fetch ?? globalThis.fetch;
   const fetchAuthorized = async (path: string, init: RequestInit, idempotencyKey?: string) => {
     for (let attempt = 0; attempt < 2; attempt++) {

@@ -150,6 +150,50 @@ export const matchesPublicApiRoute = (method: string, path: string) =>
 export const publicApiScopePath = (target: { workspaceId: string; agentId: string }) =>
   `/v1/workspaces/${encodeURIComponent(target.workspaceId)}/agents/${encodeURIComponent(target.agentId)}`;
 
+const publicApiOperation = (method: string, path: string, scopeParameters: readonly string[]) => ({
+  parameters: [
+    [...scopeParameters, ...[...path.matchAll(/\{(\w+)\}/g)].map((match) => match[1])].map(
+      (name) => ({
+        name,
+        in: "path",
+        required: true,
+        schema: { type: "string", minLength: 1 },
+      }),
+    ),
+    publicStateOpenApiQueryParameters(method, path),
+    publicUpgradeOpenApiQueryParameters(method, path),
+    publicBudgetOpenApiQueryParameters(method, path),
+    publicContextOpenApiQueryParameters(method, path),
+    publicActionOpenApiQueryParameters(method, path),
+  ].flat(),
+  responses: {
+    "200": { description: "Canonical result" },
+    default: { description: "Failure with code, error and requestId" },
+  },
+  ...publicChatOpenApiOperation(method, path),
+  ...publicStateOpenApiOperation(method, path),
+  ...publicUpgradeOpenApiOperation(method, path),
+  ...publicContextOpenApiOperation(method, path),
+  ...publicBudgetOpenApiOperation(method, path),
+  ...publicActionOpenApiOperation(method, path),
+});
+
+/** Every operation is available on an explicit agent and on the caller's active agent (`/v1/me`). */
+const publicApiPaths = (prefix: string, scopeParameters: readonly string[]) =>
+  [...new Set(publicApiRoutes.map(([, path]) => path))].map(
+    (path): [string, Record<string, ReturnType<typeof publicApiOperation>>] => [
+      `${prefix}${path}`,
+      Object.fromEntries(
+        publicApiRoutes
+          .filter(([, candidate]) => candidate === path)
+          .map(([method]) => [
+            method.toLowerCase(),
+            publicApiOperation(method, path, scopeParameters),
+          ]),
+      ),
+    ],
+  );
+
 export const publicApiOpenApi = (version: string) => ({
   openapi: "3.1.0",
   info: {
@@ -162,45 +206,8 @@ export const publicApiOpenApi = (version: string) => ({
   components: {
     securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" } },
   },
-  paths: Object.fromEntries(
-    [...new Set(publicApiRoutes.map(([, path]) => path))].map((path) => [
-      `/v1/workspaces/{workspaceId}/agents/{agentId}${path}`,
-      Object.fromEntries(
-        publicApiRoutes
-          .filter(([, candidate]) => candidate === path)
-          .map(([method]) => [
-            method.toLowerCase(),
-            {
-              parameters: [
-                [
-                  "workspaceId",
-                  "agentId",
-                  ...[...path.matchAll(/\{(\w+)\}/g)].map((match) => match[1]),
-                ].map((name) => ({
-                  name,
-                  in: "path",
-                  required: true,
-                  schema: { type: "string", minLength: 1 },
-                })),
-                publicStateOpenApiQueryParameters(method, path),
-                publicUpgradeOpenApiQueryParameters(method, path),
-                publicBudgetOpenApiQueryParameters(method, path),
-                publicContextOpenApiQueryParameters(method, path),
-                publicActionOpenApiQueryParameters(method, path),
-              ].flat(),
-              responses: {
-                "200": { description: "Canonical result" },
-                default: { description: "Failure with code, error and requestId" },
-              },
-              ...publicChatOpenApiOperation(method, path),
-              ...publicStateOpenApiOperation(method, path),
-              ...publicUpgradeOpenApiOperation(method, path),
-              ...publicContextOpenApiOperation(method, path),
-              ...publicBudgetOpenApiOperation(method, path),
-              ...publicActionOpenApiOperation(method, path),
-            },
-          ]),
-      ),
-    ]),
-  ),
+  paths: Object.fromEntries([
+    ...publicApiPaths("/v1/workspaces/{workspaceId}/agents/{agentId}", ["workspaceId", "agentId"]),
+    ...publicApiPaths("/v1/me", []),
+  ]),
 });

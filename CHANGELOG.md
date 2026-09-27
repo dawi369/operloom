@@ -55,3 +55,9 @@ the baseline schema.
   control-plane event types (`GET/POST /webhooks`, `DELETE /webhooks/{id}`,
   `GET /webhooks/{id}/deliveries`, `POST .../deliveries/{id}/retry`). Deliveries
   are HMAC-signed, retried with backoff for 8 attempts, then marked `failed`.
+- The console adds an Operations panel (`/operations`): effect target, package
+  settings, decisions and effects, typed state records, package queries, action
+  proposals and webhooks. It uses `@operloom/client` with `target: "me"`
+  through a same-origin `/api/v1/me` bridge that forwards only allowlisted
+  operations with the server-side session token. OpenAPI publishes every
+  operation under both `/v1/workspaces/{id}/agents/{id}` and `/v1/me`.

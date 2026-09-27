@@ -129,6 +129,18 @@ describe("runtime Fetch client", () => {
       createRuntimeClient({ ...options, fetch: fetcher }).threads.messages("thread1"),
     ).rejects.toMatchObject({ code: "invalid_response" });
   });
+  it("targets the active agent through /v1/me and publishes those operations", async () => {
+    const fetcher = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) =>
+      Response.json({ ok: true, queryId: "pack.summary", output: { count: 1 } }),
+    );
+    const client = createRuntimeClient({ ...options, target: "me", fetch: fetcher });
+    await client.queries.run("pack.summary", { limit: 5 });
+    expect(String(fetcher.mock.calls[0]![0])).toMatch(/\/v1\/me\/queries\/pack\.summary$/);
+    const spec = publicApiOpenApi("1.0.0");
+    const route = spec.paths["/v1/me/queries/{id}"]!.post!;
+    expect(route.parameters.map((parameter) => parameter.name)).toEqual(["id"]);
+    expect(spec.paths["/v1/me/webhooks/{id}/deliveries/{deliveryId}/retry"]!.post).toBeDefined();
+  });
   it("publishes real chat acceptance status and request bounds in OpenAPI", () => {
     const spec = publicApiOpenApi("1.0.0");
     const route =

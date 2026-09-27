@@ -10,6 +10,7 @@ import {
 } from "@operloom/react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import {
+  ActivityIcon,
   BotIcon,
   HistoryIcon,
   Loader2Icon,
@@ -92,6 +93,14 @@ const WorkbenchHistoryPanel = dynamic(
   { ssr: false },
 );
 
+const WorkbenchOperationsPanel = dynamic(
+  () =>
+    import("@/components/workbench/workbench-operations-panel").then(
+      (module) => module.WorkbenchOperationsPanel,
+    ),
+  { ssr: false },
+);
+
 const WorkbenchWorkspacePanel = dynamic(
   () =>
     import("@/components/workbench/workbench-workspace-panel").then(
@@ -133,6 +142,7 @@ function WorkbenchShellContent({
   const [agentsOpen, setAgentsOpen] = useState(false);
   const [capabilitiesOpen, setCapabilitiesOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [operationsOpen, setOperationsOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [historyFocus, setHistoryFocus] = useState<HistoryFocusRequest | null>(null);
   const [adminAccess, setAdminAccess] = useState<{ isAdmin: boolean } | null>(null);
@@ -428,6 +438,16 @@ function WorkbenchShellContent({
         icon: HistoryIcon,
         execute: openHistory,
       },
+      ...(!demoMode
+        ? [
+            {
+              id: "operations",
+              label: "Operations",
+              icon: ActivityIcon,
+              execute: () => setOperationsOpen(true),
+            },
+          ]
+        : []),
       ...(!demoMode || adminAccess?.isAdmin
         ? [
             {
@@ -537,6 +557,16 @@ function WorkbenchShellContent({
             onCloseAutoFocus={handlePanelCloseAutoFocus}
             onFocusConsumed={handleHistoryFocusConsumed}
           />
+          {!demoMode ? (
+            <WorkbenchOperationsPanel
+              open={operationsOpen}
+              onOpenChange={(nextOpen) => {
+                setOperationsOpen(nextOpen);
+                if (!nextOpen) focusComposerAfterOverlayClose();
+              }}
+              onCloseAutoFocus={handlePanelCloseAutoFocus}
+            />
+          ) : null}
           <AdminPanel
             open={adminOpen}
             onOpenChange={handleAdminOpenChange}
