@@ -3,23 +3,24 @@ updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    # Matches the pnpm minimumReleaseAge guard, so proposed versions can install.
+    cooldown:
+      default-days: 7
     groups:
-      production-dependencies:
-        dependency-type: production
+      minor-and-patch:
         update-types: [minor, patch]
-      development-dependencies:
-        dependency-type: development
-        update-types: [minor, patch]
+      major:
+        update-types: [major]
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
     groups:
       github-actions:
         patterns:
