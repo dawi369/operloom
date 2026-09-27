@@ -61,13 +61,7 @@ export const diagnoseWorkbench = async ({
     if (!value || value.startsWith("replace-with-")) failures.push(`${label} is missing ${key}`);
   };
 
-  for (const key of [
-    "CLOUDFLARE_CONTROL_PLANE_URL",
-    "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN",
-    "WORKBENCH_DEV_USER_ID",
-    "WORKBENCH_DEV_WORKSPACE_ID",
-    "WORKBENCH_DEV_AGENT_ID",
-  ]) {
+  for (const key of ["CLOUDFLARE_CONTROL_PLANE_URL", "CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN"]) {
     requireValue(frontend, key, ".env.local");
   }
   for (const key of ["CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN", "WORKBENCH_AGENT_CONNECTION_SECRET"]) {
@@ -76,8 +70,13 @@ export const diagnoseWorkbench = async ({
   if (!allowMissingProviderKey) {
     requireValue(worker, "OPENROUTER_API_KEY", "cloudflare/control-plane/.dev.vars");
   }
-  if (frontend.WORKBENCH_ALLOW_LOCAL_DEV_IDENTITY !== "true") {
-    failures.push(".env.local must explicitly enable WORKBENCH_ALLOW_LOCAL_DEV_IDENTITY");
+  if (frontend.WORKBENCH_LOCAL_API_ENABLED !== "true") {
+    failures.push(".env.local must explicitly enable WORKBENCH_LOCAL_API_ENABLED");
+  }
+  if (worker.WORKBENCH_LOCAL_API_ENABLED !== "true" || worker.WORKBENCH_ENVIRONMENT !== "local") {
+    failures.push(
+      "cloudflare/control-plane/.dev.vars must set WORKBENCH_LOCAL_API_ENABLED=true and WORKBENCH_ENVIRONMENT=local",
+    );
   }
   if (
     frontend.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN &&
@@ -157,20 +156,12 @@ export const diagnoseWorkbench = async ({
       if (!health.ok) failures.push(`Worker health returned HTTP ${health.status}`);
       else checks.push("Worker health and D1 query succeeded");
 
-      const workspace = await fetch(`${origin}/workspace-context`, {
-        headers: {
-          authorization: `Bearer ${frontend.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN}`,
-          "x-assistant-mk1-user-id": frontend.WORKBENCH_DEV_USER_ID,
-          "x-assistant-mk1-workspace-id": frontend.WORKBENCH_DEV_WORKSPACE_ID,
-          "x-assistant-mk1-agent-id": frontend.WORKBENCH_DEV_AGENT_ID,
-          "x-assistant-mk1-account-id": `local-dev:${frontend.WORKBENCH_DEV_WORKSPACE_ID}`,
-          "x-assistant-mk1-account-source": "local-dev",
-        },
+      const account = await fetch(`${origin}/v1/account`, {
+        headers: { authorization: `Bearer ${frontend.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN}` },
         signal: AbortSignal.timeout(5_000),
       });
-      if (!workspace.ok)
-        failures.push(`local identity validation returned HTTP ${workspace.status}`);
-      else checks.push("local user, workspace, membership, agent, and preferences validated");
+      if (!account.ok) failures.push(`local API account returned HTTP ${account.status}`);
+      else checks.push("local API user, workspace, membership, agent, and preferences validated");
 
       if (worker.WORKBENCH_RUNNER_TRANSPORT === "fly" && worker.WORKBENCH_RUNNER_URL) {
         const runnerOrigin = new URL(worker.WORKBENCH_RUNNER_URL).origin;

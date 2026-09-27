@@ -4,13 +4,13 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import * as Sentry from "@sentry/node";
 
 import {
-  canonicalFacadeRequest,
-  facadeContentSha256Header,
-  facadeSignatureHeader,
-  facadeSignatureNonceHeader,
-  facadeSignatureTimestampHeader,
+  canonicalServiceRequest,
+  serviceContentSha256Header,
+  serviceSignatureHeader,
+  serviceSignatureNonceHeader,
+  serviceSignatureTimestampHeader,
   hmacSha256Base64Url,
-  signFacadeRequest,
+  signServiceRequest,
   sha256Base64Url,
 } from "../lib/workbench/control-plane-signing";
 import {
@@ -142,10 +142,10 @@ const verifyRunnerSignature = async (
     return false;
   }
 
-  const signature = headerValue(request, facadeSignatureHeader);
-  const timestamp = headerValue(request, facadeSignatureTimestampHeader);
-  const nonce = headerValue(request, facadeSignatureNonceHeader);
-  const declaredBodyHash = headerValue(request, facadeContentSha256Header);
+  const signature = headerValue(request, serviceSignatureHeader);
+  const timestamp = headerValue(request, serviceSignatureTimestampHeader);
+  const nonce = headerValue(request, serviceSignatureNonceHeader);
+  const declaredBodyHash = headerValue(request, serviceContentSha256Header);
   if (!signature || !timestamp || !nonce || !declaredBodyHash) {
     authError(response, "signature_required", "Signed runner request is required.");
     return false;
@@ -173,7 +173,7 @@ const verifyRunnerSignature = async (
     return false;
   }
 
-  const canonical = canonicalFacadeRequest({
+  const canonical = canonicalServiceRequest({
     method: request.method ?? "GET",
     pathWithQuery: `${url.pathname}${url.search}`,
     timestamp,
@@ -408,7 +408,7 @@ const postWorkflowCallback = async (
   };
   Object.assign(
     headers,
-    await signFacadeRequest({
+    await signServiceRequest({
       secret,
       method: "POST",
       pathWithQuery: `${callbackUrl.pathname}${callbackUrl.search}`,

@@ -1,33 +1,37 @@
 import { getWorkOS } from "@workos-inc/authkit-nextjs";
 
 import { toWorkbenchApiError } from "@/lib/workbench/api-errors";
-import { getWorkbenchAgentIdentity } from "@/lib/workbench/agent-identity";
+import { getWorkbenchSession } from "@/lib/workbench/agent-identity";
+import { getWorkspaceContext } from "@/lib/workbench/cloudflare-control-plane-client";
 import type { WorkbenchAccountContextResponse } from "@/lib/workbench/workbench-types";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const identity = await getWorkbenchAgentIdentity();
-    if (identity.authMode === "local-dev") {
+    const session = await getWorkbenchSession();
+    if (session.authMode === "local-dev") {
+      const accountId = (await getWorkspaceContext()).context?.account?.id;
       return Response.json({
         ok: true,
-        currentAccountId: identity.accountId,
-        accounts: [
-          {
-            id: identity.accountId,
-            name: "Local development",
-            source: "local-dev",
-            role: "owner",
-            roles: ["owner"],
-            isCurrent: true,
-          },
-        ],
+        currentAccountId: accountId,
+        accounts: accountId
+          ? [
+              {
+                id: accountId,
+                name: "Local development",
+                source: "local-dev",
+                role: "owner",
+                roles: ["owner"],
+                isCurrent: true,
+              },
+            ]
+          : [],
       } satisfies WorkbenchAccountContextResponse);
     }
 
     const organizationMemberships = await getWorkOS().userManagement.listOrganizationMemberships({
-      userId: identity.scope.userId,
+      userId: session.userId,
       statuses: ["active"],
       limit: 100,
     });
@@ -39,12 +43,15 @@ export async function GET() {
         source: "workos-organization" as const,
         role: membership.role?.slug,
         roles: membership.roles?.map((role) => role.slug),
-        isCurrent: membership.organizationId === identity.organizationId,
+        isCurrent: membership.organizationId === session.organizationId,
       }));
 
-    if (!identity.organizationId) {
+    const currentAccountId = session.organizationId
+      ? `workos-org:${session.organizationId}`
+      : `workos-personal:${session.userId}`;
+    if (!session.organizationId) {
       accounts.unshift({
-        id: `workos-personal:${identity.scope.userId}`,
+        id: currentAccountId,
         organizationId: undefined,
         name: "Personal",
         source: "workos-personal",
@@ -56,8 +63,8 @@ export async function GET() {
 
     return Response.json({
       ok: true,
-      currentAccountId: identity.accountId,
-      currentOrganizationId: identity.organizationId,
+      currentAccountId,
+      currentOrganizationId: session.organizationId,
       accounts,
     } satisfies WorkbenchAccountContextResponse);
   } catch (error) {

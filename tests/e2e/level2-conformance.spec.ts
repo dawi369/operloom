@@ -1,17 +1,9 @@
 import { expect, test, type Page } from "./fixtures";
 
 import { activateRepositoryAnalyst } from "./workbench-helpers";
+import { e2eOwner, workerApi, workerOrigin } from "./worker-api";
 
 const releaseMode = process.env.E2E_RELEASE_MODE;
-const workerOrigin = "http://127.0.0.1:8788";
-const ownerHeaders = {
-  authorization: "Bearer e2e-control-plane-token",
-  "x-assistant-mk1-user-id": "e2e-owner",
-  "x-assistant-mk1-workspace-id": "e2e-workspace",
-  "x-assistant-mk1-agent-id": "e2e-agent",
-  "x-assistant-mk1-account-id": "local-dev:e2e-workspace",
-  "x-assistant-mk1-account-source": "local-dev",
-};
 
 type HistoryRun = {
   id: string;
@@ -40,16 +32,16 @@ test.describe.serial("Level 2 executable conformance", () => {
     await page.getByRole("button", { name: "Workspace access" }).click();
     const workspaceDialog = page.getByRole("dialog", { name: "Workspace" });
     await expect(workspaceDialog.getByText("Default Workspace", { exact: true })).toBeVisible();
-    const ownerMembersResponse = await request.get(
-      `${workerOrigin}/workspaces/e2e-workspace/members`,
-      { headers: ownerHeaders },
+    const owner = workerApi(request);
+    const ownerMembersResponse = await owner.get(
+      `/workspaces/${encodeURIComponent(owner.workspaceId)}/members`,
     );
     expect(ownerMembersResponse.ok()).toBe(true);
     const ownerMembers = (await ownerMembersResponse.json()) as {
       members?: Array<{ userId?: string; role?: string; status?: string }>;
     };
     expect(ownerMembers.members).toContainEqual(
-      expect.objectContaining({ userId: "e2e-owner", role: "owner", status: "active" }),
+      expect.objectContaining({ userId: e2eOwner, role: "owner", status: "active" }),
     );
     await page.getByRole("button", { name: "Close" }).click();
 
@@ -221,37 +213,17 @@ test.describe.serial("Level 2 executable conformance", () => {
     );
     expect(staleTokenResponse.status()).toBe(403);
 
-    const otherHeaders = {
-      authorization: "Bearer e2e-control-plane-token",
-      "x-assistant-mk1-user-id": "tenant-b-user",
-      "x-assistant-mk1-workspace-id": "tenant-b-workspace",
-      "x-assistant-mk1-agent-id": "tenant-b-agent",
-      "x-assistant-mk1-account-id": "local-dev:tenant-b-workspace",
-      "x-assistant-mk1-account-source": "local-dev",
-    };
-    const bootstrapOther = await request.get(`${workerOrigin}/workspace-context`, {
-      headers: otherHeaders,
-    });
+    const other = workerApi(request, { userId: "tenant-b-user" });
+    const bootstrapOther = await other.account();
     expect(bootstrapOther.ok()).toBe(true);
     for (const operation of [
-      () =>
-        request.get(`${workerOrigin}/workbench/history/runs/${retriedRunId}`, {
-          headers: otherHeaders,
-        }),
-      () =>
-        request.post(`${workerOrigin}/workbench/history/runs/${retriedRunId}/cancel`, {
-          headers: otherHeaders,
-        }),
-      () =>
-        request.post(`${workerOrigin}/workbench/history/runs/${retriedRunId}/retry`, {
-          headers: otherHeaders,
-        }),
+      () => other.get(`/workbench/history/runs/${retriedRunId}`),
+      () => other.post(`/workbench/history/runs/${retriedRunId}/cancel`),
+      () => other.post(`/workbench/history/runs/${retriedRunId}/retry`),
     ]) {
       expect((await operation()).status()).toBe(404);
     }
-    const otherArtifacts = await request.get(`${workerOrigin}/workbench/history/artifacts`, {
-      headers: otherHeaders,
-    });
+    const otherArtifacts = await other.get("/workbench/history/artifacts");
     expect(otherArtifacts.ok()).toBe(true);
     expect(JSON.stringify(await otherArtifacts.json())).not.toContain(retriedRunId);
 

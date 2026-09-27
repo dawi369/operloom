@@ -1,7 +1,14 @@
 import { agentManifestRegistry } from "../generated/agent-runtime/manifests";
 import { agentRunnerRegistry } from "../generated/agent-runtime/runner";
-import { facadeSignatureHeader, signFacadeRequest } from "../lib/workbench/control-plane-signing";
-import { runSmoke } from "./smoke-utils";
+import { serviceSignatureHeader, signServiceRequest } from "../lib/workbench/control-plane-signing";
+
+const runSmoke = (label: string, fn: () => Promise<void>) =>
+  fn()
+    .then(() => console.log(`${label} passed`))
+    .catch((error: unknown) => {
+      console.error(error instanceof Error ? error.message : error);
+      process.exitCode = 1;
+    });
 
 const baseUrl = (process.env.WORKBENCH_RUNNER_BASE_URL ?? "http://localhost:3000").replace(
   /\/$/,
@@ -227,7 +234,7 @@ const signedFetch = async (input?: {
   };
   Object.assign(
     headers,
-    await signFacadeRequest({
+    await signServiceRequest({
       secret: signingSecret,
       method: "POST",
       pathWithQuery: path,
@@ -469,7 +476,7 @@ runSmoke("Fly tool runner smoke", async () => {
   };
   Object.assign(
     replayHeaders,
-    await signFacadeRequest({
+    await signServiceRequest({
       secret: signingSecret,
       method: "POST",
       pathWithQuery: path,
@@ -513,7 +520,7 @@ runSmoke("Fly tool runner smoke", async () => {
   };
   Object.assign(
     tamperHeaders,
-    await signFacadeRequest({
+    await signServiceRequest({
       secret: signingSecret,
       method: "POST",
       pathWithQuery: path,
@@ -540,7 +547,7 @@ runSmoke("Fly tool runner smoke", async () => {
   const missing = await signedFetch({
     nonce: `missing-${suffix}`,
     tamper: (headers) => {
-      delete headers[facadeSignatureHeader];
+      delete headers[serviceSignatureHeader];
     },
   });
   await expectRunnerAuthError(missing, "signature_required");

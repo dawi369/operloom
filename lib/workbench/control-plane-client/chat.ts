@@ -7,12 +7,7 @@ import type {
   ChatThreadStatus,
   ChatThreadsResponse,
 } from "@/lib/workbench/workbench-types";
-import {
-  controlPlaneRequest,
-  ControlPlaneRequestError,
-  parseErrorBody,
-  requestControlPlane,
-} from "./transport";
+import { requestControlPlane, requestControlPlaneResponse } from "./transport";
 
 export const getChatRuntimeSummary = () =>
   requestControlPlane<ChatRuntimeSummaryResponse>("/chat/runtime-summary");
@@ -31,19 +26,16 @@ export const getChatSession = (input?: { refresh?: "threads" }) =>
 export const streamChatSessionEvents = async (input?: { after?: string; lastEventId?: string }) => {
   const after = input?.after?.trim();
   const path = `/chat/session/stream${after ? `?after=${encodeURIComponent(after)}` : ""}`;
-  const request = await controlPlaneRequest(path, {
-    headers: {
-      accept: "text/event-stream",
-      ...(input?.lastEventId && !after ? { "Last-Event-ID": input.lastEventId } : {}),
+  return requestControlPlaneResponse(
+    path,
+    {
+      headers: {
+        accept: "text/event-stream",
+        ...(input?.lastEventId && !after ? { "Last-Event-ID": input.lastEventId } : {}),
+      },
     },
-  });
-  const response = await fetch(request.url, request.init);
-
-  if (!response.ok) {
-    throw new ControlPlaneRequestError(await parseErrorBody(response), response.status);
-  }
-
-  return response;
+    null,
+  );
 };
 
 export const createChatSessionThread = (input?: { title?: string }) =>

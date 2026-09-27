@@ -91,6 +91,9 @@ export const publicApiCommandRequest = (
     headers.set("x-assistant-mk1-workspace-id", input.target.workspaceId);
     headers.set("x-assistant-mk1-agent-id", input.target.agentId);
   }
+  // Profile fields come only from verified token claims and seed the user bootstrap.
+  if (principal.userEmail) headers.set("x-assistant-mk1-user-email", principal.userEmail);
+  if (principal.userName) headers.set("x-assistant-mk1-user-name", principal.userName);
   if (principal.membershipRole)
     headers.set("x-assistant-mk1-membership-role", principal.membershipRole);
   if (principal.membershipRoles)

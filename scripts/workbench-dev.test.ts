@@ -43,7 +43,15 @@ describe("local workbench supervisor", () => {
       "127.0.0.1",
     ]);
     const runner = configuration.services.find((service) => service.name === "runner")!;
+    const frontend = configuration.services.find((service) => service.name === "frontend")!;
+    const workerService = configuration.services.find((service) => service.name === "worker")!;
     const worker = readFileSync(resolve(root, "cloudflare/control-plane/.dev.vars"), "utf8");
+    expect(frontend.env.WORKBENCH_LOCAL_API_ENABLED).toBe("true");
+    expect(workerService.env).toMatchObject({
+      WORKBENCH_LOCAL_API_ENABLED: "true",
+      WORKBENCH_ENVIRONMENT: "local",
+      CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: frontend.env.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN,
+    });
     expect(runner.env.WORKBENCH_RUNNER_SIGNING_SECRET).toBeTruthy();
     expect(worker).toContain(
       `WORKBENCH_RUNNER_SIGNING_SECRET=${runner.env.WORKBENCH_RUNNER_SIGNING_SECRET}`,

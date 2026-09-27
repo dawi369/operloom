@@ -18,12 +18,10 @@ const suites = [
       "run",
       "packages/workbench-client/src/client.test.ts",
       "packages/workbench-client/src/realtime.test.ts",
-      "lib/workbench/mobile-access-token.test.ts",
-      "lib/workbench/mobile-api-parity.test.ts",
+      "lib/workbench/access-token.test.ts",
       "lib/workbench/client-cors.test.ts",
     ],
     guarantees: [
-      "cookie-bearer-parity",
       "authoritative-bearer",
       "tenant-derived-identity",
       "typed-resources",

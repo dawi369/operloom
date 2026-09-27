@@ -53,8 +53,26 @@ describe("workbench initializer", () => {
     expect(value(worker, "WORKBENCH_CALLBACK_URL")).toBe(
       "http://127.0.0.1:8787/workbench/run-callbacks",
     );
-    expect(value(frontend, "WORKBENCH_ADMIN_USER_IDS")).toBe("dev-user");
+    expect(value(frontend, "WORKBENCH_LOCAL_API_ENABLED")).toBe("true");
+    expect(value(worker, "WORKBENCH_LOCAL_API_ENABLED")).toBe("true");
+    expect(value(worker, "WORKBENCH_ENVIRONMENT")).toBe("local");
+    expect(value(frontend, "WORKBENCH_ADMIN_USER_IDS")).toBe("operloom-local");
     expect(result.needsProviderKey).toBe(true);
+  });
+
+  it("grants Admin to a configured local API principal", async () => {
+    const root = fixtureRoot();
+    writeFileSync(
+      resolve(root, "cloudflare/control-plane/.dev.vars"),
+      readFileSync(resolve(root, "cloudflare/control-plane/.dev.vars.example"), "utf8").replace(
+        "WORKBENCH_LOCAL_API_USER_ID=",
+        "WORKBENCH_LOCAL_API_USER_ID=local-owner",
+      ),
+    );
+
+    await initializeWorkbench({ root, runMigration: false });
+    const frontend = readFileSync(resolve(root, ".env.local"), "utf8");
+    expect(value(frontend, "WORKBENCH_ADMIN_USER_IDS")).toBe("local-owner");
   });
 
   it("never overwrites configured local values", async () => {

@@ -14,12 +14,12 @@ export const getAuthConfiguration = (environment: Environment = process.env) => 
     environment.WORKOS_COOKIE_PASSWORD?.trim() &&
     environment.NEXT_PUBLIC_WORKOS_REDIRECT_URI?.trim(),
   );
-  const localIdentityEnabled =
+  const localApiEnabled =
     !workOsConfigured &&
-    environment.WORKBENCH_ALLOW_LOCAL_DEV_IDENTITY === "true" &&
+    environment.WORKBENCH_LOCAL_API_ENABLED === "true" &&
     environment.NODE_ENV === "development" &&
     !environment.VERCEL_ENV &&
     !environment.RAILWAY_ENVIRONMENT_ID &&
     !environment.FLY_APP_NAME;
-  return { workOsConfigured, localIdentityEnabled };
+  return { workOsConfigured, localApiEnabled };
 };

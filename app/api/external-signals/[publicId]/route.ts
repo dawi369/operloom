@@ -1,11 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { signFacadeRequest } from "@/lib/workbench/control-plane-signing";
-
 export const runtime = "nodejs";
 
 const maximumWebhookBytes = 32 * 1024;
 
+/** Public Agent Pack webhook; the Worker verifies the per-trigger secret. */
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ publicId: string }> },
@@ -14,12 +13,8 @@ export async function POST(
   if (!/^hook-[A-Za-z0-9-]{8,160}$/.test(publicId)) {
     return NextResponse.json({ ok: false, error: "Trigger webhook not found" }, { status: 404 });
   }
-  const baseUrl = process.env.CLOUDFLARE_CONTROL_PLANE_URL?.replace(/\/$/, "");
-  const controlToken = process.env.CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN?.trim();
-  const signingSecret =
-    process.env.CLOUDFLARE_CONTROL_PLANE_WEBHOOK_FACADE_SIGNING_SECRET?.trim() ??
-    process.env.CLOUDFLARE_CONTROL_PLANE_FACADE_SIGNING_SECRET?.trim();
-  if (!baseUrl || !signingSecret) {
+  const baseUrl = process.env.CLOUDFLARE_CONTROL_PLANE_URL?.trim().replace(/\/$/, "");
+  if (!baseUrl) {
     return NextResponse.json(
       { ok: false, error: "Webhook ingress is unavailable" },
       { status: 503 },
@@ -29,7 +24,6 @@ export async function POST(
   const triggerSecret = authorization.startsWith("Bearer ")
     ? authorization.slice("Bearer ".length).trim()
     : "";
-  const idempotencyKey = request.headers.get("idempotency-key")?.trim() ?? "";
   if (!triggerSecret) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
@@ -37,24 +31,16 @@ export async function POST(
   if (new TextEncoder().encode(body).byteLength > maximumWebhookBytes) {
     return NextResponse.json({ ok: false, error: "Webhook body is too large" }, { status: 413 });
   }
-  const path = `/trigger-ingress/${encodeURIComponent(publicId)}`;
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-    "idempotency-key": idempotencyKey,
-    "x-assistant-mk1-trigger-secret": triggerSecret,
-  };
-  if (controlToken) headers.authorization = `Bearer ${controlToken}`;
-  Object.assign(
-    headers,
-    await signFacadeRequest({
-      secret: signingSecret,
-      method: "POST",
-      pathWithQuery: path,
-      body,
-      headers,
-    }),
-  );
-  const response = await fetch(`${baseUrl}${path}`, { method: "POST", headers, body });
+  const response = await fetch(`${baseUrl}/trigger-ingress/${encodeURIComponent(publicId)}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      // The Worker requires the sender's key to deduplicate deliveries.
+      "idempotency-key": request.headers.get("idempotency-key")?.trim() ?? "",
+      "x-assistant-mk1-trigger-secret": triggerSecret,
+    },
+    body,
+  });
   const responseText = await response.text();
   return new NextResponse(responseText || null, {
     status: response.status,

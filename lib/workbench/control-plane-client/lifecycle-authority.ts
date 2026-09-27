@@ -125,11 +125,7 @@ export const retryCloudflareWorkspaceDeletionAsOperator = (
 ) =>
   requestControlPlane<CloudflareWorkspaceDeletionResponse>(
     `/admin/workspace-purges/${encodeURIComponent(workspaceId)}/retry`,
-    {
-      method: "POST",
-      headers: { "x-assistant-mk1-platform-operator": "true" },
-      body: JSON.stringify(input),
-    },
+    { method: "POST", body: JSON.stringify(input) },
   );
 
 export const getCloudflareKillSwitches = () =>

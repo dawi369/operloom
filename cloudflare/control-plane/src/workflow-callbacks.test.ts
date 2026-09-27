@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { signFacadeRequest } from "../../../lib/workbench/control-plane-signing";
+import { signServiceRequest } from "../../../lib/workbench/control-plane-signing";
 import {
   applyWorkflowCallbackPayload,
   handleWorkflowCallback,
@@ -104,7 +104,7 @@ const signedRequest = async (
   const headers: Record<string, string> = { "content-type": "application/json" };
   Object.assign(
     headers,
-    await signFacadeRequest({
+    await signServiceRequest({
       secret: env.WORKBENCH_CALLBACK_SIGNING_SECRET ?? "",
       method: "POST",
       pathWithQuery: "/workbench/run-callbacks",

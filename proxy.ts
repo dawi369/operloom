@@ -18,10 +18,7 @@ export default async function proxy(request: NextRequest) {
     return allowed || !origin ? response : new NextResponse(null, { status: 403 });
   }
 
-  if (
-    getAuthConfiguration().localIdentityEnabled ||
-    (isWorkbenchApi && request.headers.has("authorization"))
-  ) {
+  if (getAuthConfiguration().localApiEnabled) {
     const response = NextResponse.next();
     applyWorkbenchClientCors(response.headers, {
       configuredOrigins: process.env.WORKBENCH_CLIENT_ORIGINS,

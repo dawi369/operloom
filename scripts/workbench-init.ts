@@ -109,15 +109,19 @@ export const initializeWorkbench = async ({
   );
   const configured = [
     ...writeConfiguredFile(frontendPath, frontend, {
+      WORKBENCH_LOCAL_API_ENABLED: "true",
       CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: transportToken,
       WORKBENCH_CALLBACK_SIGNING_SECRET: callbackSecret,
       WORKBENCH_RUNNER_SIGNING_SECRET: runnerSigningSecret,
-      WORKBENCH_ADMIN_USER_IDS: readValue(frontend, "WORKBENCH_DEV_USER_ID") || "dev-user",
+      WORKBENCH_ADMIN_USER_IDS:
+        readValue(worker, "WORKBENCH_LOCAL_API_USER_ID") || "operloom-local",
     }).map((key) => `.env.local:${key}`),
     ...writeConfiguredFile(
       workerPath,
       worker,
       {
+        WORKBENCH_LOCAL_API_ENABLED: "true",
+        WORKBENCH_ENVIRONMENT: "local",
         CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN: transportToken,
         WORKBENCH_AGENT_CONNECTION_SECRET: agentConnectionSecret,
         WORKBENCH_CALLBACK_SIGNING_SECRET: callbackSecret,

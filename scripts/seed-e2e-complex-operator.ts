@@ -63,7 +63,7 @@ writeFileSync(
   data_json, created_at, updated_at
 ) VALUES (
   'e2e-complex-agent',
-  'e2e-workspace',
+  'workspace:local-api:e2e-owner:default',
   'Complex Operator Conformance',
   'Generated Runtime Module v1 service-boundary fixture.',
   'active',

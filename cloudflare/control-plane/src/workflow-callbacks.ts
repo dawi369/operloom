@@ -4,11 +4,11 @@ import { activeRunStatusSql, isTerminalRunStatus } from "./run-transitions";
 import { isRecord, json, parseDataJson, parseJson } from "./http";
 import { getRuntimeTraceSnapshot, recordSpan, type RuntimeSpanStatus } from "./runtime-traces";
 import {
-  canonicalFacadeRequest,
-  facadeContentSha256Header,
-  facadeSignatureHeader,
-  facadeSignatureNonceHeader,
-  facadeSignatureTimestampHeader,
+  canonicalServiceRequest,
+  serviceContentSha256Header,
+  serviceSignatureHeader,
+  serviceSignatureNonceHeader,
+  serviceSignatureTimestampHeader,
   hmacSha256Base64Url,
   sha256Base64Url,
   sha256Hex,
@@ -302,10 +302,10 @@ export const verifyWorkflowCallbackSignature = async (
     };
   }
 
-  const signature = readAuthHeader(request, facadeSignatureHeader);
-  const timestamp = readAuthHeader(request, facadeSignatureTimestampHeader);
-  const nonce = readAuthHeader(request, facadeSignatureNonceHeader);
-  const declaredBodyHash = readAuthHeader(request, facadeContentSha256Header);
+  const signature = readAuthHeader(request, serviceSignatureHeader);
+  const timestamp = readAuthHeader(request, serviceSignatureTimestampHeader);
+  const nonce = readAuthHeader(request, serviceSignatureNonceHeader);
+  const declaredBodyHash = readAuthHeader(request, serviceContentSha256Header);
   if (!signature || !timestamp || !nonce || !declaredBodyHash) {
     return {
       ok: false,
@@ -336,7 +336,7 @@ export const verifyWorkflowCallbackSignature = async (
   }
 
   const url = new URL(request.url);
-  const canonical = canonicalFacadeRequest({
+  const canonical = canonicalServiceRequest({
     method: request.method,
     pathWithQuery: `${url.pathname}${url.search}`,
     timestamp,

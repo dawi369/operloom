@@ -1,6 +1,6 @@
 import {
-  facadeSignatureHeader,
-  signFacadeRequest,
+  serviceSignatureHeader,
+  signServiceRequest,
 } from "../../../lib/workbench/control-plane-signing";
 import type { UrlInspectResult } from "../../../lib/workbench/url-inspect";
 import type { RepoSnapshotResult } from "../../../lib/workbench/repo-snapshot";
@@ -286,7 +286,7 @@ export const invokeFlyToolRunner = async (
 
   Object.assign(
     headers,
-    await signFacadeRequest({
+    await signServiceRequest({
       secret,
       method: "POST",
       pathWithQuery,
@@ -389,5 +389,5 @@ export const invokeFlyToolRunner = async (
   return parsed as ToolRunnerInvocationResponse;
 };
 
-export const runnerSignatureHeader = facadeSignatureHeader;
+export const runnerSignatureHeader = serviceSignatureHeader;
 export const runnerInvocationEndpointPath = runnerInvocationPath;

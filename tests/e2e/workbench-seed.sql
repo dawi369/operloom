@@ -1,5 +1,6 @@
 -- Identity, workspace, membership, agent, and active preferences are intentionally
--- absent. The first trusted local browser request must bootstrap them.
+-- absent. The first local API request as e2e-owner bootstraps account
+-- local-api:e2e-owner with the default workspace and agent ids used below.
 
 INSERT INTO control_workflow_intents (
   id, user_id, workspace_id, agent_id, stage, type, execution_json, payload_json,
@@ -8,8 +9,8 @@ INSERT INTO control_workflow_intents (
 VALUES (
   'e2e-retry-intent',
   'e2e-owner',
-  'e2e-workspace',
-  'e2e-agent',
+  'workspace:local-api:e2e-owner:default',
+  'agent-workspace:local-api:e2e-owner:default',
   'failed',
   'polymancer.market_research',
   '{"mode":"dry_run"}',
@@ -24,7 +25,8 @@ INSERT INTO control_workflow_intents (
   status, created_at, updated_at
 )
 VALUES (
-  'e2e-approval-intent', 'e2e-owner', 'e2e-workspace', 'e2e-agent', 'observe',
+  'e2e-approval-intent', 'e2e-owner', 'workspace:local-api:e2e-owner:default',
+  'agent-workspace:local-api:e2e-owner:default', 'observe',
   'tool.url.inspect', '{"mode":"dry_run","policy":"url.inspect.public-read.v1"}',
   '{"input":{"url":"https://example.com"}}', 'interrupted',
   '2026-07-09T20:06:00.000Z', '2026-07-09T20:06:00.000Z'
@@ -36,7 +38,8 @@ INSERT INTO control_runs (
   data_json, created_at, updated_at
 )
 VALUES (
-  'e2e-approval-run', 'e2e-owner', 'e2e-workspace', 'e2e-agent',
+  'e2e-approval-run', 'e2e-owner', 'workspace:local-api:e2e-owner:default',
+  'agent-workspace:local-api:e2e-owner:default',
   'e2e-approval-intent', 'interrupted',
   '{"mode":"dry_run","policy":"url.inspect.public-read.v1"}', 'observe', 'cloudflare',
   '2026-07-09T20:06:00.000Z', '2026-07-09T20:06:00.000Z', NULL, NULL, NULL,
@@ -49,7 +52,8 @@ INSERT INTO control_approval_requests (
   reason, data_json, created_at, updated_at
 )
 VALUES (
-  'e2e-approval', 'e2e-owner', 'e2e-workspace', 'e2e-agent',
+  'e2e-approval', 'e2e-owner', 'workspace:local-api:e2e-owner:default',
+  'agent-workspace:local-api:e2e-owner:default',
   'e2e-approval-intent', 'e2e-approval-run', 'url.inspect', 'requested',
   'Confirm public URL inspection.',
   '{"input":{"url":"https://example.com"},"runner":{"transport":"fly"}}',
@@ -64,8 +68,8 @@ INSERT INTO control_runs (
 VALUES (
   'e2e-retry-run',
   'e2e-owner',
-  'e2e-workspace',
-  'e2e-agent',
+  'workspace:local-api:e2e-owner:default',
+  'agent-workspace:local-api:e2e-owner:default',
   'e2e-retry-intent',
   'failed',
   '{"mode":"dry_run"}',
@@ -86,7 +90,8 @@ INSERT INTO control_operator_alerts (
   last_delivery_at, data_json, created_at, updated_at
 )
 VALUES (
-  'e2e-operator-alert', 'e2e-owner', 'e2e-workspace', 'e2e-agent', 'critical',
+  'e2e-operator-alert', 'e2e-owner', 'workspace:local-api:e2e-owner:default',
+  'agent-workspace:local-api:e2e-owner:default', 'critical',
   'level3_soak_fixture', 'A deterministic unattended failure requires operator recovery.',
   'triggerDispatch', 'e2e-trigger-dispatch', 'open',
   'e2e:operator-alert:level3-soak-fixture', 'failed', 5,
@@ -101,8 +106,8 @@ INSERT INTO control_action_proposals (
   result_json, created_at, updated_at, terminal_at
 )
 VALUES (
-  'e2e-action-proposal', 'e2e-owner', 'e2e-workspace', 'e2e-agent',
-  'e2e-retry-intent', 'e2e-retry-run', 'complex-operator', '1.1.0', '1.1.0', 1,
+  'e2e-action-proposal', 'e2e-owner', 'workspace:local-api:e2e-owner:default',
+  'agent-workspace:local-api:e2e-owner:default', 'e2e-retry-intent', 'e2e-retry-run', 'complex-operator', '1.1.0', '1.1.0', 1,
   'operator.action.execute', 'synthetic.external_action', 'executed',
   'Synthetic release action completed after approval.', 'e2e-release-action',
   'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -116,11 +121,13 @@ INSERT INTO control_action_ledger (
   request_sha256, response_sha256, external_reference, data_json, created_at
 )
 VALUES
-  ('e2e-action-ledger-1', 'e2e-owner', 'e2e-workspace', 'e2e-agent',
+  ('e2e-action-ledger-1', 'e2e-owner', 'workspace:local-api:e2e-owner:default',
+   'agent-workspace:local-api:e2e-owner:default',
    'e2e-action-proposal', 1, 'proposed', 'Synthetic action proposed.',
    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', NULL, NULL,
    '{"fixture":true}', '2026-07-09T20:08:00.000Z'),
-  ('e2e-action-ledger-2', 'e2e-owner', 'e2e-workspace', 'e2e-agent',
+  ('e2e-action-ledger-2', 'e2e-owner', 'workspace:local-api:e2e-owner:default',
+   'agent-workspace:local-api:e2e-owner:default',
    'e2e-action-proposal', 2, 'executed', 'Synthetic provider accepted the action once.',
    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
    'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',

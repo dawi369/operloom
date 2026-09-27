@@ -296,9 +296,12 @@ describe("runtime extension architecture", () => {
     const runner = read("runner/server.ts");
     expect(runner).toContain("WORKBENCH_CALLBACK_ORIGIN");
     expect(runner).toContain("callbackUrl.origin !== allowedCallbackOrigin");
-    const client = readMatching("lib/workbench/control-plane-client", /\.ts$/);
-    expect(client).toContain("baseUrl && (token || signingSecret)");
+    const client = readMatching("lib/workbench/control-plane-client", /(?<!\.test)\.ts$/);
+    expect(client).toContain("CLOUDFLARE_CONTROL_PLANE_URL is required");
+    expect(client).toContain("publicApiScopePath(scope)");
+    expect(client).not.toMatch(/x-assistant-mk1-(user|account|workspace|agent)-id/);
     const webhook = read("app/api/external-signals/[publicId]/route.ts");
-    expect(webhook).toContain("!baseUrl || !signingSecret");
+    expect(webhook).toContain("the Worker verifies the per-trigger secret");
+    expect(webhook).toContain("/trigger-ingress/");
   });
 });

@@ -1,5 +1,9 @@
 # Copy to .dev.vars for local Worker development. Never commit real values.
-# Local /v1 API bearer token; honored only with WORKBENCH_LOCAL_API_ENABLED=true on loopback.
+# Local /v1 API: the bearer token below is honored only on loopback with both
+# flags set. The principal defaults to operloom-local.
+WORKBENCH_LOCAL_API_ENABLED=true
+WORKBENCH_ENVIRONMENT=local
+WORKBENCH_LOCAL_API_USER_ID=
 CLOUDFLARE_CONTROL_PLANE_DEV_TOKEN=replace-with-a-local-token
 OPENROUTER_API_KEY=
 WORKBENCH_AGENT_CONNECTION_SECRET=replace-with-a-long-random-secret

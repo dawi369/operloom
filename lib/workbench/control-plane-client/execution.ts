@@ -21,14 +21,7 @@ import type {
   CreateArtifactBlobInput,
   WorkspaceContextResponse,
 } from "@/lib/workbench/workbench-types";
-import {
-  controlPlaneRequest,
-  fetchWithTimeout,
-  parseErrorBody,
-  requestControlPlane,
-  requestControlPlaneResponse,
-  ControlPlaneRequestError,
-} from "./transport";
+import { requestControlPlane, requestControlPlaneResponse } from "./transport";
 
 export const getWorkspaceContext = () =>
   requestControlPlane<WorkspaceContextResponse>("/workspace-context");
@@ -199,17 +192,10 @@ export const streamControlPlaneEvents = async (
   const searchParams = new URLSearchParams();
   if (after) searchParams.set("after", after);
   const queryString = searchParams.toString() ? `?${searchParams.toString()}` : "";
-  const request = await controlPlaneRequest(`/events/stream${queryString}`, {
+  return requestControlPlaneResponse(`/events/stream${queryString}`, {
     headers: {
       accept: "text/event-stream",
       ...(lastEventId && !after ? { "Last-Event-ID": lastEventId } : {}),
     },
   });
-  const response = await fetchWithTimeout(request.url, request.init);
-
-  if (!response.ok) {
-    throw new ControlPlaneRequestError(await parseErrorBody(response), response.status);
-  }
-
-  return response;
 };

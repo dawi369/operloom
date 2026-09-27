@@ -1,15 +1,15 @@
-export const facadeSignatureHeader = "x-assistant-mk1-signature-v1";
-export const facadeSignatureTimestampHeader = "x-assistant-mk1-signature-timestamp";
-export const facadeSignatureNonceHeader = "x-assistant-mk1-signature-nonce";
-export const facadeContentSha256Header = "x-assistant-mk1-content-sha256";
+export const serviceSignatureHeader = "x-assistant-mk1-signature-v1";
+export const serviceSignatureTimestampHeader = "x-assistant-mk1-signature-timestamp";
+export const serviceSignatureNonceHeader = "x-assistant-mk1-signature-nonce";
+export const serviceContentSha256Header = "x-assistant-mk1-content-sha256";
 
 const textEncoder = new TextEncoder();
 
 const excludedSignedHeaders = new Set([
-  facadeSignatureHeader,
-  facadeSignatureTimestampHeader,
-  facadeSignatureNonceHeader,
-  facadeContentSha256Header,
+  serviceSignatureHeader,
+  serviceSignatureTimestampHeader,
+  serviceSignatureNonceHeader,
+  serviceContentSha256Header,
 ]);
 
 const toBase64Url = (bytes: Uint8Array) => {
@@ -52,7 +52,7 @@ export const canonicalAssistantHeaders = (headers: Headers | Record<string, stri
     .map(([key, value]) => `${key}:${value}`)
     .join("\n");
 
-export const canonicalFacadeRequest = (input: {
+export const canonicalServiceRequest = (input: {
   method: string;
   pathWithQuery: string;
   timestamp: string;
@@ -82,7 +82,7 @@ export const hmacSha256Base64Url = async (secret: string, value: string) => {
   return toBase64Url(new Uint8Array(signature));
 };
 
-export const signFacadeRequest = async (input: {
+export const signServiceRequest = async (input: {
   secret: string;
   method: string;
   pathWithQuery: string;
@@ -96,11 +96,11 @@ export const signFacadeRequest = async (input: {
   const bodyHash = await sha256Base64Url(input.body ?? "");
   const headers = {
     ...input.headers,
-    [facadeSignatureTimestampHeader]: timestamp,
-    [facadeSignatureNonceHeader]: nonce,
-    [facadeContentSha256Header]: bodyHash,
+    [serviceSignatureTimestampHeader]: timestamp,
+    [serviceSignatureNonceHeader]: nonce,
+    [serviceContentSha256Header]: bodyHash,
   };
-  const canonical = canonicalFacadeRequest({
+  const canonical = canonicalServiceRequest({
     method: input.method,
     pathWithQuery: input.pathWithQuery,
     timestamp,
@@ -109,9 +109,9 @@ export const signFacadeRequest = async (input: {
     headers,
   });
   return {
-    [facadeSignatureTimestampHeader]: timestamp,
-    [facadeSignatureNonceHeader]: nonce,
-    [facadeContentSha256Header]: bodyHash,
-    [facadeSignatureHeader]: await hmacSha256Base64Url(input.secret, canonical),
+    [serviceSignatureTimestampHeader]: timestamp,
+    [serviceSignatureNonceHeader]: nonce,
+    [serviceContentSha256Header]: bodyHash,
+    [serviceSignatureHeader]: await hmacSha256Base64Url(input.secret, canonical),
   };
 };

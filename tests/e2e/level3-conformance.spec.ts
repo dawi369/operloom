@@ -1,9 +1,9 @@
 import { expect, test, type Page } from "./fixtures";
 
 import { activateRepositoryAnalyst, openAdminAgentsPanel } from "./workbench-helpers";
+import { workerApi, workerOrigin } from "./worker-api";
 
 const releaseMode = process.env.E2E_RELEASE_MODE;
-const workerOrigin = "http://127.0.0.1:8788";
 
 type Trigger = {
   id: string;
@@ -334,33 +334,15 @@ test.describe.serial("Level 3 executable conformance", () => {
       )
       .toBe(404);
 
-    const otherHeaders = {
-      authorization: "Bearer e2e-control-plane-token",
-      "x-assistant-mk1-user-id": "level3-tenant-b-user",
-      "x-assistant-mk1-workspace-id": "level3-tenant-b-workspace",
-      "x-assistant-mk1-agent-id": "level3-tenant-b-agent",
-      "x-assistant-mk1-account-id": "local-dev:level3-tenant-b-workspace",
-      "x-assistant-mk1-account-source": "local-dev",
-    };
+    const other = workerApi(request, { userId: "level3-tenant-b-user" });
+    expect((await other.account()).ok()).toBe(true);
+    expect((await other.get(`/triggers/${encodeURIComponent(schedule.id)}`)).status()).toBe(404);
     expect(
-      (
-        await request.get(`${workerOrigin}/triggers/${encodeURIComponent(schedule.id)}`, {
-          headers: otherHeaders,
-        })
-      ).status(),
+      (await other.get(`/trigger-dispatches/${encodeURIComponent(manualDispatch.id)}`)).status(),
     ).toBe(404);
     expect(
       (
-        await request.get(
-          `${workerOrigin}/trigger-dispatches/${encodeURIComponent(manualDispatch.id)}`,
-          { headers: otherHeaders },
-        )
-      ).status(),
-    ).toBe(404);
-    expect(
-      (
-        await request.patch(`${workerOrigin}/admin/operator-alerts/e2e-operator-alert`, {
-          headers: otherHeaders,
+        await other.patch("/admin/operator-alerts/e2e-operator-alert", {
           data: { status: "resolved" },
         })
       ).status(),

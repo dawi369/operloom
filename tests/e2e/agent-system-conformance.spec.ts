@@ -1,21 +1,9 @@
 import { expect, test } from "./fixtures";
 
 import { controlPlane as complexOperatorRuntime } from "../../examples/complex-operator/control-plane";
+import { workerApi } from "./worker-api";
 
 const releaseMode = process.env.E2E_RELEASE_MODE;
-const workerOrigin = "http://127.0.0.1:8788";
-const headers = {
-  authorization: "Bearer e2e-control-plane-token",
-  "x-assistant-mk1-user-id": "e2e-owner",
-  "x-assistant-mk1-workspace-id": "e2e-workspace",
-  "x-assistant-mk1-agent-id": "e2e-complex-agent",
-  "x-assistant-mk1-account-id": "local-dev:e2e-workspace",
-  "x-assistant-mk1-account-source": "local-dev",
-};
-const activeAgentHeaders = {
-  ...headers,
-  "x-assistant-mk1-agent-id": "e2e-agent",
-};
 
 test.describe.serial("Agent-system executable conformance", () => {
   test.skip(releaseMode !== "local-session");
@@ -28,13 +16,14 @@ test.describe.serial("Agent-system executable conformance", () => {
     await page.goto("/");
     await expect(page.getByRole("main")).toBeVisible();
 
-    const activate = await request.post(`${workerOrigin}/agents/e2e-complex-agent/activate`, {
-      headers: activeAgentHeaders,
-    });
+    // The seeded package agent lives in the owner's default workspace.
+    const owner = workerApi(request);
+    const worker = workerApi(request, { agentId: "e2e-complex-agent" });
+    expect((await owner.account()).ok()).toBe(true);
+    const activate = await owner.post("/agents/e2e-complex-agent/activate");
     expect(activate.status(), await activate.text()).toBe(200);
 
-    const retention = await request.patch(`${workerOrigin}/workbench/retention-policy`, {
-      headers,
+    const retention = await worker.patch("/workbench/retention-policy", {
       data: {
         artifactRetentionDays: 90,
         operationalEventRetentionDays: 30,
@@ -47,9 +36,9 @@ test.describe.serial("Agent-system executable conformance", () => {
     });
     expect(retention.status(), await retention.text()).toBe(200);
 
-    const authorization = await request.post(
-      `${workerOrigin}/workbench/connections/operator.oauth-observer/authorize`,
-      { headers, data: { redirectUri: "http://localhost/oauth-complete" } },
+    const authorization = await worker.post(
+      "/workbench/connections/operator.oauth-observer/authorize",
+      { data: { redirectUri: "http://localhost/oauth-complete" } },
     );
     expect(authorization.status(), await authorization.text()).toBe(200);
     const authorizationBody = (await authorization.json()) as { authorizationUrl: string };
@@ -58,8 +47,7 @@ test.describe.serial("Agent-system executable conformance", () => {
     });
     expect(providerResponse.status()).toBe(302);
     const providerRedirect = new URL(providerResponse.headers().location!);
-    const callback = await request.post(`${workerOrigin}/workbench/connections/oauth/callback`, {
-      headers,
+    const callback = await worker.post("/workbench/connections/oauth/callback", {
       data: {
         state: providerRedirect.searchParams.get("state"),
         code: providerRedirect.searchParams.get("code"),
@@ -67,22 +55,18 @@ test.describe.serial("Agent-system executable conformance", () => {
     });
     expect(callback.status(), await callback.text()).toBe(200);
 
-    const apiKeyConnection = await request.post(
-      `${workerOrigin}/workbench/connections/operator.external-account/credentials`,
-      { headers, data: { secret: "e2e-synthetic-api-key" } },
+    const apiKeyConnection = await worker.post(
+      "/workbench/connections/operator.external-account/credentials",
+      { data: { secret: "e2e-synthetic-api-key" } },
     );
     expect(apiKeyConnection.status(), await apiKeyConnection.text()).toBe(201);
 
-    const response = await request.post(
-      `${workerOrigin}/workbench/workflows/complex-operator.observe`,
-      {
-        headers,
-        data: {
-          executionMode: "dry_run",
-          input: { subject: "service-boundary" },
-        },
+    const response = await worker.post("/workbench/workflows/complex-operator.observe", {
+      data: {
+        executionMode: "dry_run",
+        input: { subject: "service-boundary" },
       },
-    );
+    });
     expect(response.status(), await response.text()).toBe(201);
     const receipt = (await response.json()) as {
       run?: { id?: string; runtimeVersion?: string; engine?: string };
@@ -104,9 +88,8 @@ test.describe.serial("Agent-system executable conformance", () => {
       proposal: { status: "proposed" },
     });
 
-    const snapshotResponse = await request.get(
-      `${workerOrigin}/workbench/history/runs/${encodeURIComponent(receipt.run!.id!)}`,
-      { headers },
+    const snapshotResponse = await worker.get(
+      `/workbench/history/runs/${encodeURIComponent(receipt.run!.id!)}`,
     );
     expect(snapshotResponse.ok()).toBe(true);
     const snapshot = (await snapshotResponse.json()) as {
@@ -141,24 +124,22 @@ test.describe.serial("Agent-system executable conformance", () => {
       expect.objectContaining({ id: receipt.artifact?.id, kind: "complex_operator_report" }),
     );
 
-    const proposalsResponse = await request.get(`${workerOrigin}/workbench/actions`, { headers });
+    const proposalsResponse = await worker.get("/workbench/actions");
     expect(proposalsResponse.ok()).toBe(true);
     const proposals = (await proposalsResponse.json()) as {
       proposals: Array<{ id: string; status: string }>;
     };
     const proposal = proposals.proposals.find((candidate) => candidate.status === "proposed");
     expect(proposal).toBeTruthy();
-    const enableMutation = await request.post(`${workerOrigin}/tools/policy`, {
-      headers,
+    const enableMutation = await worker.post("/tools/policy", {
       data: {
         toolName: "operator.action.execute",
         mutationEnabled: true,
       },
     });
     expect(enableMutation.status(), await enableMutation.text()).toBe(200);
-    const execute = await request.post(
-      `${workerOrigin}/workbench/actions/${encodeURIComponent(proposal!.id)}/execute`,
-      { headers },
+    const execute = await worker.post(
+      `/workbench/actions/${encodeURIComponent(proposal!.id)}/execute`,
     );
     expect(execute.status(), await execute.text()).toBe(202);
     const executeBody = (await execute.json()) as {
@@ -168,15 +149,14 @@ test.describe.serial("Agent-system executable conformance", () => {
     const reviewRemainingMs = Date.parse(executeBody.approvalRequest.expiresAt) - Date.now();
     expect(reviewRemainingMs).toBeGreaterThan(0);
     expect(reviewRemainingMs).toBeLessThanOrEqual(15 * 60 * 1000);
-    const approve = await request.post(
-      `${workerOrigin}/tools/approvals/${encodeURIComponent(executeBody.approvalRequest.id)}/approve`,
-      { headers },
+    const approve = await worker.post(
+      `/tools/approvals/${encodeURIComponent(executeBody.approvalRequest.id)}/approve`,
     );
     expect(approve.status(), await approve.text()).toBe(200);
     expect(await approve.json()).toMatchObject({
       result: { status: "executed", output: { transport: "fly" } },
     });
-    const executedHistory = await request.get(`${workerOrigin}/workbench/actions`, { headers });
+    const executedHistory = await worker.get("/workbench/actions");
     expect(executedHistory.status(), await executedHistory.text()).toBe(200);
     expect(await executedHistory.json()).toMatchObject({
       proposals: expect.arrayContaining([
@@ -197,19 +177,17 @@ test.describe.serial("Agent-system executable conformance", () => {
       ]),
     });
 
-    const duplicate = await request.post(
-      `${workerOrigin}/workbench/actions/${encodeURIComponent(proposal!.id)}/execute`,
-      { headers },
+    const duplicate = await worker.post(
+      `/workbench/actions/${encodeURIComponent(proposal!.id)}/execute`,
     );
     expect(duplicate.status()).toBe(409);
 
     const runFixture = async (subject: string) => {
-      const workflowResponse = await request.post(
-        `${workerOrigin}/workbench/workflows/complex-operator.observe`,
-        { headers, data: { executionMode: "dry_run", input: { subject } } },
-      );
+      const workflowResponse = await worker.post("/workbench/workflows/complex-operator.observe", {
+        data: { executionMode: "dry_run", input: { subject } },
+      });
       expect(workflowResponse.status(), await workflowResponse.text()).toBe(201);
-      const proposalResponse = await request.get(`${workerOrigin}/workbench/actions`, { headers });
+      const proposalResponse = await worker.get("/workbench/actions");
       expect(proposalResponse.ok()).toBe(true);
       const body = (await proposalResponse.json()) as {
         proposals: Array<{ id: string; status: string; summary: string }>;
@@ -222,18 +200,17 @@ test.describe.serial("Agent-system executable conformance", () => {
     };
 
     const deniedProposal = await runFixture("approval-denial");
-    const deniedRequest = await request.post(
-      `${workerOrigin}/workbench/actions/${encodeURIComponent(deniedProposal.id)}/execute`,
-      { headers },
+    const deniedRequest = await worker.post(
+      `/workbench/actions/${encodeURIComponent(deniedProposal.id)}/execute`,
     );
     expect(deniedRequest.status(), await deniedRequest.text()).toBe(202);
     const deniedRequestBody = (await deniedRequest.json()) as { approvalRequest: { id: string } };
-    const denied = await request.post(
-      `${workerOrigin}/tools/approvals/${encodeURIComponent(deniedRequestBody.approvalRequest.id)}/deny`,
-      { headers, data: { reason: "Conformance denial." } },
+    const denied = await worker.post(
+      `/tools/approvals/${encodeURIComponent(deniedRequestBody.approvalRequest.id)}/deny`,
+      { data: { reason: "Conformance denial." } },
     );
     expect(denied.status(), await denied.text()).toBe(200);
-    const afterDenial = await request.get(`${workerOrigin}/workbench/actions`, { headers });
+    const afterDenial = await worker.get("/workbench/actions");
     expect(await afterDenial.json()).toMatchObject({
       proposals: expect.arrayContaining([
         expect.objectContaining({ id: deniedProposal.id, status: "cancelled" }),
@@ -241,28 +218,24 @@ test.describe.serial("Agent-system executable conformance", () => {
     });
 
     const timeoutProposal = await runFixture("timeout");
-    const timeoutRequest = await request.post(
-      `${workerOrigin}/workbench/actions/${encodeURIComponent(timeoutProposal.id)}/execute`,
-      { headers },
+    const timeoutRequest = await worker.post(
+      `/workbench/actions/${encodeURIComponent(timeoutProposal.id)}/execute`,
     );
     expect(timeoutRequest.status(), await timeoutRequest.text()).toBe(202);
     const timeoutRequestBody = (await timeoutRequest.json()) as { approvalRequest: { id: string } };
-    const timeoutApproval = await request.post(
-      `${workerOrigin}/tools/approvals/${encodeURIComponent(timeoutRequestBody.approvalRequest.id)}/approve`,
-      { headers },
+    const timeoutApproval = await worker.post(
+      `/tools/approvals/${encodeURIComponent(timeoutRequestBody.approvalRequest.id)}/approve`,
     );
     expect(timeoutApproval.status(), await timeoutApproval.text()).toBe(502);
     expect(await timeoutApproval.json()).toMatchObject({ result: { status: "outcome_unknown" } });
     await new Promise((resolve) => setTimeout(resolve, 750));
-    const reconciled = await request.post(
-      `${workerOrigin}/workbench/actions/${encodeURIComponent(timeoutProposal.id)}/reconcile`,
-      { headers },
+    const reconciled = await worker.post(
+      `/workbench/actions/${encodeURIComponent(timeoutProposal.id)}/reconcile`,
     );
     expect(reconciled.status(), await reconciled.text()).toBe(200);
     expect(await reconciled.json()).toMatchObject({ result: { status: "reconciled" } });
 
-    const packPaused = await request.put(`${workerOrigin}/workbench/kill-switches`, {
-      headers,
+    const packPaused = await worker.put("/workbench/kill-switches", {
       data: {
         scopeKind: "pack",
         scopeId: "complex-operator",
@@ -272,14 +245,12 @@ test.describe.serial("Agent-system executable conformance", () => {
     });
     expect(packPaused.status(), await packPaused.text()).toBe(200);
     const blockedProposal = await runFixture("kill-switch");
-    const blockedExecution = await request.post(
-      `${workerOrigin}/workbench/actions/${encodeURIComponent(blockedProposal.id)}/execute`,
-      { headers },
+    const blockedExecution = await worker.post(
+      `/workbench/actions/${encodeURIComponent(blockedProposal.id)}/execute`,
     );
     expect(blockedExecution.status(), await blockedExecution.text()).toBe(403);
     expect(await blockedExecution.json()).toMatchObject({ code: "kill_switch_active" });
-    const packResumed = await request.put(`${workerOrigin}/workbench/kill-switches`, {
-      headers,
+    const packResumed = await worker.put("/workbench/kill-switches", {
       data: {
         scopeKind: "pack",
         scopeId: "complex-operator",
@@ -289,27 +260,18 @@ test.describe.serial("Agent-system executable conformance", () => {
     });
     expect(packResumed.status(), await packResumed.text()).toBe(200);
 
-    const otherTenantHeaders = {
-      ...headers,
-      "x-assistant-mk1-user-id": "e2e-other-owner",
-      "x-assistant-mk1-workspace-id": "e2e-other-workspace",
-      "x-assistant-mk1-agent-id": "e2e-other-agent",
-      "x-assistant-mk1-account-id": "local-dev:e2e-other-workspace",
-    };
-    const crossTenantList = await request.get(`${workerOrigin}/workbench/actions`, {
-      headers: otherTenantHeaders,
-    });
+    const otherTenant = workerApi(request, { userId: "e2e-other-owner" });
+    expect((await otherTenant.account()).ok()).toBe(true);
+    const crossTenantList = await otherTenant.get("/workbench/actions");
     expect(crossTenantList.status(), await crossTenantList.text()).toBe(200);
     expect(await crossTenantList.json()).toMatchObject({ proposals: [] });
-    const crossTenantExecute = await request.post(
-      `${workerOrigin}/workbench/actions/${encodeURIComponent(proposal!.id)}/execute`,
-      { headers: otherTenantHeaders },
+    const crossTenantExecute = await otherTenant.post(
+      `/workbench/actions/${encodeURIComponent(proposal!.id)}/execute`,
     );
     expect(crossTenantExecute.status()).toBe(404);
 
-    const managedStateResponse = await request.get(
-      `${workerOrigin}/workbench/managed-state?namespace=complex-operator&type=observation`,
-      { headers },
+    const managedStateResponse = await worker.get(
+      "/workbench/managed-state?namespace=complex-operator&type=observation",
     );
     expect(managedStateResponse.ok()).toBe(true);
     expect(await managedStateResponse.json()).toMatchObject({

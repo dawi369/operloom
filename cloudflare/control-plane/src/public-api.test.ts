@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { handlePublicApi } from "./public-api";
-import { authenticatePublicApi } from "./public-api-auth";
+import { authenticatePublicApi, publicApiCommandRequest } from "./public-api-auth";
 import type { Env } from "./types";
 
 vi.mock("../../../lib/workbench/access-token", async (importOriginal) => ({
@@ -193,5 +193,29 @@ describe("public API boundary", () => {
     } as Env);
     expect(hosted.context.mode).toBe("access_token");
     expect(hosted.principal.scope.userId).toBe("workos-user");
+  });
+  it("seeds the user profile only from verified token claims", () => {
+    const principal = {
+      scope: { userId: "user_1", workspaceId: "workspace:workos-personal:user_1:default" },
+      accountId: "workos-personal:user_1",
+      accountSource: "workos-personal",
+      workspaceSource: "workos-personal",
+      authMode: "workos",
+    } as const;
+    const forged = new Request("http://127.0.0.1:8787/v1/account", {
+      headers: {
+        "x-assistant-mk1-user-email": "forged@example.com",
+        "x-assistant-mk1-user-name": "Forged",
+      },
+    });
+    const claimed = publicApiCommandRequest(forged, {
+      principal: { ...principal, userEmail: "ada@example.com", userName: "Ada" },
+      path: "/workspace-context",
+    });
+    expect(claimed.headers.get("x-assistant-mk1-user-email")).toBe("ada@example.com");
+    expect(claimed.headers.get("x-assistant-mk1-user-name")).toBe("Ada");
+    const unclaimed = publicApiCommandRequest(forged, { principal, path: "/workspace-context" });
+    expect(unclaimed.headers.has("x-assistant-mk1-user-email")).toBe(false);
+    expect(unclaimed.headers.has("x-assistant-mk1-user-name")).toBe(false);
   });
 });
