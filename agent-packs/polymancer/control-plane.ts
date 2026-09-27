@@ -21,10 +21,13 @@ import {
   exposureUsd,
   isWalletAddress,
   markPosition,
+  marketsUrl,
   paperFill,
   positionKey,
   startingCashUsd,
   translateActivity,
+  translateMarket,
+  type GammaMarket,
   type HeartbeatSnapshot,
   type MarketQuote,
   type PositionState,
@@ -151,6 +154,22 @@ const fetchActivity = async (wallet: string, signal: AbortSignal): Promise<Walle
   if (!response.ok) throw new Error(`Wallet activity request failed (${response.status})`);
   const body = (await response.json()) as unknown;
   return Array.isArray(body) ? (body as WalletActivity[]).slice(0, 100) : [];
+};
+
+const fetchQuotes = async (
+  marketIds: readonly string[],
+  signal: AbortSignal,
+): Promise<MarketQuote[]> => {
+  if (!marketIds.length) return [];
+  const response = await fetch(marketsUrl(marketIds), {
+    headers: { accept: "application/json" },
+    signal: AbortSignal.any([signal, AbortSignal.timeout(5000)]),
+  });
+  if (!response.ok) throw new Error(`Market quote request failed (${response.status})`);
+  const body = (await response.json()) as unknown;
+  return Array.isArray(body)
+    ? (body as GammaMarket[]).flatMap((market) => translateMarket(market) ?? [])
+    : [];
 };
 
 /** Mirrors each new tracked-wallet trade once: activity, fill ledger entry, position and cash commit together. */
@@ -314,11 +333,17 @@ const heartbeat = async (
       record.data as unknown as MarketQuote,
     ]),
   );
-  for (const quote of Array.isArray(input.markets) ? (input.markets as MarketQuote[]) : [])
-    quotes.set(quote.marketId, quote);
   const positionRecords = (await listAll(state, "position")).filter(
     (record) => Number(record.data.shares) > 0,
   );
+  // Tests supply quotes; a monitor tick marks held markets from Polymarket's public API.
+  const fresh = Array.isArray(input.markets)
+    ? (input.markets as MarketQuote[])
+    : await fetchQuotes(
+        positionRecords.map((record) => positionOf(record).marketId),
+        context.signal,
+      );
+  for (const quote of fresh) quotes.set(quote.marketId, quote);
   const marked = positionRecords.map((record) => {
     const position = positionOf(record);
     const quote = quotes.get(position.marketId);
@@ -348,13 +373,7 @@ const heartbeat = async (
     current,
     thresholds,
   );
-  const marketWrites = [...quotes.values()]
-    .filter(
-      (quote) =>
-        Array.isArray(input.markets) &&
-        (input.markets as MarketQuote[]).some((item) => item.marketId === quote.marketId),
-    )
-    .map((quote) => quote.marketId);
+  const marketWrites = [...new Set(fresh.map((quote) => quote.marketId))];
   const marketRecords = await Promise.all(
     marketWrites.map((marketId) => state.get(key("market", marketId))),
   );

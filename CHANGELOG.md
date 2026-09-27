@@ -20,14 +20,16 @@ user, real OpenRouter model:
 - Monitors: `heartbeat` and `wallet-activity` dispatched by the scheduler and
   completed; the wallet monitor reads live Polymarket activity; the heartbeat
   records a `noop` decision with its settings version and context snapshot.
+- Live quotes: the heartbeat marks held positions from Polymarket's public Gamma
+  markets API when a monitor tick supplies no `markets` fixture.
 - Found and fixed upstream: request-mode monitor ticks failed with
   `trigger_input_invalid`; one slow `ps` poll stopped the whole local stack.
 - Gates: `pnpm verify:fast` and `pnpm test:e2e:local:release` (console,
   operations panel, chat lifecycle and accessibility audits) pass.
 
 Not covered locally: WorkOS Google sign-in (the local stack uses local API auth,
-which the console only allows under `NODE_ENV=development`), live market quotes
-for the heartbeat, and live order placement (fails closed outside simulation).
+which the console only allows under `NODE_ENV=development`) and live order
+placement (fails closed outside simulation).
 
 ## Unreleased
 

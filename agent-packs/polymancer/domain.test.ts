@@ -6,9 +6,11 @@ import {
   applyFill,
   checkRisk,
   evaluateHeartbeat,
+  marketsUrl,
   paperFill,
   parseCopyCommand,
   translateActivity,
+  translateMarket,
   type PaperOrder,
   type WalletActivity,
 } from "./domain";
@@ -102,6 +104,41 @@ describe("heartbeat", () => {
   it("is a noop below thresholds and without a baseline", () => {
     expect(evaluateHeartbeat(snapshot(0.54, 54), snapshot(0.56, 56)).status).toBe("noop");
     expect(evaluateHeartbeat(null, snapshot(0.62, 62))).toEqual({ status: "noop", changes: [] });
+  });
+});
+
+describe("live quotes", () => {
+  it("requests each held market once from the Gamma markets API", () => {
+    const url = new URL(marketsUrl(["0xa", "0xb", "0xa"]));
+    expect(url.origin + url.pathname).toBe("https://gamma-api.polymarket.com/markets");
+    expect(url.searchParams.getAll("condition_ids")).toEqual(["0xa", "0xb"]);
+  });
+
+  it("reads Yes/No prices from the stringified outcome arrays", () => {
+    expect(
+      translateMarket({
+        conditionId: "0xa",
+        question: "Will it happen?",
+        outcomes: '["No", "Yes"]',
+        outcomePrices: '["0.37", "0.63"]',
+      }),
+    ).toEqual({ marketId: "0xa", question: "Will it happen?", yesPrice: 0.63, noPrice: 0.37 });
+  });
+
+  it("drops markets that are not a priced Yes/No pair", () => {
+    const market = { conditionId: "0xa", question: "Q" };
+    expect(
+      translateMarket({ ...market, outcomes: '["A", "B"]', outcomePrices: '["0.5", "0.5"]' }),
+    ).toBeNull();
+    expect(
+      translateMarket({ ...market, outcomes: '["Yes", "No"]', outcomePrices: "bad" }),
+    ).toBeNull();
+    expect(
+      translateMarket({ ...market, outcomes: '["Yes", "No"]', outcomePrices: '["1.2", "0"]' }),
+    ).toBeNull();
+    expect(
+      translateMarket({ outcomes: '["Yes", "No"]', outcomePrices: '["0.5", "0.5"]' }),
+    ).toBeNull();
   });
 });
 

@@ -1,10 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createPackTestRuntime } from "../../cloudflare/control-plane/src/pack-test-runtime";
 
 const wallet = "0x1111111111111111111111111111111111111111";
 const runtimes: ReturnType<typeof createPackTestRuntime>[] = [];
 afterEach(() => {
+  vi.unstubAllGlobals();
   for (const runtime of runtimes.splice(0)) runtime.close();
 });
 const start = (effectTarget: "simulation" | "external" = "simulation") => {
@@ -138,5 +139,34 @@ describe("polymancer acceptance", () => {
     expect(refused.status).toBeGreaterThanOrEqual(400);
     expect(JSON.stringify(refused.body)).toContain("live_trading_unavailable");
     expect(live.entries("effect")).toHaveLength(0);
+  });
+
+  it("marks held positions from live Polymarket quotes on a monitor tick", async () => {
+    const runtime = start();
+    await runtime.runWorkflow("polymancer.copy.start", { walletAddress: wallet });
+    await runtime.runWorkflow("polymancer.copy.sync", { activity: [trade(2)] });
+    await runtime.runWorkflow("polymancer.heartbeat", { markets: [quote(0.62)] });
+    const requested: string[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      requested.push(url);
+      return Response.json([
+        {
+          conditionId: "0xcondition",
+          question: "Will it happen?",
+          outcomes: '["Yes", "No"]',
+          outcomePrices: '["0.71", "0.29"]',
+        },
+      ]);
+    });
+
+    const tick = await runtime.runWorkflow("polymancer.heartbeat", {});
+
+    expect(tick.status, JSON.stringify(tick.body)).toBe(201);
+    expect(tick.body.report).toMatchObject({ status: "material" });
+    expect(requested).toEqual([
+      "https://gamma-api.polymarket.com/markets?condition_ids=0xcondition",
+    ]);
+    const portfolio = (await runtime.runQuery("polymancer.portfolio")).body.output as Portfolio;
+    expect(portfolio.positions[0]).toMatchObject({ currentPrice: 0.71 });
   });
 });

@@ -235,6 +235,41 @@ export const activityUrl = (wallet: string) =>
     sortBy: "TIMESTAMP",
   })}`;
 
+/** One row of `GET https://gamma-api.polymarket.com/markets`; outcome arrays are JSON strings. */
+export type GammaMarket = {
+  conditionId?: string | null;
+  question?: string | null;
+  outcomes?: string | null;
+  outcomePrices?: string | null;
+};
+
+export const marketsUrl = (conditionIds: readonly string[]) =>
+  `https://gamma-api.polymarket.com/markets?${new URLSearchParams(
+    [...new Set(conditionIds)].map((id) => ["condition_ids", id]),
+  )}`;
+
+const jsonStrings = (value: string | null | undefined) => {
+  try {
+    const parsed = JSON.parse(value ?? "") as unknown;
+    return Array.isArray(parsed) ? parsed.map(String) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const translateMarket = (market: GammaMarket): MarketQuote | null => {
+  const outcomes = jsonStrings(market.outcomes)?.map((outcome) => outcome.toLowerCase());
+  const prices = jsonStrings(market.outcomePrices)?.map(Number);
+  if (!market.conditionId || !outcomes || !prices || outcomes.length !== prices.length) return null;
+  const price = (outcome: string) => prices[outcomes.indexOf(outcome)];
+  const yesPrice = price("yes");
+  const noPrice = price("no");
+  const valid = (value: number | undefined): value is number =>
+    value !== undefined && Number.isFinite(value) && value >= 0 && value <= 1;
+  if (outcomes.length !== 2 || !valid(yesPrice) || !valid(noPrice)) return null;
+  return { marketId: market.conditionId, question: market.question ?? "", yesPrice, noPrice };
+};
+
 /** The dedupe identity of one wallet event. */
 export const activityEventKey = (activity: WalletActivity) =>
   activity.transactionHash

@@ -20,9 +20,9 @@ the activity record, the fill ledger entry, the position and paper cash together
 Replayed events are duplicates. Paper cash starts at 1000 USD; fills use the
 source trade price, and average entry follows the original backend's formula.
 
-`heartbeat` marks positions to supplied `markets` quotes (or the last known marks)
-and records a `noop` or `material` decision. Live market quotes are not fetched
-yet.
+`heartbeat` marks held positions to live quotes from Polymarket's public Gamma
+markets API (or to a `markets` fixture input) and records a `noop` or `material`
+decision.
 
 Paper execution runs only when the agent's effect target is `simulation`. Under
 `external` the workflows fail closed with `live_trading_unavailable`; no live
