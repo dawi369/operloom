@@ -7,6 +7,12 @@ import {
   resolveAgentIdentity,
 } from "./authz";
 import type { D1PreparedStatement, Env } from "./types";
+import {
+  defaultAgentBehaviorTemplateId,
+  getAgentBehaviorTemplate,
+} from "./agent-behavior-templates";
+
+const defaultTemplate = getAgentBehaviorTemplate(defaultAgentBehaviorTemplateId);
 
 const timestamp = "2026-08-02T00:00:00.000Z";
 const userId = "user-1";
@@ -212,19 +218,19 @@ describe("Operloom bootstrap compatibility", () => {
     return writes;
   };
 
-  it("creates Operloom with a versioned behavior snapshot", async () => {
+  it("creates the configured default agent with a versioned behavior snapshot", async () => {
     const [write] = await runBootstrap("", null);
-    expect(write.values[2]).toBe("Operloom");
-    expect(JSON.parse(write.values[5] as string).behavior.templateId).toBe("pack-operloom");
+    expect(write.values[2]).toBe(defaultTemplate.name);
+    expect(JSON.parse(write.values[5] as string).behavior.templateId).toBe(defaultTemplate.id);
   });
 
   it("upgrades an untouched legacy default with a compare-and-swap and preserves runtime", async () => {
     const [write] = await runBootstrap("Default Agent", legacyData);
     expect(write.query).toContain("AND name = ? AND data_json = ?");
-    expect(write.values[0]).toBe("Operloom");
+    expect(write.values[0]).toBe(defaultTemplate.name);
     expect(JSON.parse(write.values[2] as string)).toMatchObject({
       runtime: { model: "custom" },
-      behavior: { templateId: "pack-operloom" },
+      behavior: { templateId: defaultTemplate.id },
     });
   });
 

@@ -90,7 +90,10 @@ describe("workspace defaults", () => {
       (db.prepare("SELECT COUNT(*) AS count FROM agents").get() as { count: number }).count,
     ).toBe(maxWorkspaceAgents);
 
-    db.exec("UPDATE agents SET status = 'archived' WHERE name = 'Agent 1'");
+    // Archive the newest agent (the default one when the cap is 1) to free a slot.
+    db.exec(
+      "UPDATE agents SET status = 'archived' WHERE id = (SELECT id FROM agents ORDER BY is_default, created_at DESC, id DESC LIMIT 1)",
+    );
     expect((await createAgent(env, "Replacement")).status).toBe(201);
 
     // Conformance fixtures exist only in E2E/conformance modes and never count against the cap.

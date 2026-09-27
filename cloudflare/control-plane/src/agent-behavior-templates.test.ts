@@ -11,6 +11,7 @@ import {
 import {
   agentBehaviorTemplates,
   createAgentBehaviorSnapshot,
+  defaultAgentBehaviorTemplateId,
   type AgentBehaviorTemplate,
 } from "./agent-behavior-templates";
 
@@ -31,9 +32,9 @@ const pokeSpecificFacts =
   /Poke|Interaction Company|Palo Alto|Spark Capital|General Catalyst|Bouncer|Recipes|Apple Messages|film\.poke\.com|poke\.com/i;
 
 describe("agent behavior authoring metadata", () => {
-  it("starts with a general Operloom pack without specialist or external tools", () => {
-    expect(localAgentPacks[0].id).toBe("operloom");
-    expect(createAgentBehaviorSnapshot("default")).toMatchObject({
+  it("starts with the configured default pack and keeps Operloom general", () => {
+    expect(createAgentBehaviorSnapshot("default").templateId).toBe(defaultAgentBehaviorTemplateId);
+    expect(createAgentBehaviorSnapshot("default", "pack-operloom")).toMatchObject({
       templateId: "pack-operloom",
       pack: { id: "operloom", tools: [], workflows: [], triggers: [] },
     });
