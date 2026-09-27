@@ -10,5 +10,9 @@
     "slug": "operloom",
     "scheme": "operloom",
     "bundleIdentifier": "com.dawi369.operloom"
+  },
+  "workspace": {
+    "defaultAgentPack": "operloom",
+    "maxAgents": 20
   }
 }

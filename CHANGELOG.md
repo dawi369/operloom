@@ -47,3 +47,7 @@ the baseline schema.
   `observeMonitor`, `monitorFingerprint` and `monitorCursorState` for
   once-per-change decisions. Rendered hosted Workers tick every minute and
   `pnpm operloom dev` drives the scheduled handler locally.
+- `config/product.json` `workspace.defaultAgentPack` selects the pack each new
+  workspace's default agent is created from, and `workspace.maxAgents` caps
+  active agents per workspace (`409 agent_limit_reached`). `fork init` accepts
+  `--default-pack` and `--max-agents`.

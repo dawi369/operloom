@@ -15,6 +15,8 @@ export type ForkIdentity = {
     scheme: string;
     bundleIdentifier: string;
   };
+  /** Every new workspace gets one default agent from this bundled pack. */
+  workspace: { defaultAgentPack: string; maxAgents: number };
 };
 
 type ForkOptions = {
@@ -22,6 +24,8 @@ type ForkOptions = {
   mode: "init" | "check";
   values?: Partial<Pick<ForkIdentity, "id" | "displayName" | "description" | "webOrigin">> & {
     mobileBundle?: string;
+    defaultAgentPack?: string;
+    maxAgents?: string;
   };
 };
 
@@ -56,6 +60,16 @@ export const validateForkIdentity = (identity: ForkIdentity) => {
   }
   if (!/^[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z0-9-]+){2,}$/u.test(identity.mobile.bundleIdentifier)) {
     throw new Error("Mobile bundle identifier must use reverse-DNS notation.");
+  }
+  if (!/^[a-z][a-z0-9-]{0,63}$/u.test(identity.workspace.defaultAgentPack)) {
+    throw new Error("Default agent pack must be a bundled pack id.");
+  }
+  if (
+    !Number.isInteger(identity.workspace.maxAgents) ||
+    identity.workspace.maxAgents < 1 ||
+    identity.workspace.maxAgents > 100
+  ) {
+    throw new Error("Workspace agent limit must be an integer from 1 to 100.");
   }
 };
 
@@ -123,6 +137,10 @@ export const configureForkIdentity = ({ root, mode, values }: ForkOptions) => {
       scheme: defaultScheme(id),
       bundleIdentifier: values?.mobileBundle?.trim() || existing.mobile.bundleIdentifier,
     },
+    workspace: {
+      defaultAgentPack: values?.defaultAgentPack?.trim() || existing.workspace.defaultAgentPack,
+      maxAgents: values?.maxAgents ? Number(values.maxAgents) : existing.workspace.maxAgents,
+    },
   };
   validateForkIdentity(identity);
 
@@ -170,6 +188,8 @@ const main = () => {
             description: argumentValue("description"),
             webOrigin: argumentValue("origin"),
             mobileBundle: argumentValue("mobile-bundle"),
+            defaultAgentPack: argumentValue("default-pack"),
+            maxAgents: argumentValue("max-agents"),
           }
         : undefined,
   });

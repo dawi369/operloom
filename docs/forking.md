@@ -21,11 +21,15 @@ git push -u origin main
 Follow [local setup](getting-started.md), then configure the public identity:
 
 ```bash
-pnpm operloom fork init --id my-workbench --name "My Workbench" --origin https://agents.example.com
+pnpm operloom fork init --id my-workbench --name "My Workbench" --origin https://agents.example.com \
+  --default-pack my-pack --max-agents 20
 pnpm operloom fork --check
 ```
 
-This updates `config/product.json`. Keep the internal `@operloom/*` namespace
+This updates `config/product.json`. `workspace.defaultAgentPack` is the bundled
+pack every new workspace's default agent is created from; the Worker refuses to
+start if it is not registered. `workspace.maxAgents` caps active agents per
+workspace. Keep the internal `@operloom/*` namespace
 and signed protocol identifiers stable. Configure your own hosted resources
 through the [deployment guide](environment-separation.md).
 

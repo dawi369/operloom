@@ -9,6 +9,7 @@ import {
 import {
   agentBehaviorTemplates,
   createAgentBehaviorSnapshotFromTemplate,
+  maxWorkspaceAgents,
   normalizeAgentBehaviorTemplateId,
   toPackTemplate,
   type AgentBehaviorTemplate,
@@ -45,6 +46,16 @@ export const handleListAgents = async (env: Env, identity: AgentIdentity) => {
     agents: agents.results.map((agent) => toAgentSummary(env, agent, identity.agentId)),
   });
 };
+
+const agentLimitReached = () =>
+  json(
+    {
+      ok: false,
+      code: "agent_limit_reached",
+      error: `Workspaces hold at most ${maxWorkspaceAgents} active agents.`,
+    },
+    { status: 409 },
+  );
 
 export const handleCreateAgent = async (request: Request, env: Env, identity: AgentIdentity) => {
   const currentMembership = await selectMembership(
@@ -110,6 +121,7 @@ export const handleCreateAgent = async (request: Request, env: Env, identity: Ag
     model,
     behaviorTemplateId: behaviorTemplateId ?? undefined,
   });
+  if (!inserted.created) return agentLimitReached();
   const agent = await selectAgent(env, inserted.agentId, identity.scope.workspaceId);
   if (!agent) {
     return json({ ok: false, error: "Created agent not found" }, { status: 500 });
@@ -216,9 +228,7 @@ export const handleInstantiateAgentPack = async (
     idempotent: true,
   });
   const agent = await selectAgent(env, agentId, identity.scope.workspaceId);
-  if (!agent) {
-    return json({ ok: false, error: "Managed agent pack instance not found" }, { status: 500 });
-  }
+  if (!agent) return agentLimitReached();
 
   return json(
     {

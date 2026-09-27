@@ -3,6 +3,7 @@ import { parseDataJson } from "./http";
 import { createId, toJson, type AgentRow, type D1Result, type Env } from "./types";
 import {
   createAgentBehaviorSnapshot,
+  maxWorkspaceAgents,
   type AgentBehaviorAuthoringMetadata,
   type AgentPackTemplateMetadata,
   type AgentBehaviorTemplateId,
@@ -250,7 +251,8 @@ export const insertAgent = async (
        id, workspace_id, name, description, status, is_default, created_by_user_id,
        data_json, created_at, updated_at
      )
-     VALUES (?, ?, ?, ?, 'active', 0, ?, ?, ?, ?)`,
+     SELECT ?, ?, ?, ?, 'active', 0, ?, ?, ?, ?
+     WHERE (SELECT COUNT(*) FROM agents WHERE workspace_id = ? AND status = 'active') < ?`,
   )
     .bind(
       agentId,
@@ -267,6 +269,8 @@ export const insertAgent = async (
       }),
       timestamp,
       timestamp,
+      input.workspaceId,
+      maxWorkspaceAgents,
     )
     .run()) as D1Result;
   return { agentId, created: (result.meta?.changes ?? 0) > 0 };

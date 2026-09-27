@@ -16,6 +16,7 @@ import {
   type AgentPackWorkflow,
   type LocalAgentPackManifest,
 } from "../../../agent-packs";
+import product from "../../../config/product.json";
 import type { AgentProfile } from "./agent-records";
 
 const localAgentPacks = loadLocalAgentPacks();
@@ -348,6 +349,16 @@ export const agentBehaviorTemplates = [
 export const isAgentBehaviorTemplateId = (value: string): value is AgentBehaviorTemplateId =>
   agentBehaviorTemplateIds.includes(value as AgentBehaviorTemplateId);
 
+const configuredDefaultTemplateId = `pack-${product.workspace.defaultAgentPack}`;
+if (!isAgentBehaviorTemplateId(configuredDefaultTemplateId))
+  throw new Error(
+    `config/product.json workspace.defaultAgentPack "${product.workspace.defaultAgentPack}" is not a bundled agent pack`,
+  );
+/** The pack every new workspace's default agent is created from. */
+export const defaultAgentBehaviorTemplateId: AgentBehaviorTemplateId = configuredDefaultTemplateId;
+/** Active agents a workspace may hold, including its default agent. */
+export const maxWorkspaceAgents = product.workspace.maxAgents;
+
 export const normalizeAgentBehaviorTemplateId = (
   value: unknown,
 ): AgentBehaviorTemplateId | null => {
@@ -359,7 +370,7 @@ export const normalizeAgentBehaviorTemplateId = (
 export const agentBehaviorTemplateForProfile = (profile: AgentProfile): AgentBehaviorTemplateId => {
   if (profile === "analyst") return "assistant-analyst";
   if (profile === "operator") return "assistant-operator";
-  return "pack-operloom";
+  return defaultAgentBehaviorTemplateId;
 };
 
 export const getAgentBehaviorTemplate = (id: AgentBehaviorTemplateId): AgentBehaviorTemplate =>

@@ -13,6 +13,7 @@ export type WorkbenchProductIdentity = {
     scheme: string;
     bundleIdentifier: string;
   };
+  workspace: { defaultAgentPack: string; maxAgents: number };
 };
 
 export const workbenchProduct = product satisfies WorkbenchProductIdentity;

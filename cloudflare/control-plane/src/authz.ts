@@ -1,4 +1,8 @@
-import { createAgentBehaviorSnapshot } from "./agent-behavior-templates";
+import {
+  createAgentBehaviorSnapshotFromTemplate,
+  defaultAgentBehaviorTemplateId,
+  getAgentBehaviorTemplate,
+} from "./agent-behavior-templates";
 import {
   accountIdHeader,
   accountSourceHeader,
@@ -267,6 +271,7 @@ export const createDefaultAgentIfMissing = async (
   env: Env,
   input: { workspaceId: string; userId: string },
 ) => {
+  const template = getAgentBehaviorTemplate(defaultAgentBehaviorTemplateId);
   const existing = await selectDefaultAgent(env, input.workspaceId);
   if (existing) {
     const data = parseDataJson(existing.data_json);
@@ -282,9 +287,9 @@ export const createDefaultAgentIfMissing = async (
          WHERE id = ? AND workspace_id = ? AND name = ? AND data_json = ?`,
       )
         .bind(
-          "Operloom",
-          "Your everyday assistant for thinking, writing, debugging, and planning.",
-          toJson({ ...data, behavior: createAgentBehaviorSnapshot("default") }),
+          template.name,
+          template.description,
+          toJson({ ...data, behavior: createAgentBehaviorSnapshotFromTemplate(template) }),
           new Date().toISOString(),
           existing.id,
           input.workspaceId,
@@ -307,13 +312,13 @@ export const createDefaultAgentIfMissing = async (
     .bind(
       defaultAgentId(input.workspaceId),
       input.workspaceId,
-      "Operloom",
-      "Your everyday assistant for thinking, writing, debugging, and planning.",
+      template.name,
+      template.description,
       input.userId,
       toJson({
         bootstrap: "workos",
-        profile: "default",
-        behavior: createAgentBehaviorSnapshot("default"),
+        profile: template.profile,
+        behavior: createAgentBehaviorSnapshotFromTemplate(template),
       }),
       timestamp,
       timestamp,
