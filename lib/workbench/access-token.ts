@@ -1,10 +1,4 @@
-import {
-  createRemoteJWKSet,
-  jwtVerify,
-  type JWTPayload,
-  type JWTVerifyGetKey,
-  type KeyLike,
-} from "jose";
+import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from "jose";
 
 import { WorkbenchAuthError, type WorkbenchAgentIdentity } from "./agent-identity-types";
 
@@ -93,7 +87,7 @@ const tokenAudiences = (claims: AccessTokenClaims) => {
 export const verifyWorkbenchAccessToken = async (
   token: string,
   config: AccessTokenConfig,
-  keyOverride?: KeyLike | Uint8Array | JWTVerifyGetKey,
+  keyOverride?: CryptoKey | Uint8Array | JWTVerifyGetKey,
 ): Promise<WorkbenchAgentIdentity> => {
   if (!config.enabled) throw new WorkbenchAuthError("Bearer clients are not enabled", 401);
   const remoteKey =
