@@ -7,8 +7,6 @@
 - `createPackTestRuntime` (`cloudflare/control-plane/src/pack-test-runtime.ts`)
   runs package acceptance tests on the real workflow, settings, query and state
   paths over in-memory SQLite, with one isolated workspace per test user.
-- `pnpm operloom start` runs the production build (`pnpm build` first) under the
-  local supervisor with the same Worker, runner and minute scheduler as `dev`.
 
 ## 2.0.0
 
