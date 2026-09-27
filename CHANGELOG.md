@@ -7,6 +7,9 @@
 - `createPackTestRuntime` (`cloudflare/control-plane/src/pack-test-runtime.ts`)
   runs package acceptance tests on the real workflow, settings, query and state
   paths over in-memory SQLite, with one isolated workspace per test user.
+- Fixed: request-mode schedule and monitor triggers failed every tick with
+  `trigger_input_invalid` on strict workflow input schemas, because scheduler
+  bookkeeping (`skippedOccurrences`) was merged into the workflow input.
 
 ## 2.0.0
 

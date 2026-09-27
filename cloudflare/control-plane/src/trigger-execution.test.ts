@@ -133,4 +133,24 @@ describe("trigger dispatch execution", () => {
     expect(batches[0]?.[0]?.values[0]).toContain("trigger_callback_unavailable");
     expect(batches[0]?.[0]?.values.slice(-2)).toEqual(["scheduler-1", 1]);
   });
+
+  it("keeps scheduler bookkeeping out of request-mode monitor workflow input", async () => {
+    const { env, batches } = makeEnv();
+    env.OPERLOOM_CALLBACK_URL = "http://127.0.0.1:8787";
+    const result = await executeLeasedTriggerDispatch(env, {
+      trigger: {
+        ...trigger,
+        pack_id: "resource-allocator",
+        pack_trigger_id: "cycle",
+        kind: "monitor",
+        workflow_type: "resource-allocator.cycle",
+        config_json: '{"intervalSeconds":60}',
+        input_json: "{}",
+      },
+      dispatch: { ...dispatch, source: "monitor", payload_json: '{"skippedOccurrences":0}' },
+    } satisfies LeasedTriggerDispatch);
+
+    expect(result).not.toMatchObject({ code: "trigger_input_invalid" });
+    expect(JSON.stringify(batches)).not.toContain("trigger_input_invalid");
+  });
 });

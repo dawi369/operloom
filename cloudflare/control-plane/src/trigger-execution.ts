@@ -193,9 +193,10 @@ export const executeLeasedTriggerDispatch = async (env: Env, item: LeasedTrigger
   const dispatchPayload = parseDataJson(item.dispatch.payload_json);
   let request;
   try {
+    // Schedule and monitor payloads hold scheduler bookkeeping, not workflow input.
     request = buildPackWorkflowRequest(item.trigger.workflow_type, {
       ...triggerInput,
-      ...(durable && ["schedule", "monitor"].includes(item.dispatch.source) ? {} : dispatchPayload),
+      ...(["schedule", "monitor"].includes(item.dispatch.source) ? {} : dispatchPayload),
     });
   } catch {
     request = null;
