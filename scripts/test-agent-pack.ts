@@ -29,9 +29,10 @@ const readArg = (name: string) => {
 
 type ConformanceResult = { id: string; ok: boolean; summary: string };
 
-const exampleValue = (schema: Record<string, unknown>): unknown => {
+export const exampleValue = (schema: Record<string, unknown>): unknown => {
   if (schema.default !== undefined) return schema.default;
   if (Array.isArray(schema.enum) && schema.enum.length) return schema.enum[0];
+  if (Array.isArray(schema.examples) && schema.examples.length) return schema.examples[0];
   switch (schema.type) {
     case "string":
       return "conformance";

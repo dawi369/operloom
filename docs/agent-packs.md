@@ -346,7 +346,9 @@ Use `--json` on the pack scripts when integrating them into automation.
 `agent-packs:smoke` is a static manifest/compiled-registry mapping smoke; the separate
 `agent-packs:test` executes package health/eval bindings and every executable
 generic workflow in an isolated context. Required workflow inputs without
-schema defaults must declare `conformanceInput`. The service-boundary command exercises the deployed-shape
+schema defaults must declare `conformanceInput`. Tool inputs are generated from
+`default`, then `enum`, then the first `examples` value; give constrained
+fields such as patterns an `examples` entry. The service-boundary command exercises the deployed-shape
 local runtime. Live
 provider smokes remain explicit and are never triggered by local validation.
 

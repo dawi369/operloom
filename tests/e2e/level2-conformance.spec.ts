@@ -1,3 +1,4 @@
+import product from "../../config/product.json";
 import { expect, test, type Page } from "./fixtures";
 
 import { activateRepositoryAnalyst } from "./workbench-helpers";
@@ -20,6 +21,8 @@ const historyRuns = async (page: Page) => {
 
 test.describe.serial("Level 2 executable conformance", () => {
   test.skip(releaseMode !== "local-session");
+  // These journeys drive the upstream pack catalog; forks cover their own default pack.
+  test.skip(product.workspace.defaultAgentPack !== "operloom");
   test.setTimeout(90_000);
 
   test("approval recovery, cancellation, retry, handoff, and tenant isolation", async ({

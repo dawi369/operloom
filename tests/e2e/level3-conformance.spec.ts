@@ -1,3 +1,4 @@
+import product from "../../config/product.json";
 import { expect, test, type Page } from "./fixtures";
 
 import { activateRepositoryAnalyst, openAdminAgentsPanel } from "./workbench-helpers";
@@ -33,6 +34,8 @@ const listDispatches = async (page: Page, triggerId?: string) => {
 
 test.describe.serial("Level 3 executable conformance", () => {
   test.skip(releaseMode !== "local-session");
+  // These journeys drive the upstream pack catalog; forks cover their own default pack.
+  test.skip(product.workspace.defaultAgentPack !== "operloom");
   test.setTimeout(150_000);
 
   test("scheduled and webhook monitors are idempotent, cancellable, replayable, and tenant isolated", async ({
