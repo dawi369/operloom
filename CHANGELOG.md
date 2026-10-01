@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Security: `next` 16.3.6 (GHSA-vcvr-r3jv-pc5j, critical) and overrides for
+  `undici` 7.29.1, `fast-uri` 3.1.7 and `brace-expansion` 5.0.11 clear the
+  high advisories that blocked `verify:security`.
 - Chat stack on AI SDK 7 (`ai` 7, `@openrouter/ai-sdk-provider` 3), `agents`
   0.24, `@cloudflare/ai-chat` 0.12 and assistant-ui 0.15; verified by
   `verify:fast`, `conformance:runtime` and the local release browser suite.
