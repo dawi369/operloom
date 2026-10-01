@@ -49,6 +49,8 @@ curl http://localhost:3000/api/health
 
 For Fly staging work, deploy only after local checks pass and then smoke the hosted `/api/health`, assistant thread creation, streaming, and any external-signal route touched by the change.
 
+During development, local checks are the gate. Push once they pass and keep working; do not wait on or poll GitHub Actions. Look at CI only when it reports a failure or before a release.
+
 ## Safety Rules
 
 - Do not run destructive Git commands unless explicitly requested.
