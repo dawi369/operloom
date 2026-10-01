@@ -221,44 +221,45 @@ export const runAgentPackConformance = async (root: string, requested: string) =
         summary: output.summary,
       });
     }
+
+    for (const declared of loaded.controlPlane.tools) {
+      assertSchemaValue(
+        declared.inputSchema,
+        exampleValue(declared.inputSchema),
+        `${declared.id} generated conformance input`,
+      );
+      if (declared.action?.providerOperation) {
+        // The platform executes these through a reviewed provider operation, never directly.
+        results.push({
+          id: `tool.${declared.id}`,
+          ok: true,
+          summary: `Provider operation ${declared.action.providerOperation.id}.`,
+        });
+        continue;
+      }
+      if (!exercisedTools.has(declared.id)) {
+        const { context, controller } = createContext(`tool-${declared.id}`);
+        if (packRuntime) context.state = await packRuntime.state();
+        const runner = loaded.runner.tools.find((candidate) => candidate.id === declared.id);
+        const executable = declared.execute ? declared : runner;
+        if (!executable?.execute) throw new Error(`${declared.id} has no executable provider.`);
+        const input = exampleValue(declared.inputSchema) as Record<string, unknown>;
+        const output = await executable.execute(input, context);
+        controller.abort("tool_complete");
+        if (output.ok) {
+          assertSchemaValue(declared.outputSchema, output.output, `${declared.id} output`);
+        } else if (!output.error.code || !output.error.message) {
+          throw new Error(`${declared.id} returned an invalid structured error.`);
+        }
+        results.push({
+          id: `tool.${declared.id}`,
+          ok: true,
+          summary: output.summary,
+        });
+      }
+    }
   } finally {
     packRuntime?.close();
-  }
-
-  for (const declared of loaded.controlPlane.tools) {
-    assertSchemaValue(
-      declared.inputSchema,
-      exampleValue(declared.inputSchema),
-      `${declared.id} generated conformance input`,
-    );
-    if (declared.action?.providerOperation) {
-      // The platform executes these through a reviewed provider operation, never directly.
-      results.push({
-        id: `tool.${declared.id}`,
-        ok: true,
-        summary: `Provider operation ${declared.action.providerOperation.id}.`,
-      });
-      continue;
-    }
-    if (!exercisedTools.has(declared.id)) {
-      const { context, controller } = createContext(`tool-${declared.id}`);
-      const runner = loaded.runner.tools.find((candidate) => candidate.id === declared.id);
-      const executable = declared.execute ? declared : runner;
-      if (!executable?.execute) throw new Error(`${declared.id} has no executable provider.`);
-      const input = exampleValue(declared.inputSchema) as Record<string, unknown>;
-      const output = await executable.execute(input, context);
-      controller.abort("tool_complete");
-      if (output.ok) {
-        assertSchemaValue(declared.outputSchema, output.output, `${declared.id} output`);
-      } else if (!output.error.code || !output.error.message) {
-        throw new Error(`${declared.id} returned an invalid structured error.`);
-      }
-      results.push({
-        id: `tool.${declared.id}`,
-        ok: true,
-        summary: output.summary,
-      });
-    }
   }
 
   for (const renderer of loaded.manifest.artifactRenderers) {

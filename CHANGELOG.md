@@ -5,7 +5,8 @@
 - Forks whose default pack is not `operloom` skip the Level 2 and Level 3
   browser journeys, which drive upstream demo packs. `agent-packs:test`
   generates tool inputs from a schema's `examples` after `default` and `enum`,
-  so pattern-constrained inputs validate.
+  so pattern-constrained inputs validate. Standalone tools of packages that
+  need runtime ports receive the in-memory runtime's typed-state port.
 - Security: `next` 16.3.6 (GHSA-vcvr-r3jv-pc5j, critical) and overrides for
   `undici` 7.29.1, `fast-uri` 3.1.7 and `brace-expansion` 5.0.11 clear the
   high advisories that blocked `verify:security`.
