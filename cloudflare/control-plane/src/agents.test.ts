@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { localAgentPacks } from "../../../agent-packs";
 import { createAgentBehaviorSnapshot } from "./agent-behavior-templates";
 import { handleActivateAgent, handleCreateAgent, handleInstantiateAgentPack } from "./agents";
 import type {
@@ -10,6 +11,9 @@ import type {
   Env,
   MembershipRow,
 } from "./types";
+
+// Forks may hide the upstream Repository Analyst demo pack with conformanceOnly.
+const repoAnalystInstalled = localAgentPacks.some((pack) => pack.id === "repo-analyst");
 
 type RecordedStatement = {
   query: string;
@@ -187,52 +191,58 @@ describe("agents", () => {
     );
   });
 
-  it("reuses an active agent on the installed pack version", async () => {
-    const behavior = createAgentBehaviorSnapshot("analyst", "pack-repo-analyst");
-    const existing = agentRow({ id: "agent-repo-current", behavior });
-    const { env, statements } = createRecordingEnv({ role: "admin", agents: [existing] });
+  it.runIf(repoAnalystInstalled)(
+    "reuses an active agent on the installed pack version",
+    async () => {
+      const behavior = createAgentBehaviorSnapshot("analyst", "pack-repo-analyst");
+      const existing = agentRow({ id: "agent-repo-current", behavior });
+      const { env, statements } = createRecordingEnv({ role: "admin", agents: [existing] });
 
-    const response = await handleInstantiateAgentPack(env, identity, "repo-analyst");
-    const body = (await response.json()) as { created?: boolean; agent?: { id?: string } };
+      const response = await handleInstantiateAgentPack(env, identity, "repo-analyst");
+      const body = (await response.json()) as { created?: boolean; agent?: { id?: string } };
 
-    expect(response.status).toBe(200);
-    expect(body.created).toBe(false);
-    expect(body.agent?.id).toBe("agent-repo-current");
-    expect(statements.some((statement) => statement.query.includes("INSERT OR IGNORE"))).toBe(
-      false,
-    );
-  });
+      expect(response.status).toBe(200);
+      expect(body.created).toBe(false);
+      expect(body.agent?.id).toBe("agent-repo-current");
+      expect(statements.some((statement) => statement.query.includes("INSERT OR IGNORE"))).toBe(
+        false,
+      );
+    },
+  );
 
-  it("creates a managed current-version agent without mutating an old snapshot", async () => {
-    const currentBehavior = createAgentBehaviorSnapshot("analyst", "pack-repo-analyst");
-    const oldBehavior = structuredClone(currentBehavior);
-    if (oldBehavior.authoring?.kind === "local_agent_pack")
-      oldBehavior.authoring.packVersion = "0.9.0";
-    const oldAgent = agentRow({ id: "agent-repo-old", behavior: oldBehavior });
-    const managedAgent = agentRow({ id: "agent-repo-managed", behavior: currentBehavior });
-    const { env, statements } = createRecordingEnv({
-      role: "owner",
-      agents: [oldAgent],
-      agent: managedAgent,
-    });
+  it.runIf(repoAnalystInstalled)(
+    "creates a managed current-version agent without mutating an old snapshot",
+    async () => {
+      const currentBehavior = createAgentBehaviorSnapshot("analyst", "pack-repo-analyst");
+      const oldBehavior = structuredClone(currentBehavior);
+      if (oldBehavior.authoring?.kind === "local_agent_pack")
+        oldBehavior.authoring.packVersion = "0.9.0";
+      const oldAgent = agentRow({ id: "agent-repo-old", behavior: oldBehavior });
+      const managedAgent = agentRow({ id: "agent-repo-managed", behavior: currentBehavior });
+      const { env, statements } = createRecordingEnv({
+        role: "owner",
+        agents: [oldAgent],
+        agent: managedAgent,
+      });
 
-    const response = await handleInstantiateAgentPack(env, identity, "repo-analyst");
-    const body = (await response.json()) as { created?: boolean; packVersion?: string };
+      const response = await handleInstantiateAgentPack(env, identity, "repo-analyst");
+      const body = (await response.json()) as { created?: boolean; packVersion?: string };
 
-    expect(response.status).toBe(201);
-    expect(body.created).toBe(true);
-    expect(body.packVersion).toBe("1.2.2");
-    const insert = statements.find((statement) =>
-      statement.query.includes("INSERT OR IGNORE INTO agents"),
-    );
-    expect(insert).toBeDefined();
-    expect(
-      insert?.values.some(
-        (value) => typeof value === "string" && value.includes('"provisionedBy":"agent_pack"'),
-      ),
-    ).toBe(true);
-    expect(oldAgent.data_json).toContain('"packVersion":"0.9.0"');
-  });
+      expect(response.status).toBe(201);
+      expect(body.created).toBe(true);
+      expect(body.packVersion).toBe("1.2.2");
+      const insert = statements.find((statement) =>
+        statement.query.includes("INSERT OR IGNORE INTO agents"),
+      );
+      expect(insert).toBeDefined();
+      expect(
+        insert?.values.some(
+          (value) => typeof value === "string" && value.includes('"provisionedBy":"agent_pack"'),
+        ),
+      ).toBe(true);
+      expect(oldAgent.data_json).toContain('"packVersion":"0.9.0"');
+    },
+  );
 
   it("keeps conformance-only packages hidden except in explicit E2E mode", async () => {
     const normal = createRecordingEnv({ role: "owner", agent: agentRow() });

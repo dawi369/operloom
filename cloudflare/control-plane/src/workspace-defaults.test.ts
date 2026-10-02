@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 
 import product from "../../../config/product.json";
+import { localAgentPacks } from "../../../agent-packs";
 import { defaultAgentBehaviorTemplateId, maxWorkspaceAgents } from "./agent-behavior-templates";
 import { handleCreateAgent, handleInstantiateAgentPack } from "./agents";
 import { createDefaultAgentIfMissing, defaultAgentId } from "./authz";
@@ -75,29 +76,33 @@ describe("workspace defaults", () => {
     });
   });
 
-  it("caps active agents per workspace, including pack instances", async () => {
-    const { db, env } = fixture();
-    await createDefaultAgentIfMissing(env, { workspaceId: "w", userId: "u" });
-    for (let index = 1; index < maxWorkspaceAgents; index += 1)
-      expect((await createAgent(env, `Agent ${index}`)).status).toBe(201);
+  // Forks may hide the upstream Repository Analyst demo pack with conformanceOnly.
+  it.runIf(localAgentPacks.some((pack) => pack.id === "repo-analyst"))(
+    "caps active agents per workspace, including pack instances",
+    async () => {
+      const { db, env } = fixture();
+      await createDefaultAgentIfMissing(env, { workspaceId: "w", userId: "u" });
+      for (let index = 1; index < maxWorkspaceAgents; index += 1)
+        expect((await createAgent(env, `Agent ${index}`)).status).toBe(201);
 
-    const blocked = await createAgent(env, "One too many");
-    expect(blocked.status).toBe(409);
-    expect(await blocked.json()).toMatchObject({ code: "agent_limit_reached" });
-    const instantiated = await handleInstantiateAgentPack(env, identity, "repo-analyst");
-    expect(instantiated.status).toBe(409);
-    expect(
-      (db.prepare("SELECT COUNT(*) AS count FROM agents").get() as { count: number }).count,
-    ).toBe(maxWorkspaceAgents);
+      const blocked = await createAgent(env, "One too many");
+      expect(blocked.status).toBe(409);
+      expect(await blocked.json()).toMatchObject({ code: "agent_limit_reached" });
+      const instantiated = await handleInstantiateAgentPack(env, identity, "repo-analyst");
+      expect(instantiated.status).toBe(409);
+      expect(
+        (db.prepare("SELECT COUNT(*) AS count FROM agents").get() as { count: number }).count,
+      ).toBe(maxWorkspaceAgents);
 
-    // Archive the newest agent (the default one when the cap is 1) to free a slot.
-    db.exec(
-      "UPDATE agents SET status = 'archived' WHERE id = (SELECT id FROM agents ORDER BY is_default, created_at DESC, id DESC LIMIT 1)",
-    );
-    expect((await createAgent(env, "Replacement")).status).toBe(201);
+      // Archive the newest agent (the default one when the cap is 1) to free a slot.
+      db.exec(
+        "UPDATE agents SET status = 'archived' WHERE id = (SELECT id FROM agents ORDER BY is_default, created_at DESC, id DESC LIMIT 1)",
+      );
+      expect((await createAgent(env, "Replacement")).status).toBe(201);
 
-    // Conformance fixtures exist only in E2E/conformance modes and never count against the cap.
-    env.OPERLOOM_E2E_MODE = "true";
-    expect((await handleInstantiateAgentPack(env, identity, "document-review")).status).toBe(201);
-  });
+      // Conformance fixtures exist only in E2E/conformance modes and never count against the cap.
+      env.OPERLOOM_E2E_MODE = "true";
+      expect((await handleInstantiateAgentPack(env, identity, "document-review")).status).toBe(201);
+    },
+  );
 });

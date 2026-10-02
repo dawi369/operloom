@@ -8,7 +8,13 @@ import {
 } from "./model-tools";
 import { createAgentBehaviorSnapshot } from "./agent-behavior-templates";
 import type { AgentIdentity, Env } from "./types";
+import { localAgentPacks } from "../../../agent-packs";
 import { manifest as complexOperator } from "../../../examples/complex-operator/manifest";
+
+// Forks may hide the upstream demo packs with conformanceOnly.
+const demoPacksInstalled = ["repo-analyst", "baby-polymancer", "baby-swordfish"].every((id) =>
+  localAgentPacks.some((pack) => pack.id === id),
+);
 
 const urlInspectToolName = "url.inspect";
 
@@ -86,34 +92,37 @@ describe("model tool exposure fast path", () => {
     );
   });
 
-  it("allows model exposure only when the active pack declares the tool", async () => {
-    const permission = {
-      status: "enabled",
-      data_json: JSON.stringify({ modelVisible: true, requiresApproval: false }),
-    };
-    const repoAnalyst = envWithPermission(
-      permission,
-      agentWithBehavior(createAgentBehaviorSnapshot("analyst", "pack-repo-analyst")),
-    );
-    const babyPolymancer = envWithPermission(
-      permission,
-      agentWithBehavior(createAgentBehaviorSnapshot("analyst", "pack-baby-polymancer")),
-    );
-    const babySwordfish = envWithPermission(
-      permission,
-      agentWithBehavior(createAgentBehaviorSnapshot("analyst", "pack-baby-swordfish")),
-    );
+  it.runIf(demoPacksInstalled)(
+    "allows model exposure only when the active pack declares the tool",
+    async () => {
+      const permission = {
+        status: "enabled",
+        data_json: JSON.stringify({ modelVisible: true, requiresApproval: false }),
+      };
+      const repoAnalyst = envWithPermission(
+        permission,
+        agentWithBehavior(createAgentBehaviorSnapshot("analyst", "pack-repo-analyst")),
+      );
+      const babyPolymancer = envWithPermission(
+        permission,
+        agentWithBehavior(createAgentBehaviorSnapshot("analyst", "pack-baby-polymancer")),
+      );
+      const babySwordfish = envWithPermission(
+        permission,
+        agentWithBehavior(createAgentBehaviorSnapshot("analyst", "pack-baby-swordfish")),
+      );
 
-    await expect(
-      hasModelVisibleToolCandidate(repoAnalyst.env, identity, urlInspectToolName),
-    ).resolves.toBe(true);
-    await expect(
-      hasModelVisibleToolCandidate(babyPolymancer.env, identity, urlInspectToolName),
-    ).resolves.toBe(false);
-    await expect(
-      hasModelVisibleToolCandidate(babySwordfish.env, identity, "swordfish.runtime.overview"),
-    ).resolves.toBe(false);
-  });
+      await expect(
+        hasModelVisibleToolCandidate(repoAnalyst.env, identity, urlInspectToolName),
+      ).resolves.toBe(true);
+      await expect(
+        hasModelVisibleToolCandidate(babyPolymancer.env, identity, urlInspectToolName),
+      ).resolves.toBe(false);
+      await expect(
+        hasModelVisibleToolCandidate(babySwordfish.env, identity, "swordfish.runtime.overview"),
+      ).resolves.toBe(false);
+    },
+  );
 
   it("rejects disabled or approval-gated permissions from the fast path", async () => {
     const disabled = envWithPermission({

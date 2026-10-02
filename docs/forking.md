@@ -34,6 +34,12 @@ workspace (`1` gives each user one agent). Keep the internal `@operloom/*`
 namespace and signed protocol identifiers stable. Configure hosted resources
 through the [deployment guide](environment-separation.md).
 
+To hide the bundled demo packs (`operloom`, `repo-analyst`, `baby-polymancer`,
+`baby-swordfish`) from your product, mark their `workbench.config.ts` entries
+`conformanceOnly: true` instead of deleting them. They stay compiled for
+platform tests, which skip the cases that need them installed, and upstream
+merges stay conflict-free.
+
 ## Build the product package
 
 Put domain behavior in one Runtime Module package, registered once in

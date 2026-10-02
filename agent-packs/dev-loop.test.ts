@@ -5,6 +5,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { localAgentPacks, validateLocalAgentPack, type LocalAgentPackManifest } from ".";
+import { agentManifestRegistry } from "../generated/agent-runtime/manifests";
 import {
   inspectAgentPackForDeveloperLoop,
   smokeAgentPackForDeveloperLoop,
@@ -12,7 +13,9 @@ import {
 } from "../lib/workbench/agent-pack-dev-loop";
 
 const rootDir = process.cwd();
-const repoAnalystPack = localAgentPacks.find((pack) => pack.id === "repo-analyst")!;
+// Compiled even when a fork hides it from the product with conformanceOnly.
+const repoAnalystPack = agentManifestRegistry["repo-analyst"].module as LocalAgentPackManifest;
+const babySwordfishPack = agentManifestRegistry["baby-swordfish"].module as LocalAgentPackManifest;
 
 const writePackFiles = (
   root: string,
@@ -125,13 +128,13 @@ describe("agent pack developer loop", () => {
   it("rejects duplicate ids and template ids", () => {
     const duplicate = {
       ...repoAnalystPack,
-      id: localAgentPacks[1].id,
-      templateId: localAgentPacks[1].templateId,
+      id: babySwordfishPack.id,
+      templateId: babySwordfishPack.templateId,
     } as LocalAgentPackManifest;
 
     const result = validateAgentPacksForDeveloperLoop({
       rootDir,
-      packs: [localAgentPacks[1], duplicate],
+      packs: [babySwordfishPack, duplicate],
     });
 
     expect(result.ok).toBe(false);
@@ -253,14 +256,17 @@ describe("agent pack developer loop", () => {
     expect(result.validation.warnings).not.toEqual([]);
   });
 
-  it("smokes checked-in packs through template and snapshot mapping", () => {
-    const result = smokeAgentPackForDeveloperLoop("baby-polymancer", { rootDir });
+  it.runIf(localAgentPacks.some((pack) => pack.id === "baby-polymancer"))(
+    "smokes checked-in packs through template and snapshot mapping",
+    () => {
+      const result = smokeAgentPackForDeveloperLoop("baby-polymancer", { rootDir });
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error("expected smoke success");
-    expect(result.templateId).toBe("pack-baby-polymancer");
-    expect(result.templateMapped).toBe(true);
-    expect(result.snapshotMapped).toBe(true);
-    expect(result.nextCommands).toContain("pnpm smoke:polymarket-readonly");
-  });
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error("expected smoke success");
+      expect(result.templateId).toBe("pack-baby-polymancer");
+      expect(result.templateMapped).toBe(true);
+      expect(result.snapshotMapped).toBe(true);
+      expect(result.nextCommands).toContain("pnpm smoke:polymarket-readonly");
+    },
+  );
 });

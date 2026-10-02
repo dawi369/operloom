@@ -8,12 +8,16 @@ import {
   validateLocalAgentPacks,
   type LocalAgentPackManifest,
 } from "../../../agent-packs";
+import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
 import {
   agentBehaviorTemplates,
   createAgentBehaviorSnapshot,
   defaultAgentBehaviorTemplateId,
   type AgentBehaviorTemplate,
 } from "./agent-behavior-templates";
+
+// Forks may hide upstream demo packs with conformanceOnly; their template tests then skip.
+const productPack = (id: string) => localAgentPacks.some((pack) => pack.id === id);
 
 const promptFileByTemplateId = {
   "assistant-general": "assistant-general.xml",
@@ -32,17 +36,22 @@ const pokeSpecificFacts =
   /Poke|Interaction Company|Palo Alto|Spark Capital|General Catalyst|Bouncer|Recipes|Apple Messages|film\.poke\.com|poke\.com/i;
 
 describe("agent behavior authoring metadata", () => {
-  it("starts with the configured default pack and keeps Operloom general", () => {
-    expect(createAgentBehaviorSnapshot("default").templateId).toBe(defaultAgentBehaviorTemplateId);
-    expect(createAgentBehaviorSnapshot("default", "pack-operloom")).toMatchObject({
-      templateId: "pack-operloom",
-      pack: { id: "operloom", tools: [], workflows: [], triggers: [] },
-    });
-    expect(createAgentBehaviorSnapshot("analyst").templateId).toBe("assistant-analyst");
-    expect(createAgentBehaviorSnapshot("default", "assistant-general").templateId).toBe(
-      "assistant-general",
-    );
-  });
+  it.runIf(productPack("operloom"))(
+    "starts with the configured default pack and keeps Operloom general",
+    () => {
+      expect(createAgentBehaviorSnapshot("default").templateId).toBe(
+        defaultAgentBehaviorTemplateId,
+      );
+      expect(createAgentBehaviorSnapshot("default", "pack-operloom")).toMatchObject({
+        templateId: "pack-operloom",
+        pack: { id: "operloom", tools: [], workflows: [], triggers: [] },
+      });
+      expect(createAgentBehaviorSnapshot("analyst").templateId).toBe("assistant-analyst");
+      expect(createAgentBehaviorSnapshot("default", "assistant-general").templateId).toBe(
+        "assistant-general",
+      );
+    },
+  );
 
   it("marks built-in templates as non-editable XML snapshots", () => {
     expect(agentBehaviorTemplates).not.toHaveLength(0);
@@ -98,7 +107,7 @@ describe("agent behavior authoring metadata", () => {
   });
 
   it("validates local pack id uniqueness and risk/tool consistency", () => {
-    const firstPack = localAgentPacks.find((pack) => pack.id === "repo-analyst")!;
+    const firstPack = agentManifestRegistry["repo-analyst"].module as LocalAgentPackManifest;
     const duplicateTemplatePack = {
       ...firstPack,
       id: `${firstPack.id}-copy`,
@@ -140,59 +149,65 @@ describe("agent behavior authoring metadata", () => {
     expect(() => validateLocalAgentPacks([secretRequiringPack])).toThrow(/cannot require secrets/);
   });
 
-  it("registers Baby Polymancer as a single-agent app seed", () => {
-    const template = agentBehaviorTemplates.find((item) => item.id === "pack-baby-polymancer") as
-      | AgentBehaviorTemplate
-      | undefined;
-    expect(template).toMatchObject({
-      id: "pack-baby-polymancer",
-      profile: "analyst",
-      pack: {
-        id: "baby-polymancer",
-        capabilityLevel: "single_agent_app",
-        risk: {
-          financialData: true,
-          externalMutation: false,
-          requiresSecrets: false,
+  it.runIf(productPack("baby-polymancer"))(
+    "registers Baby Polymancer as a single-agent app seed",
+    () => {
+      const template = agentBehaviorTemplates.find((item) => item.id === "pack-baby-polymancer") as
+        | AgentBehaviorTemplate
+        | undefined;
+      expect(template).toMatchObject({
+        id: "pack-baby-polymancer",
+        profile: "analyst",
+        pack: {
+          id: "baby-polymancer",
+          capabilityLevel: "single_agent_app",
+          risk: {
+            financialData: true,
+            externalMutation: false,
+            requiresSecrets: false,
+          },
         },
-      },
-    });
-    expect(template?.pack?.tools.map((tool) => tool.id)).toEqual([
-      "polymarket.market.search",
-      "polymarket.market.snapshot",
-      "polymarket.orderbook.snapshot",
-    ]);
-    expect(template?.pack?.workflows).toEqual([
-      expect.objectContaining({
-        type: "polymancer.market_research",
-        status: "declared",
-      }),
-    ]);
-    expect(template?.prompt).toContain("Read-only market analysis only.");
-    expect(template?.prompt).toContain("Do not place orders");
-  });
+      });
+      expect(template?.pack?.tools.map((tool) => tool.id)).toEqual([
+        "polymarket.market.search",
+        "polymarket.market.snapshot",
+        "polymarket.orderbook.snapshot",
+      ]);
+      expect(template?.pack?.workflows).toEqual([
+        expect.objectContaining({
+          type: "polymancer.market_research",
+          status: "declared",
+        }),
+      ]);
+      expect(template?.prompt).toContain("Read-only market analysis only.");
+      expect(template?.prompt).toContain("Do not place orders");
+    },
+  );
 
-  it("registers Baby Swordfish as a single-agent app seed", () => {
-    const template = agentBehaviorTemplates.find((item) => item.id === "pack-baby-swordfish") as
-      | AgentBehaviorTemplate
-      | undefined;
-    expect(template).toMatchObject({
-      id: "pack-baby-swordfish",
-      profile: "analyst",
-      pack: {
-        id: "baby-swordfish",
-        capabilityLevel: "single_agent_app",
-        risk: {
-          financialData: true,
-          externalMutation: false,
-          requiresSecrets: false,
+  it.runIf(productPack("baby-swordfish"))(
+    "registers Baby Swordfish as a single-agent app seed",
+    () => {
+      const template = agentBehaviorTemplates.find((item) => item.id === "pack-baby-swordfish") as
+        | AgentBehaviorTemplate
+        | undefined;
+      expect(template).toMatchObject({
+        id: "pack-baby-swordfish",
+        profile: "analyst",
+        pack: {
+          id: "baby-swordfish",
+          capabilityLevel: "single_agent_app",
+          risk: {
+            financialData: true,
+            externalMutation: false,
+            requiresSecrets: false,
+          },
         },
-      },
-    });
-    expect(template?.pack?.tools).toEqual([]);
-    expect(template?.pack?.workflows).toEqual([]);
-    expect(template?.prompt).toContain("parked reference agent");
-  });
+      });
+      expect(template?.pack?.tools).toEqual([]);
+      expect(template?.pack?.workflows).toEqual([]);
+      expect(template?.prompt).toContain("parked reference agent");
+    },
+  );
 
   it("copies authoring metadata into behavior snapshots", () => {
     const snapshot = createAgentBehaviorSnapshot("operator", "assistant-operator");

@@ -38,10 +38,10 @@ const membership = (role: "owner" | "member" = "owner"): MembershipRow => ({
   updated_at: "2026-07-12T00:00:00.000Z",
 });
 
+// Forks may hide the upstream Repository Analyst demo pack with conformanceOnly.
 const repoTemplate = (agentBehaviorTemplates as readonly AgentBehaviorTemplate[]).find(
   (template) => template.pack?.id === "repo-analyst",
 );
-if (!repoTemplate?.pack) throw new Error("Repository Analyst pack fixture is missing");
 
 const agent: AgentRow = {
   id: "agent-1",
@@ -56,11 +56,11 @@ const agent: AgentRow = {
     behavior: {
       source: "template-snapshot",
       format: "xml",
-      templateId: repoTemplate.id,
-      version: repoTemplate.version,
-      authoring: repoTemplate.authoring,
-      pack: repoTemplate.pack,
-      prompt: repoTemplate.prompt,
+      templateId: repoTemplate?.id,
+      version: repoTemplate?.version,
+      authoring: repoTemplate?.authoring,
+      pack: repoTemplate?.pack,
+      prompt: repoTemplate?.prompt,
     },
   }),
   created_at: "2026-07-12T00:00:00.000Z",
@@ -168,7 +168,7 @@ const makeEnv = (
   return { env: env as Env, calls };
 };
 
-describe("trigger control foundation", () => {
+describe.runIf(repoTemplate?.pack)("trigger control foundation", () => {
   it("allows active members to list only the current tenant and agent scope", async () => {
     const { env, calls } = makeEnv({ role: "member" });
     const response = await handleListTriggers(
