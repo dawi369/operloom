@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
-import type { RuntimeRecord, RuntimeStatePort } from "@operloom/agent-sdk";
+import type { RuntimeRecord, RuntimeStatePort, RuntimeTriggerPort } from "@operloom/agent-sdk";
 
 import {
   createAgentBehaviorSnapshotFromTemplate,
@@ -10,6 +10,7 @@ import { handleUpdateAgentSettings } from "./agent-settings";
 import { handleRunRuntimeQuery } from "./runtime-queries";
 import { createRuntimeStatePort } from "./runtime-state";
 import { executeRuntimeWorkflowRequest } from "./runtime-workflows";
+import { ensureDeclaredTrigger } from "./triggers";
 import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
 import type { LocalAgentPackManifest } from "../../../agent-packs";
@@ -170,6 +171,10 @@ export const createPackTestRuntime = (input: {
         target,
         definitions: runtime.runnable ? (runtime.controlPlane.state ?? []) : [],
       }),
+    triggers: (user?: string): RuntimeTriggerPort => ({
+      ensure: (packTriggerId) =>
+        ensureDeclaredTrigger(env, identity(user), manifest.id, packTriggerId),
+    }),
     entries: (type: "decision" | "effect", user?: string) =>
       (
         db

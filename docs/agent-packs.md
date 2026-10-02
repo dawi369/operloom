@@ -165,7 +165,13 @@ the generic tenant-scoped managed-state repository. Schedule, monitor, and
 webhook descriptors can bind to registered checked-in workflows through the
 Cloudflare trigger repository and dispatch runtime. They must remain disabled
 by default; installing or activating a pack does not create or enable a trigger.
-An authorized operator creates and enables each trigger explicitly.
+An authorized operator creates and enables each trigger explicitly, or the
+package does it on the user's behalf through `context.triggers.ensure(id)`
+(requires the `triggers.ensure` capability). That call installs a declared
+schedule or monitor, enabled, for the current agent when the run's user is an
+owner or admin; a trigger that is already installed is returned unchanged, so an
+operator's pause or disable stands. Use it when a user action starts a process
+that needs the trigger, for example tracking a new feed.
 
 Schedule and monitor dispatches use the Cloudflare cron tick. Webhook creation
 returns its secret once and persists only the hash; ingress uses a public id,

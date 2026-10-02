@@ -8,6 +8,7 @@ export const implementedRuntimeCapabilities = [
   "context.snapshots",
   "models.structured",
   "usage.reservations",
+  "triggers.ensure",
 ] as const;
 
 export type RuntimeRequirements = {

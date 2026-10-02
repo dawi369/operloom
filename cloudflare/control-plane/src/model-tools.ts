@@ -31,6 +31,7 @@ import {
 import { executeRuntimeToolBinding, runtimeToolFailure } from "./runtime-tool-execution";
 import { createBrokeredConnectionPort } from "./connection-broker";
 import { createDurableActionPort } from "./action-authority";
+import { ensureDeclaredTrigger } from "./triggers";
 
 type ResolveModelToolsInput = {
   chatRunId: string | null;
@@ -218,6 +219,10 @@ const buildRuntimeModelTool = (input: {
               code: "nested_tool_invocation_disabled",
             });
           },
+        },
+        triggers: {
+          ensure: (packTriggerId) =>
+            ensureDeclaredTrigger(input.env, input.identity, input.pack.id, packTriggerId),
         },
         managedState: {
           async upsert(state) {

@@ -289,6 +289,49 @@ export const handleCreateTrigger = async (request: Request, env: Env, identity: 
     );
   }
 
+  const installed = await installDeclaredTrigger(env, identity, declared, {
+    status: requestedStatus,
+    execution,
+    input,
+  });
+  if (!installed.created) {
+    const existing = installed.trigger;
+    if (existing && (parseDataJson(existing.execution_json).runtime ?? "request") !== execution)
+      return json(
+        {
+          ok: false,
+          error: "Existing trigger uses a different execution mode",
+          code: "trigger_execution_conflict",
+        },
+        { status: 409 },
+      );
+    return json({ ok: true, created: false, trigger: existing ? mapTrigger(existing) : undefined });
+  }
+  return json(
+    {
+      ok: true,
+      created: true,
+      trigger: installed.trigger ? mapTrigger(installed.trigger) : undefined,
+      ...(installed.webhookSecret ? { webhookSecret: installed.webhookSecret } : {}),
+    },
+    { status: 201 },
+  );
+};
+
+/** Inserts the agent's one row for a declared trigger, or returns the row already installed. */
+const installDeclaredTrigger = async (
+  env: Env,
+  identity: AgentIdentity,
+  declared: NonNullable<Awaited<ReturnType<typeof resolveCheckedInTrigger>>>,
+  options: {
+    status: "enabled" | "paused";
+    execution: "request" | "durable";
+    input: Record<string, string | number | boolean>;
+  },
+) => {
+  const { execution, input } = options;
+  const packId = declared.pack.id;
+  const packTriggerId = declared.trigger.id;
   const id = createId("cf-trigger");
   const nowDate = new Date();
   const now = nowDate.toISOString();
@@ -314,7 +357,7 @@ export const handleCreateTrigger = async (request: Request, env: Env, identity: 
       declared.trigger.id,
       declared.trigger.kind,
       declared.trigger.workflowType,
-      requestedStatus,
+      options.status,
       toJson({
         mode: "dry_run",
         policy: "trigger-readonly-v0",
@@ -358,27 +401,45 @@ export const handleCreateTrigger = async (request: Request, env: Env, identity: 
         packTriggerId,
       )
       .first<ControlTriggerRow>();
-    if (existing && (parseDataJson(existing.execution_json).runtime ?? "request") !== execution)
-      return json(
-        {
-          ok: false,
-          error: "Existing trigger uses a different execution mode",
-          code: "trigger_execution_conflict",
-        },
-        { status: 409 },
-      );
-    return json({ ok: true, created: false, trigger: existing ? mapTrigger(existing) : undefined });
+    return { created: false as const, trigger: existing };
   }
-  const created = await findTrigger(env, identity, id);
-  return json(
-    {
-      ok: true,
-      created: true,
-      trigger: created ? mapTrigger(created) : undefined,
-      ...(webhookSecret ? { webhookSecret } : {}),
-    },
-    { status: 201 },
-  );
+  return {
+    created: true as const,
+    trigger: await findTrigger(env, identity, id),
+    webhookSecret,
+  };
+};
+
+/**
+ * Backs the package `triggers.ensure` port: installs a declared schedule or monitor trigger,
+ * enabled, under the same admin rule as the API. Installed triggers are returned unchanged.
+ */
+export const ensureDeclaredTrigger = async (
+  env: Env,
+  identity: AgentIdentity,
+  packId: string,
+  packTriggerId: string,
+) => {
+  const fail = (code: string, message: string): never => {
+    throw Object.assign(new Error(message), { code });
+  };
+  if (await requireMembership(env, identity, true))
+    fail("admin_required", "Workspace owner/admin membership is required to enable triggers.");
+  const declared = await resolveCheckedInTrigger(env, identity, packId, packTriggerId);
+  if (!declared) return fail("trigger_undeclared", `Trigger ${packTriggerId} is not declared.`);
+  if (declared.trigger.kind === "webhook")
+    fail("trigger_kind_unsupported", "Webhook triggers are installed through the API.");
+  const installed = await installDeclaredTrigger(env, identity, declared, {
+    status: "enabled",
+    execution: "request",
+    input: normalizeWorkflowInput(declared.trigger.workflowType, {}),
+  });
+  if (!installed.trigger) return fail("trigger_conflict", "The trigger could not be installed.");
+  return {
+    id: installed.trigger.id,
+    status: installed.trigger.status as "enabled" | "paused" | "disabled",
+    created: installed.created,
+  };
 };
 
 export const handleUpdateTrigger = async (

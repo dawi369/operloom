@@ -126,6 +126,19 @@ export type RuntimeRunTrigger = Readonly<{
   attempt: number;
 }>;
 
+export type RuntimeTriggerPort = {
+  /**
+   * Installs one of the package's declared schedule or monitor triggers, enabled, for the
+   * current agent. An installed trigger is returned unchanged, so an operator's pause or
+   * disable stands. Requires owner/admin membership.
+   */
+  ensure(packTriggerId: string): Promise<{
+    id: string;
+    status: "enabled" | "paused" | "disabled";
+    created: boolean;
+  }>;
+};
+
 export type AgentExecutionContext = {
   scope: Readonly<RuntimeScope>;
   pack: Readonly<{ id: string; version: string; runtimeVersion: string }>;
@@ -155,6 +168,8 @@ export type AgentExecutionContext = {
   state?: import("./state.js").RuntimeStatePort;
   context?: import("./context.js").RuntimeContextPort;
   models?: import("./models.js").RuntimeModelPort;
+  /** Present when the package requires `triggers.ensure`. */
+  triggers?: RuntimeTriggerPort;
   managedState: {
     upsert(input: ManagedStateWrite): Promise<{ id: string; version: number }>;
   };

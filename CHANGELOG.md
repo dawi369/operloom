@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Packages can install their own declared schedule or monitor triggers through
+  `context.triggers.ensure(id)` (capability `triggers.ensure`), for workflows
+  and model-visible tools. Owner/admin only; installed triggers are left as
+  they are. `createPackTestRuntime` and `agent-packs:test` provide the port.
+- Forks can hide the bundled demo packs by marking them `conformanceOnly`;
+  platform unit tests read fixtures from the compiled registry and skip cases
+  that need a demo pack installed.
 - Forks whose default pack is not `operloom` skip the Level 2 and Level 3
   browser journeys, which drive upstream demo packs. `agent-packs:test`
   generates tool inputs from a schema's `examples` after `default` and `enum`,

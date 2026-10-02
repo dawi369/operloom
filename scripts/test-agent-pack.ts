@@ -20,6 +20,7 @@ const runtimePortCapabilities = new Set([
   "context.snapshots",
   "models.structured",
   "usage.reservations",
+  "triggers.ensure",
 ]);
 
 const readArg = (name: string) => {
@@ -239,7 +240,10 @@ export const runAgentPackConformance = async (root: string, requested: string) =
       }
       if (!exercisedTools.has(declared.id)) {
         const { context, controller } = createContext(`tool-${declared.id}`);
-        if (packRuntime) context.state = await packRuntime.state();
+        if (packRuntime) {
+          context.state = await packRuntime.state();
+          context.triggers = packRuntime.triggers();
+        }
         const runner = loaded.runner.tools.find((candidate) => candidate.id === declared.id);
         const executable = declared.execute ? declared : runner;
         if (!executable?.execute) throw new Error(`${declared.id} has no executable provider.`);

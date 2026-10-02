@@ -34,6 +34,7 @@ import { effectTargetOf, type AgentIdentity, type Env } from "./types";
 import { authorizeWorkflowTools } from "./workflow-tool-policy";
 import { createBrokeredConnectionPort } from "./connection-broker";
 import { createDurableActionPort } from "./action-authority";
+import { ensureDeclaredTrigger } from "./triggers";
 import {
   claimDemoDailyUsage,
   demoPackAllowed,
@@ -441,6 +442,9 @@ export const executeRuntimeWorkflowRequest = async (
       signal: controller.signal,
       runId: started.runId,
     }),
+    triggers: {
+      ensure: (packTriggerId) => ensureDeclaredTrigger(env, identity, pack.id, packTriggerId),
+    },
     managedState: {
       async upsert(state) {
         controller.signal.throwIfAborted();
