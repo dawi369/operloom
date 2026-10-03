@@ -1,7 +1,12 @@
 const polymarketFixture = {
   id: "market-conformance-1",
+  conditionId: "0xconformance-condition",
   slug: "gta-vi-launch-before-2027",
   question: "Will GTA VI launch before 2027?",
+  description:
+    "Resolves Yes if Grand Theft Auto VI is released to the public before January 1, 2027, 12:00 AM ET. Otherwise No.",
+  resolutionSource: "Official Rockstar Games announcements",
+  endDate: "2026-12-31T12:00:00Z",
   active: true,
   closed: false,
   volume: "100000",
