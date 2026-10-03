@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Model-visible package tools receive `context.models` and `context.search`
+  when the package declares `models.structured` or `search.web`, metered on the
+  tool's run like workflow calls.
+
 - Workflows can search the web through `context.search.web` (capability
   `search.web`): Exa-backed, dated results with publish-window filtering,
   metered and replayed as tool usage. The key stays in the Worker

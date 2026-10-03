@@ -303,7 +303,8 @@ are enforced before dispatch. Owners/admins inspect `client.budgets.get()` and
 `client.budgets.usage({ day, limit, cursor })` using the same explicit target and
 authentication. Listen for `usage.reserved`, `usage.settled` and `budget.updated`
 events, then fetch canonical usage. Workflow structured calls additionally require
-the package's `models.structured` capability declaration. Workflows that declare
+the package's `models.structured` capability declaration. Workflows and
+model-visible tools that declare
 `search.web` get `context.search.web({ idempotencyKey, query, maxResults,
 publishedAfter, publishedBefore })`: dated web results from the Worker's
 `EXA_API_KEY`, metered as tool usage and replayed by operation key. A

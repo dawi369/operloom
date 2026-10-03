@@ -32,6 +32,8 @@ import { executeRuntimeToolBinding, runtimeToolFailure } from "./runtime-tool-ex
 import { createBrokeredConnectionPort } from "./connection-broker";
 import { createDurableActionPort } from "./action-authority";
 import { ensureDeclaredTrigger } from "./triggers";
+import { createRuntimeModelPort } from "./runtime-models";
+import { createRuntimeSearchPort } from "./runtime-search";
 
 type ResolveModelToolsInput = {
   chatRunId: string | null;
@@ -273,6 +275,21 @@ const buildRuntimeModelTool = (input: {
           signal: controller.signal,
           runId: started.runId,
           contextSnapshotId: input.request.context?.snapshot.id,
+        });
+      const capabilities = packRuntime.runnable
+        ? packRuntime.controlPlane.requirements.capabilities
+        : [];
+      if (capabilities.includes("models.structured"))
+        context.models = createRuntimeModelPort(input.env, input.identity, {
+          runId: started.runId,
+          signal: controller.signal,
+          context: context.context,
+        });
+      if (capabilities.includes("search.web"))
+        context.search = createRuntimeSearchPort(input.env, input.identity, {
+          runId: started.runId,
+          packId: input.pack.id,
+          signal: controller.signal,
         });
       try {
         const result = await executeRuntimeToolBinding({
