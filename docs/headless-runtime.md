@@ -303,7 +303,9 @@ are enforced before dispatch. Owners/admins inspect `client.budgets.get()` and
 `client.budgets.usage({ day, limit, cursor })` using the same explicit target and
 authentication. Listen for `usage.reserved`, `usage.settled` and `budget.updated`
 events, then fetch canonical usage. Workflow structured calls additionally require
-the package's `models.structured` capability declaration. Workflows and
+the package's `models.structured` capability declaration. Each call sees the
+run's context snapshot unless it passes `includeContext: false`, which keeps a
+judgment to the evidence in its prompt. Workflows and
 model-visible tools that declare
 `search.web` get `context.search.web({ idempotencyKey, query, maxResults,
 publishedAfter, publishedBefore })`: dated web results from the Worker's

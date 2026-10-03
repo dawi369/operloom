@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- `context.models.structured({ includeContext: false })` keeps the run's
+  context snapshot out of the call, so a judgment can rest only on the evidence
+  in its prompt.
+
 - Model-visible package tools receive `context.models` and `context.search`
   when the package declares `models.structured` or `search.web`, metered on the
   tool's run like workflow calls.

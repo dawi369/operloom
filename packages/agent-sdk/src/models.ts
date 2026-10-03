@@ -5,6 +5,12 @@ export type RuntimeModelRequest = {
   prompt: string;
   outputSchema: JsonSchema;
   maxOutputTokens?: number;
+  /**
+   * Default true. False keeps the run's context snapshot out of the call, for judgments that
+   * must rest only on the evidence in `prompt` (for example, an estimate that must not see
+   * the user's own forecast).
+   */
+  includeContext?: boolean;
 };
 export type RuntimeModelResult = {
   reservationId: string;

@@ -36,7 +36,7 @@
     },
     {
       "path": "dist/models.d.ts",
-      "sha256": "8731e7ef7444d56cf6333e58f0ae4f6a4da25f0aa49389ede04222bd87b0485c"
+      "sha256": "ffd4475514ab1a97cc8d1d40344592cbdedf5cb670c65497839821a990cf2273"
     },
     {
       "path": "dist/monitor.d.ts",
