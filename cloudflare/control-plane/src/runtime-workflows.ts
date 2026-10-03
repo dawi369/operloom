@@ -6,6 +6,7 @@ import {
 import { captureRuntimeContext, contextIsRequired, bindRuntimeContext } from "./runtime-context";
 import { createRuntimeStatePort } from "./runtime-state";
 import { createRuntimeModelPort } from "./runtime-models";
+import { createRuntimeSearchPort } from "./runtime-search";
 import { withRuntimeDeadline } from "./runtime-deadline";
 import {
   assertSchemaValue,
@@ -514,6 +515,12 @@ export const executeRuntimeWorkflowRequest = async (
             runId: started.runId,
             signal: controller.signal,
             context: context.context,
+          });
+        if (runtime.controlPlane.requirements.capabilities.includes("search.web"))
+          context.search = createRuntimeSearchPort(env, identity, {
+            runId: started.runId,
+            packId: pack.id,
+            signal: controller.signal,
           });
         return workflow.execute!(input, context);
       }),

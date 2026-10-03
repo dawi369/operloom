@@ -303,7 +303,14 @@ are enforced before dispatch. Owners/admins inspect `client.budgets.get()` and
 `client.budgets.usage({ day, limit, cursor })` using the same explicit target and
 authentication. Listen for `usage.reserved`, `usage.settled` and `budget.updated`
 events, then fetch canonical usage. Workflow structured calls additionally require
-the package's `models.structured` capability declaration.
+the package's `models.structured` capability declaration. Workflows that declare
+`search.web` get `context.search.web({ idempotencyKey, query, maxResults,
+publishedAfter, publishedBefore })`: dated web results from the Worker's
+`EXA_API_KEY`, metered as tool usage and replayed by operation key. A
+`publishedBefore` cutoff drops results that are later or undated, so evidence
+can be pinned to what was known at a point in time. Local E2E mode returns a
+deterministic fixture; elsewhere a missing key fails with
+`search_provider_unconfigured`.
 See model/budget semantics and the
 [document-review example](../examples/document-review/README.md) for complete setup.
 

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Workflows can search the web through `context.search.web` (capability
+  `search.web`): Exa-backed, dated results with publish-window filtering,
+  metered and replayed as tool usage. The key stays in the Worker
+  (`EXA_API_KEY`); local E2E mode and `createPackTestRuntime` return a fixture.
 - Packages can install their own declared schedule or monitor triggers through
   `context.triggers.ensure(id)` (capability `triggers.ensure`), for workflows
   and model-visible tools. Owner/admin only; installed triggers are left as

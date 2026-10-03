@@ -9,6 +9,7 @@ export const implementedRuntimeCapabilities = [
   "models.structured",
   "usage.reservations",
   "triggers.ensure",
+  "search.web",
 ] as const;
 
 export type RuntimeRequirements = {

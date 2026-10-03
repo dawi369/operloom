@@ -17,6 +17,7 @@ import { sha256Hex } from "../../../lib/workbench/control-plane-signing";
 import { createRuntimeStatePort } from "./runtime-state";
 import { captureRuntimeContext, contextIsRequired } from "./runtime-context";
 import { createRuntimeModelPort } from "./runtime-models";
+import { createRuntimeSearchPort } from "./runtime-search";
 import { executeRuntimeToolBinding } from "./runtime-tool-execution";
 import { authorizeWorkflowTools } from "./workflow-tool-policy";
 import {
@@ -303,6 +304,13 @@ export const runDurableWorkflow = async (
                 durableAttempt,
                 signal: controller.signal,
                 context: context.context,
+              });
+            if (runtime.controlPlane.requirements.capabilities.includes("search.web"))
+              context.search = createRuntimeSearchPort(env, identity, {
+                runId,
+                packId: execution.pack_id,
+                durableAttempt,
+                signal: controller.signal,
               });
             controller.signal.throwIfAborted();
             const output = await Promise.race([

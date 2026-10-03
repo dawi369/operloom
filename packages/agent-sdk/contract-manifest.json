@@ -4,7 +4,7 @@
   "files": [
     {
       "path": "dist/capabilities.d.ts",
-      "sha256": "cff6fa0f2008ba19017fde47b91f64e1b6f02035367aa6619dd66be61fd33a20"
+      "sha256": "789662e14b9e5b0b634ae3aff79d8e3241619c7055dafa4f5c3ab62c32fccb67"
     },
     {
       "path": "dist/compatibility.d.ts",
@@ -20,7 +20,7 @@
     },
     {
       "path": "dist/control-plane.d.ts",
-      "sha256": "30a12751ad6a8cc0fc5ee533417fe65535e131ed7707b59ea2b04ebd51310ea9"
+      "sha256": "5c17498176d41f5e69706230a9c2f8d7edcb83c0fa037206a6644f8847d4247a"
     },
     {
       "path": "dist/durable.d.ts",
@@ -28,7 +28,7 @@
     },
     {
       "path": "dist/index.d.ts",
-      "sha256": "37c5c9e42b7941ff3f8ba9d42d7ce84e931e7a110cf3bc9a739993f8dfa4c883"
+      "sha256": "7cb2fa8dc85c4f1688a4c7099624af2026d022f41bffa37d67380304f62494e6"
     },
     {
       "path": "dist/manifest.d.ts",
@@ -52,11 +52,15 @@
     },
     {
       "path": "dist/runtime.d.ts",
-      "sha256": "8dfa310dcd378674cf6036df0d06fbe042631bde8954a54c9157295c43bc38a0"
+      "sha256": "5c96bb891d7ca7ea712d7ebc296600629009e7c953cabfe2f092e4a9038f7120"
     },
     {
       "path": "dist/schema.d.ts",
       "sha256": "bb65d208be440c55ef3a6f37231b781f37bff5ae51935fe35d0471a4afac16d8"
+    },
+    {
+      "path": "dist/search.d.ts",
+      "sha256": "4179034cb9fb2f8ebadc7f0aeeeee2195cdabe19028a47247e2b11d1be0b8ba1"
     },
     {
       "path": "dist/settings.d.ts",

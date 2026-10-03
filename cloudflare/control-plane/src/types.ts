@@ -120,6 +120,8 @@ export type Env = {
   OPENROUTER_MODEL?: string;
   OPENROUTER_SITE_URL?: string;
   OPENROUTER_APP_NAME?: string;
+  /** Web search provider key for the package search port (Exa). */
+  EXA_API_KEY?: string;
   SENTRY_DSN?: string;
   SENTRY_ENVIRONMENT?: string;
   SENTRY_RELEASE?: string;

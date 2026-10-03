@@ -30,6 +30,7 @@ export * from "./state.js";
 export * from "./state-migrations.js";
 export * from "./context.js";
 export * from "./models.js";
+export * from "./search.js";
 export * from "./durable.js";
 export * from "./simulation.js";
 export * from "./settings.js";

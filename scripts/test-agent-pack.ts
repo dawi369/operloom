@@ -21,6 +21,7 @@ const runtimePortCapabilities = new Set([
   "models.structured",
   "usage.reservations",
   "triggers.ensure",
+  "search.web",
 ]);
 
 const readArg = (name: string) => {

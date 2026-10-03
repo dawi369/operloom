@@ -6,6 +6,8 @@ OPERLOOM_ENVIRONMENT=local
 OPERLOOM_LOCAL_API_USER_ID=
 OPERLOOM_LOCAL_API_TOKEN=replace-with-a-local-token
 OPENROUTER_API_KEY=
+# Optional: web search for packages that require search.web (https://exa.ai).
+EXA_API_KEY=
 OPERLOOM_AGENT_CONNECTION_SECRET=replace-with-a-long-random-secret
 OPERLOOM_CALLBACK_SIGNING_SECRET=replace-with-a-long-random-secret
 

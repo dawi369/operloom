@@ -168,6 +168,8 @@ export type AgentExecutionContext = {
   state?: import("./state.js").RuntimeStatePort;
   context?: import("./context.js").RuntimeContextPort;
   models?: import("./models.js").RuntimeModelPort;
+  /** Present when the package requires `search.web`. */
+  search?: import("./search.js").RuntimeSearchPort;
   /** Present when the package requires `triggers.ensure`. */
   triggers?: RuntimeTriggerPort;
   managedState: {
