@@ -15,6 +15,19 @@ const polymarketFixture = {
   outcomePrices: ["0.62", "0.38"],
   clobTokenIds: ["conformance-token-yes", "conformance-token-no"],
 };
+// A later, far-dated sibling so search results hold contracts with different deadlines.
+const polymarketLaterFixture = {
+  ...polymarketFixture,
+  id: "market-conformance-2",
+  conditionId: "0xconformance-condition-2031",
+  slug: "gta-vi-launch-before-2031",
+  question: "Will GTA VI launch before 2031?",
+  description:
+    "Resolves Yes if Grand Theft Auto VI is released to the public before January 1, 2031, 12:00 AM ET. Otherwise No.",
+  endDate: "2030-12-31T12:00:00Z",
+  outcomePrices: ["0.9", "0.1"],
+  clobTokenIds: ["conformance-token-2031-yes", "conformance-token-2031-no"],
+};
 
 const json = (body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -29,7 +42,7 @@ const json = (body: unknown) =>
 export const createAgentPackTestFetch = (): typeof fetch => async (input) => {
   const url = new URL(input instanceof Request ? input.url : String(input));
   if (url.origin === "https://gamma-api.polymarket.com" && url.pathname === "/public-search") {
-    return json({ events: [{ markets: [polymarketFixture] }] });
+    return json({ events: [{ markets: [polymarketFixture, polymarketLaterFixture] }] });
   }
   if (url.origin === "https://gamma-api.polymarket.com" && url.pathname === "/markets") {
     return json([polymarketFixture]);
