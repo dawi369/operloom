@@ -4,6 +4,16 @@ import type { AgentIdentity, Env } from "./types";
 export type WorkflowInvocationContext =
   | { source: "user" }
   | {
+      source: "delegation";
+      taskId: string;
+      parentRunId: string;
+      rootRunId: string;
+      requesterAgentId: string;
+      deadlineAt: string;
+      depth: number;
+      leaseOwner: string;
+    }
+  | {
       source: "trigger";
       triggerId: string;
       packTriggerId: string;

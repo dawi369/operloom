@@ -1,6 +1,7 @@
 import { parseDataJson, parseJson } from "./http";
 import { readControlRunRelation } from "./run-relations";
 import { toHumanInterventionSummary } from "./human-interventions";
+import { listDelegationTasksForRun } from "./delegation-tasks";
 import {
   createId,
   toJson,
@@ -305,12 +306,14 @@ export const getControlRunSnapshot = async (env: Env, scope: TenantScope, runId:
        AND (
          json_extract(data_json, '$.relation.parentRunId') = ?
          OR json_extract(data_json, '$.parentRunId') = ?
+         OR json_extract(data_json, '$.delegation.parentRunId') = ?
        )
      ORDER BY updated_at DESC, created_at DESC
      LIMIT 20`,
   )
-    .bind(scope.userId, scope.workspaceId, runId, runId)
+    .bind(scope.userId, scope.workspaceId, runId, runId, runId)
     .all<ControlRunRow>();
+  const delegations = await listDelegationTasksForRun(env, scope, runId);
 
   return {
     scope,
@@ -322,6 +325,7 @@ export const getControlRunSnapshot = async (env: Env, scope: TenantScope, runId:
     auditEvents: auditEvents.results.map(toAuditEvent),
     interventions: approvalRequests.results.map((approval) => toHumanInterventionSummary(approval)),
     childRuns: childRuns.results.map(toChildRunSummary),
+    delegations,
   };
 };
 

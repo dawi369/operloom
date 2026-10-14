@@ -6,7 +6,8 @@ import { web as module3 } from "../../agent-packs/baby-polymancer/web";
 import { web as module4 } from "../../agent-packs/baby-swordfish/web";
 import { web as module5 } from "../../examples/complex-operator/web";
 import { web as module6 } from "../../examples/resource-allocator/web";
-import { web as module7 } from "../../tests/fixtures/provider-operation-package/web";
+import { web as module7 } from "../../examples/service-desk/web";
+import { web as module8 } from "../../tests/fixtures/provider-operation-package/web";
 
 export const agentWebRegistry = {
   "document-review": {
@@ -40,8 +41,13 @@ export const agentWebRegistry = {
     package: "@operloom/pack-resource-allocator",
     conformanceOnly: true,
   },
-  "provider-operation-fixture": {
+  "service-desk": {
     module: module7,
+    package: "@operloom/pack-service-desk",
+    conformanceOnly: true,
+  },
+  "provider-operation-fixture": {
+    module: module8,
     package: "@operloom/provider-operation-fixture",
     conformanceOnly: true,
   },

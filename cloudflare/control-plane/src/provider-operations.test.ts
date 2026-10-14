@@ -137,6 +137,7 @@ import { sweepProviderOperationPayloads } from "./provider-operation-retention";
 import { providerOperationDescriptor } from "./provider-operation-registry";
 import { runtimeStateCanonicalJson, createRuntimeStatePort } from "./runtime-state";
 import { exportCollections, loadCollection } from "./workspace-data-export-core";
+import { capacityOperations } from "../../../tests/fixtures/provider-operation-package/control-plane";
 import type {
   RuntimeToolBinding,
   RuntimeStateCommit,
@@ -197,6 +198,7 @@ const providerFixture = async (signed = false) => {
     controlPlane: {
       ...original.controlPlane,
       state: capacityDefinitions,
+      providerOperations: capacityOperations,
       tools: original.controlPlane.tools.map((tool) => (tool.id === binding.id ? binding : tool)),
     },
   });
@@ -518,9 +520,9 @@ describe("credential-isolated provider operations", () => {
           url,
           createHash("sha256").update(String(init?.body)).digest("hex"),
           headers.get("idempotency-key"),
-          headers.get("x-capacity-timestamp"),
+          headers.get("x-operloom-timestamp"),
         ].join("\n");
-        expect(headers.get("x-capacity-signature")).toBe(
+        expect(headers.get("x-operloom-signature")).toBe(
           createHmac("sha256", secret).update(canonical).digest("hex"),
         );
       } else expect(headers.get("authorization")).toBe(`Bearer ${secret}`);
@@ -624,7 +626,13 @@ describe("credential-isolated provider operations", () => {
     const pending = await request();
     const first = approveAndExecuteActionApproval(env, identity, pending.approval);
     await started;
-    const duplicate = await dispatchProviderOperation(env, identity, pending.proposalId, binding);
+    const duplicate = await dispatchProviderOperation(
+      env,
+      identity,
+      pending.proposalId,
+      binding,
+      capacityOperations,
+    );
     expect(duplicate.status).toBe("outcome_unknown");
     const id = new Headers(network.mock.calls[0]![1]?.headers).get("idempotency-key");
     release(Response.json({ requestId: id, resourceId: "allocation-1", lifecycle: "active" }));
@@ -686,7 +694,7 @@ describe("credential-isolated provider operations", () => {
     env.DB.batch = async (statements) => {
       if (!injected) {
         injected = true;
-        const operation = providerOperationDescriptor(env, binding)!;
+        const operation = providerOperationDescriptor(env, binding, capacityOperations)!;
         db.prepare(`INSERT INTO control_provider_operations
           (id,user_id,workspace_id,agent_id,proposal_id,review_id,operation_id,operation_version,descriptor_json,request_hash,connection_record_id,vault_version,status,created_at,updated_at)
           VALUES (?,'u','w','a',?,?,?,?,?,'hash','connection','1','dispatching','now','now')`).run(
@@ -764,6 +772,7 @@ describe("credential-isolated provider operations", () => {
         { ...identity, scope: { ...identity.scope, workspaceId: "other" } },
         pending.proposalId,
         binding,
+        capacityOperations,
       ),
     ).rejects.toThrow("provider_action_not_executing");
     expect(network).not.toHaveBeenCalled();

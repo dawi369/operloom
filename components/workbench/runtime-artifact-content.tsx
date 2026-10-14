@@ -9,7 +9,11 @@ import {
 } from "react";
 import type { ArtifactRendererProps } from "@operloom/agent-sdk/web";
 
-import { resolveArtifactRenderer, sanitizeRendererValue } from "@/lib/agent-runtime/web-registry";
+import {
+  resolveArtifactRenderer,
+  sanitizeRendererValue,
+  withinRendererBound,
+} from "@/lib/agent-runtime/web-registry";
 import type { ArtifactSummary } from "@/lib/workbench/workbench-types";
 
 class RendererBoundary extends Component<
@@ -68,21 +72,27 @@ const GenericArtifact = ({
 
 export function RuntimeArtifactContent({ artifact }: { artifact: ArtifactSummary }) {
   const resolved = resolveArtifactRenderer(artifact.kind);
-  const genericKind = resolved?.descriptor?.renderer ?? "json";
+  const declared = resolved?.descriptor?.renderer;
+  const genericKind = declared && declared !== "module" ? declared : "json";
   const fallback = <GenericArtifact artifact={artifact} kind={genericKind} />;
   if (typeof resolved?.renderer !== "function") return fallback;
+  const data = sanitizeRendererValue(artifact.data) as Record<string, unknown>;
+  // Oversize payloads never reach a package component; the collapsed JSON view stands in.
+  if (!withinRendererBound(data, resolved.descriptor?.maxBytes)) return fallback;
   const props: ArtifactRendererProps = {
     artifact: {
       id: artifact.id,
       kind: artifact.kind ?? "artifact",
       title: artifact.title,
       mimeType: artifact.mimeType,
-      data: sanitizeRendererValue(artifact.data) as Record<string, unknown>,
+      data,
     },
   };
   return (
     <RendererBoundary fallback={fallback}>
-      {createElement(resolved.renderer as ComponentType<ArtifactRendererProps>, props)}
+      <div data-slot="pack-artifact-renderer" data-pack={resolved.packId}>
+        {createElement(resolved.renderer as ComponentType<ArtifactRendererProps>, props)}
+      </div>
     </RendererBoundary>
   );
 }

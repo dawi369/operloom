@@ -12,9 +12,12 @@ import { runtimeStateCanonicalJson } from "./runtime-state";
 import { sha256Hex } from "./connection-broker-shared";
 import {
   providerOperationDescriptor,
+  providerOperationOutcome,
   providerOperationOutput,
   providerOperationReference,
   type ProviderOperationDescriptor,
+  type ProviderOperationReference,
+  type ProviderOperations,
 } from "./provider-operation-registry";
 import type { AgentIdentity, ControlActionProposalRow, Env } from "./types";
 
@@ -89,7 +92,11 @@ const unknown = (id: string): ActionExecutionResult => ({
   status: "outcome_unknown",
   summary: "Provider outcome is unconfirmed; reconciliation is required.",
 });
-const resultFromReceipt = (receipt: Receipt, reconcile = false): ActionExecutionResult => {
+const resultFromReceipt = (
+  receipt: Receipt,
+  operation: ProviderOperationReference,
+  reconcile = false,
+): ActionExecutionResult => {
   if (receipt.status === "dispatching" || receipt.status === "outcome_unknown")
     return unknown(receipt.proposal_id);
   const output = JSON.parse(receipt.result_json) as Record<string, unknown>;
@@ -98,9 +105,9 @@ const resultFromReceipt = (receipt: Receipt, reconcile = false): ActionExecution
     status: reconcile ? "reconciled" : receipt.status === "succeeded" ? "executed" : "failed",
     summary:
       receipt.status === "succeeded"
-        ? "Provider accepted the allocation request."
-        : "Provider rejected the allocation request.",
-    externalReference: typeof output.resourceId === "string" ? output.resourceId : undefined,
+        ? "Provider accepted the request."
+        : "Provider rejected the request.",
+    externalReference: providerOperationOutcome(operation, output).externalReference,
     output,
   };
 };
@@ -177,9 +184,9 @@ const authenticatedHeaders = async (
     const signature = new Uint8Array(
       await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(canonical)),
     );
-    headers.set("x-capacity-timestamp", timestamp);
+    headers.set("x-operloom-timestamp", timestamp);
     headers.set(
-      "x-capacity-signature",
+      "x-operloom-signature",
       Array.from(signature, (byte) => byte.toString(16).padStart(2, "0")).join(""),
     );
   }
@@ -250,7 +257,11 @@ const observeResponse = async (
   await env.DB.prepare(`UPDATE control_provider_operations SET status=?,result_json=?,updated_at=?
     WHERE id=? AND user_id=? AND workspace_id=? AND agent_id=? AND status IN ('dispatching','outcome_unknown')`)
     .bind(
-      output ? (output.lifecycle === "rejected" ? "failed" : "succeeded") : "outcome_unknown",
+      output
+        ? providerOperationOutcome(operation, output).rejected
+          ? "failed"
+          : "succeeded"
+        : "outcome_unknown",
       runtimeStateCanonicalJson(output ?? {}),
       new Date().toISOString(),
       receipt.id,
@@ -269,6 +280,7 @@ export const dispatchProviderOperation = async (
   identity: AgentIdentity,
   proposalId: string,
   binding: RuntimeToolBinding,
+  operations: ProviderOperations,
 ): Promise<ActionExecutionResult> => {
   if (env.OPERLOOM_CONNECTIONS_ENABLED !== "true" || env.OPERLOOM_MUTATIONS_ENABLED !== "true")
     throw new Error("provider_operations_disabled");
@@ -278,7 +290,7 @@ export const dispatchProviderOperation = async (
     .bind(proposalId, identity.scope.userId, identity.scope.workspaceId, identity.agentId)
     .first<ControlActionProposalRow>();
   if (!row || row.status !== "executing") throw new Error("provider_action_not_executing");
-  const operation = providerOperationDescriptor(env, binding);
+  const operation = providerOperationDescriptor(env, binding, operations);
   if (!operation) throw new Error("provider_operation_unavailable");
   const input = (JSON.parse(row.proposal_json) as { preview: unknown }).preview;
   assertSchemaValue(operation.inputSchema, input, "Provider operation input");
@@ -286,7 +298,7 @@ export const dispatchProviderOperation = async (
   const prior = await scopedReceipt(env, identity, row.id);
   if (prior) {
     if (prior.request_hash !== requestHash) throw new Error("provider_operation_conflict");
-    return resultFromReceipt(prior);
+    return resultFromReceipt(prior, operation);
   }
   const review = await loadActionReview(env, identity, row);
   if (
@@ -308,7 +320,7 @@ export const dispatchProviderOperation = async (
     operation,
     credential.secret,
     requestId,
-    "POST",
+    operation.method,
     operation.url,
     body,
   );
@@ -344,7 +356,7 @@ export const dispatchProviderOperation = async (
     ]);
   } catch {
     const concurrent = await scopedReceipt(env, identity, row.id);
-    if (concurrent?.request_hash === requestHash) return resultFromReceipt(concurrent);
+    if (concurrent?.request_hash === requestHash) return resultFromReceipt(concurrent, operation);
     throw new Error("provider_operation_admission_conflict");
   }
   const receipt = { id: requestId };
@@ -356,9 +368,10 @@ export const dispatchProviderOperation = async (
       receipt,
       operation,
       credential.secret,
-      { method: "POST", headers, body },
+      { method: operation.method, headers, body },
       operation.url,
     ),
+    operation,
   );
 };
 
@@ -368,6 +381,7 @@ export const recordSimulatedProviderOperation = async (
   identity: AgentIdentity,
   proposalId: string,
   binding: RuntimeToolBinding,
+  operations: ProviderOperations,
   output: Record<string, unknown>,
 ): Promise<ActionExecutionResult> => {
   const row = await env.DB.prepare(
@@ -377,7 +391,7 @@ export const recordSimulatedProviderOperation = async (
     .first<ControlActionProposalRow>();
   if (!row || row.status !== "executing" || row.effect_target !== "simulation")
     throw new Error("provider_action_not_executing");
-  const operation = providerOperationReference(binding);
+  const operation = providerOperationReference(binding, operations);
   if (!operation) throw new Error("provider_operation_unavailable");
   const input = (JSON.parse(row.proposal_json) as { preview: unknown }).preview;
   assertSchemaValue(operation.inputSchema, input, "Provider operation input");
@@ -385,7 +399,7 @@ export const recordSimulatedProviderOperation = async (
   const prior = await scopedReceipt(env, identity, row.id);
   if (prior) {
     if (prior.request_hash !== requestHash) throw new Error("provider_operation_conflict");
-    return resultFromReceipt(prior);
+    return resultFromReceipt(prior, operation);
   }
   const review = await loadActionReview(env, identity, row);
   if (
@@ -430,7 +444,7 @@ export const recordSimulatedProviderOperation = async (
       }),
       env.DB.prepare(`UPDATE control_provider_operations SET status=?,result_json=?,updated_at=?
         WHERE id=? AND user_id=? AND workspace_id=? AND agent_id=? AND status='dispatching'`).bind(
-        output.lifecycle === "rejected" ? "failed" : "succeeded",
+        providerOperationOutcome(operation, output).rejected ? "failed" : "succeeded",
         runtimeStateCanonicalJson(output),
         now,
         requestId,
@@ -441,12 +455,12 @@ export const recordSimulatedProviderOperation = async (
     ]);
   } catch {
     const concurrent = await scopedReceipt(env, identity, row.id);
-    if (concurrent?.request_hash === requestHash) return resultFromReceipt(concurrent);
+    if (concurrent?.request_hash === requestHash) return resultFromReceipt(concurrent, operation);
     throw new Error("provider_operation_admission_conflict");
   }
   const receipt = await scopedReceipt(env, identity, row.id);
   if (!receipt) throw new Error("provider_receipt_unavailable");
-  return resultFromReceipt(receipt);
+  return resultFromReceipt(receipt, operation);
 };
 
 export const reconcileProviderOperation = async (
@@ -454,6 +468,7 @@ export const reconcileProviderOperation = async (
   identity: AgentIdentity,
   row: ControlActionProposalRow,
   binding: RuntimeToolBinding,
+  operations: ProviderOperations,
 ): Promise<ActionExecutionResult> => {
   const authority =
     await env.DB.prepare(`SELECT 1 FROM workspaces w JOIN memberships m ON m.workspace_id=w.id
@@ -470,12 +485,14 @@ export const reconcileProviderOperation = async (
     receipt = await scopedReceipt(env, identity, row.id);
     if (!receipt) return unknown(row.id);
   }
+  const reference = providerOperationReference(binding, operations);
+  if (!reference) throw new Error("provider_operation_unavailable");
   // Canonical outcomes survive projection failure and require no provider request.
   if (receipt.status === "succeeded" || receipt.status === "failed")
-    return resultFromReceipt(receipt, true);
+    return resultFromReceipt(receipt, reference, true);
   if (row.effect_target === "simulation") return unknown(row.id);
   if (env.OPERLOOM_CONNECTIONS_ENABLED !== "true") throw new Error("provider_operations_disabled");
-  const operation = providerOperationDescriptor(env, binding);
+  const operation = providerOperationDescriptor(env, binding, operations);
   if (!operation || runtimeStateCanonicalJson(operation) !== receipt.descriptor_json)
     throw new Error("provider_operation_changed");
   const credential = await connectionCredential(env, identity, row, operation);
@@ -501,6 +518,7 @@ export const reconcileProviderOperation = async (
       { method: "GET", headers },
       url,
     ),
+    operation,
     true,
   );
 };

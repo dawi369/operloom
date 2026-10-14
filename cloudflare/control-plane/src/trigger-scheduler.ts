@@ -1,6 +1,7 @@
 import { coalesceDueOccurrence } from "./trigger-schedule";
 import { processPendingTriggerDispatches } from "./trigger-execution";
 import { recoverExpiredTriggerDispatches } from "./trigger-recovery";
+import { dispatchDelegationTasks } from "./delegation-tasks";
 import { parseDataJson } from "./http";
 import { createId, toJson, type ControlTriggerRow, type Env } from "./types";
 
@@ -110,5 +111,6 @@ export const runTriggerSchedulerTick = async (
   const recovery = await recoverExpiredTriggerDispatches(env, { now });
   const due = await dispatchDueTriggers(env, { now });
   const execution = await processPendingTriggerDispatches(env, { leaseOwner, limit: 10 });
-  return { recovery, due, execution };
+  const delegation = await dispatchDelegationTasks(env, { now, leaseOwner, limit: 10 });
+  return { recovery, due, execution, delegation };
 };

@@ -3,6 +3,7 @@ export * from "./config.js";
 export * from "./manifest.js";
 export * from "./runtime.js";
 export * from "./capabilities.js";
+export * from "./recipes.js";
 export * from "./schema.js";
 export * from "./state.js";
 export * from "./state-migrations.js";

@@ -1,5 +1,7 @@
 import { currentAgentSettings } from "./agent-settings";
 import { bindRuntimeContext } from "./runtime-context";
+import { createNotificationPort } from "./notification-port";
+import { createTaskPort } from "./delegation-tasks";
 import type { RuntimeContextPort } from "@operloom/agent-sdk";
 import { jsonSchema, tool, type ToolSet } from "ai";
 import {
@@ -290,6 +292,19 @@ const buildRuntimeModelTool = (input: {
           runId: started.runId,
           packId: input.pack.id,
           signal: controller.signal,
+        });
+      if (capabilities.includes("notifications.emit"))
+        context.notifications = createNotificationPort(
+          input.env,
+          input.identity,
+          { id: input.pack.id },
+          started.runId,
+        );
+      if (capabilities.includes("tasks.delegate"))
+        context.tasks = createTaskPort(input.env, input.identity, {
+          packId: input.pack.id,
+          runId: started.runId,
+          runData: {},
         });
       try {
         const result = await executeRuntimeToolBinding({

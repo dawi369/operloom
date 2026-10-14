@@ -39,6 +39,13 @@ export const manifest = defineAgentPack({
       userInvocable: true,
       description: "Count words and record whether document content changed.",
     },
+    {
+      type: "document-review.delegate",
+      status: "declared",
+      userInvocable: true,
+      description:
+        "Hand a document review to another agent and read back an earlier task's outcome.",
+    },
   ],
   ui: {
     primarySurface: "workbench",
@@ -93,7 +100,17 @@ export const manifest = defineAgentPack({
       eventType: "document.updated",
     },
   ],
-  artifactRenderers: [],
+  artifactRenderers: [
+    {
+      artifactKind: "document_review_report",
+      renderer: "module",
+      title: "Document review report",
+      version: 1,
+      // Reports carry the reviewed text; long documents fall back to the JSON view.
+      maxBytes: 4096,
+    },
+  ],
+  toolResultRenderers: [{ toolId: "document-review.record", version: 1 }],
   healthChecks: [],
   evals: [],
   compatibility: { packApi: 2, minimumWorkbenchVersion: "2.0.0" },

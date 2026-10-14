@@ -11,6 +11,7 @@ import { dispatchWorkbenchSessionEvent } from "./session-coordinator";
 import { activeRunStatusSql, activeRunStatuses, isTerminalRunStatus } from "./run-transitions";
 import { packWorkflowBindings, type PackWorkflowType } from "../../../lib/agent-runtime/registry";
 import { toJson, type AgentIdentity, type ControlRunRow, type Env } from "./types";
+import { cancelDelegationTasksForRun } from "./delegation-tasks";
 
 type ControllableRunRow = ControlRunRow & {
   workflow_type: string | null;
@@ -152,6 +153,26 @@ export const handleCancelExecutionRun = async (
       identity.scope.userId,
       identity.scope.workspaceId,
       `${run.id}-%`,
+      identity.scope.userId,
+      identity.scope.workspaceId,
+      run.id,
+    ),
+    cancelDelegationTasksForRun(env, identity.scope, run.id, timestamp),
+    // A cancelled delegated child reports back to its requester as cancelled.
+    env.DB.prepare(
+      `UPDATE control_delegation_tasks SET status = 'cancelled', error_json = ?, lease_owner = NULL,
+         lease_expires_at = NULL, updated_at = ?
+       WHERE user_id = ? AND workspace_id = ? AND run_id = ? AND status = 'running'
+         AND EXISTS (
+           SELECT 1 FROM control_runs
+           WHERE user_id = ? AND workspace_id = ? AND id = ? AND status = 'cancelled'
+         )`,
+    ).bind(
+      toJson({ code: "run_cancelled", message: "The delegated run was cancelled." }),
+      timestamp,
+      identity.scope.userId,
+      identity.scope.workspaceId,
+      run.id,
       identity.scope.userId,
       identity.scope.workspaceId,
       run.id,

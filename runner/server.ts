@@ -28,6 +28,7 @@ import { agentManifestRegistry } from "../generated/agent-runtime/manifests";
 import { agentRunnerRegistry } from "../generated/agent-runtime/runner";
 import { compiledWorkbenchVersion } from "../generated/agent-runtime/platform";
 import { resolvePlatformRunnerTool } from "../lib/agent-runtime/core-runner-provider";
+import { createRunnerRecipes } from "./recipes";
 import { scrubSentryBreadcrumb, scrubSentryEvent } from "../lib/observability/sentry-scrubber";
 
 function parseSentrySampleRate(value: string | undefined): number {
@@ -677,7 +678,18 @@ const handleToolRunnerInvocation = async (
       typeof parsed.toolCallId === "string" && parsed.toolCallId
         ? parsed.toolCallId
         : `${runId}-tool-${String(parsed.toolName).replace(/[^a-z0-9_-]/gi, "-")}`;
+    const stagedArtifacts: NonNullable<Extract<RuntimeResult, { ok: true }>["artifacts"]> = [];
     const context: AgentExecutionContext = {
+      recipes: createRunnerRecipes({
+        root: process.cwd(),
+        networkPolicy: {
+          egress: network.egress as "none" | "public_web" | "broker_only",
+          allowedHosts: network.allowedHosts as string[],
+          deniedHosts: network.deniedHosts as string[],
+        },
+        preferFetch: process.env.OPERLOOM_E2E_MODE === "true",
+        artifacts: stagedArtifacts,
+      }),
       settings: runnerSettings(parsed.settings),
       scope: {
         userId: typeof parsed.scope?.userId === "string" ? parsed.scope.userId : "unknown-user",
@@ -762,7 +774,12 @@ const handleToolRunnerInvocation = async (
       }
       assertSchemaValue(runnerTool.inputSchema, parsed.input, `${parsed.toolName} input`);
       if (e2eRunnerDelayMs > 0) await delay(e2eRunnerDelayMs);
-      const result = await runnerTool.execute(parsed.input, context);
+      const executed = await runnerTool.execute(parsed.input, context);
+      // Artifacts staged through `recipes.artifact.upload` publish with the result.
+      const result: RuntimeResult =
+        executed.ok && stagedArtifacts.length
+          ? { ...executed, artifacts: [...(executed.artifacts ?? []), ...stagedArtifacts] }
+          : executed;
       if (result.ok) {
         assertSchemaValue(runnerTool.outputSchema, result.output, `${parsed.toolName} output`);
       }
@@ -911,6 +928,16 @@ const server = createServer((request, response) => {
         expires_in: 3600,
         scope: "observe propose",
       });
+      return;
+    }
+
+    // A static page the browser recipe can scrape under conformance without leaving the host.
+    if (syntheticConformanceMode && request.method === "GET" && url.pathname === "/e2e/page") {
+      response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      response.end(
+        `<!doctype html><html><head><title>Permit notice</title><script src="https://tracker.example/t.js"></script></head>
+<body><h1 id="headline">Permit 2026-0417 approved</h1><p class="status">Status: approved</p><p>Issued to 12 Elm St.</p></body></html>`,
+      );
       return;
     }
 

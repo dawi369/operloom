@@ -213,6 +213,126 @@ await state.commit({
 The cursor read is versioned, so a concurrent or retried tick for the same
 observation conflicts instead of recording a second decision.
 
+### Bundled providers
+
+`@operloom/agent-sdk/providers` ships adapters for common services so a package
+binds them instead of writing HTTP code:
+
+```ts
+import { calendarReadTool, transactionalEmailOperation } from "@operloom/agent-sdk/providers";
+
+tools: [calendarReadTool({ connectionId: "calendar.primary", adapter: "google-calendar", recorded: sample })],
+providerOperations: [transactionalEmailOperation({ providerId: "transactional-email" })],
+```
+
+Adapters: calendar (`google-calendar`, `microsoft-graph`), mail (`gmail`,
+`microsoft-graph`), geocoding (`nominatim`), routing (`osrm`), news
+(`newsapi`), and transactional email as a reviewed provider operation. A read
+tool requests `broker://configured/<path>`; the broker resolves it under the
+connection provider's configured endpoint and host allowlist, so packages hold
+no hosts, client ids or credentials. With a `recorded` sample the tool answers
+from it, marked `source: "recorded"`, until the workspace authorizes the
+connection. See `examples/service-desk`.
+
+### Runner recipes
+
+Tools declared with `transport: "fly"` run in the signed Node runner and receive
+`context.recipes` instead of raw `child_process`, `fs`, network or browser
+access. Each recipe is bounded by a timeout and a byte cap (clamped to
+`recipeLimits` from `@operloom/agent-sdk/runner`), charged against an 8 MiB
+per-call budget, redacts secret-looking output, and reports itself through
+`context.recipes.usage()`:
+
+| Recipe            | What it does                                                                                                 | Guard rails                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `process`         | spawn a single executable with arguments (no shell) inside the runner workspace                              | command and argument validation, cwd inside the root, minimal env, output cap        |
+| `browser`         | fetch a page and extract `title`, text and selector fields; Playwright when installed, plain fetch otherwise | the tool's signed `allowedHosts`, redirects re-checked, third-party requests blocked |
+| `repository`      | list a local path or a shallow `git clone` of an `https` URL, with package metadata                          | `rg --files`, secrets and `node_modules` excluded, `maxFiles`                        |
+| `document`        | read text, markdown, JSON or CSV from a workspace path or inline text                                        | path inside the root, `maxBytes`, truncation flagged                                 |
+| `artifact.upload` | stage an artifact the tool result publishes                                                                  | counted against the budget, surfaces as a staged Fly artifact                        |
+
+Recipes return a status (`completed`, `failed`, `timeout`, `blocked`,
+`unavailable`) rather than throwing, so a tool can degrade honestly. See
+`operator.page.read` in `examples/complex-operator/runner.ts` and
+`agent-packs/repo-analyst/runner.ts` for the pattern. The runner refuses network
+targets outside the tool's `sandbox.network.allowedHosts`, so a pack cannot
+widen its own egress from inside a recipe.
+
+### Delegation
+
+A run may hand a bounded workflow to another agent in the workspace:
+
+```ts
+const { taskId } = await context.tasks.delegate({
+  agentId: scoutAgentId,
+  workflowType: "territory.scan",
+  input: { area },
+  deadlineMs: 15 * 60_000,
+  idempotencyKey: `scan-${area}`,
+});
+// on a later run
+const task = await context.tasks.result(taskId); // queued | running | succeeded | failed | expired | cancelled
+```
+
+Requires `tasks.delegate`. The task is queued, not run inline: the scheduler
+leases it on a later tick and runs the workflow as the target agent, which
+sees `context.run.delegation` (`taskId`, `parentRunId`, `requesterAgentId`,
+`deadlineAt`, `depth`). The target must be an active agent of the same
+workspace whose pack declares the workflow as `userInvocable` or `delegable`.
+`resourceLimits.maxDelegationDepth` (default 2) caps chains and
+`maxDelegationFanOut` (default 4) caps tasks per run; the key is scoped to the
+requesting run, so a replay returns the same task and different content
+conflicts. Cancelling the requester cancels its queued tasks; a task not
+started by its deadline expires. The child's state and budget belong to the
+target agent; the requester's history shows the task and the child run.
+
+### Renderers
+
+A package owns how its results look. The manifest declares renderers as data
+and the web module supplies components:
+
+```ts
+// manifest
+artifactRenderers: [
+  { artifactKind: "document_review_report", renderer: "module", title: "Review", version: 1, maxBytes: 4096 },
+],
+toolResultRenderers: [{ toolId: "document-review.record", version: 1 }],
+
+// web.ts
+artifactRenderers: { document_review_report: DocumentReviewReport },
+toolResultRenderers: { "document-review.record": DocumentReviewRecordResult },
+```
+
+The registry (tool id or artifact kind → renderer version and payload bound)
+is compiled package metadata every client can read; the web components are one
+consumer and a native shell maps the same ids to its own. Components receive
+data already in the message, sanitized of credential-like keys and bounded by
+`maxBytes` (default 64 KiB); larger payloads and thrown renderers fall back to
+the generic JSON view. Renderers must not fetch. `json`, `markdown` and `table`
+remain the generic artifact kinds for packages without components.
+
+### Notifications
+
+A package declares the user-facing events it may emit:
+
+```ts
+notifications: [
+  { type: "capacity.escalated", description: "An allocation needs attention.", defaultChannels: ["email"] },
+  { type: "capacity.observed", description: "Folded into the digest.", defaultChannels: ["email"] },
+],
+```
+
+and requires `notifications.emit`. A run calls
+`context.notifications.emit({ type, title, body, target: { type, id }, severity })`.
+The platform records a control-plane event and routes it by the user's channel
+preferences, falling back to `defaultChannels`; undeclared types are refused.
+`alert` is delivered at once, `action` waits out the user's quiet hours, and
+`info` is folded with the user's other open items into one digest per channel
+at their digest hour (or the next scheduled tick when none is set). The same
+event for the same target is delivered once per channel. Packages never see
+addresses or transports; locally and in conformance a recorded transport marks
+the delivery row delivered.
+
 ### Settings And Queries
 
 `settings` declares a JSON schema, defaults, and the top-level keys operators
@@ -238,11 +358,21 @@ one `workbench.config.ts` entry. Each monitor tick:
    **escalates**: a structured model decision over the evidence, then
    `actions.propose` with a reservation on the pool's `available` field. The
    request record, decision entry and cursor advance commit together.
-4. The proposal runs only after operator approval. Under `simulation` the
-   binding's `simulate` returns the provider-shaped receipt; under `external`
-   the reviewed `capacity.allocate` provider operation runs.
+4. The proposal is `policy_controlled` with one unattended allocation a day:
+   the first dispatches inside `propose` and waits for post-hoc review, later
+   ones wait for operator approval. Under `simulation` the binding's
+   `simulate` returns the provider-shaped receipt; under `external` the
+   reviewed `capacity.allocate` provider operation runs.
 
 The `resource-allocator.overview` query serves pools and requests to clients.
+
+Provider operations are declared by the package too. The control-plane
+module lists them in `providerOperations` (provider id, auth scheme, method,
+endpoint path suffix, schemas, limits and the receipt field mapping) and
+requires `actions.provider_operations`; an inline action references one and
+the environment binds the provider id to a configured connection provider.
+The compiler refuses undeclared references and mismatched connections. See
+the SDK README for the declaration shape.
 
 Connection descriptors are part of Pack API v2. They bind declared tools
 to a provider, principal, credential class, scopes, required/optional posture,
@@ -370,7 +500,14 @@ provider smokes remain explicit and are never triggered by local validation.
 - Packs declare credential classes but never contain credential values.
 - Execute-mode tools require external mutation risk, a production gate,
   proposal/result schemas, a compatible action executor, connection identity,
-  idempotency, timeout, and approval policy.
+  idempotency, timeout, and approval policy. `approval: "required"` always
+  waits for an operator. `approval: "policy_controlled"` declares
+  `policy.limits` and requires `actions.policy_controlled`; a proposal inside
+  every limit (`count` per hour/day, `amount` of a preview field per period,
+  `allowlist` of a preview field against an agent setting) is dispatched by
+  `propose` itself and listed for post-hoc review, while any breach, kill
+  switch, policy refusal or settings change since evaluation holds it for the
+  normal approval.
 - Missing or incompatible runtime workflow bindings remain visible and
   chat-capable but cannot execute.
 - Pack results belong in `/history`; raw implementation details belong in the

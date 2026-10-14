@@ -46,7 +46,7 @@ const main = async () => {
   const migrate = startManagedProcess(
     "pnpm",
     ["exec", "wrangler", "d1", "migrations", "apply", "operloom_local", ...common],
-    { label: "worker-runtime-migrate", cwd: runtimeRoot, stdio: "pipe", maxRssMb: 1536 },
+    { label: "worker-runtime-migrate", cwd: runtimeRoot, stdio: "pipe", maxRssMb: 2048 },
   );
   let migrationLogs = "";
   const captureMigration = (chunk: Buffer) => {
@@ -101,8 +101,10 @@ const main = async () => {
         "OPERLOOM_E2E_MODE:true",
         "--var",
         "OPERLOOM_RETAINED_DATA_ENABLED:true",
+        "--var",
+        "OPERLOOM_VAULT_BACKEND:memory",
       ],
-      { label: "worker-runtime-conformance", cwd: runtimeRoot, stdio: "pipe", maxRssMb: 1536 },
+      { label: "worker-runtime-conformance", cwd: runtimeRoot, stdio: "pipe", maxRssMb: 2048 },
     );
   let logs = "";
   const observeWorker = (process: ReturnType<typeof startWorker>) => {
@@ -401,6 +403,57 @@ const main = async () => {
       reviewSummary.output.reviews.map((review) => review.documentId).join() !== "guide"
     )
       throw new Error("Package settings or queries did not round-trip through /v1");
+    // Delegation: the reviewer hands a review to an agent (itself here), the scheduler runs it on the
+    // next tick as a separate run, and the requester reads the outcome back.
+    const delegated = await reviewerClient.request<{
+      run: { id: string };
+      report: { mode: string; taskId: string; status: string; created: boolean };
+    }>("/workbench/workflows/document-review.delegate", {
+      method: "POST",
+      body: {
+        input: { documentId: "delegated-guide", text: "A delegated document review." },
+        executionMode: "dry_run",
+      },
+    });
+    if (
+      delegated.report.mode !== "delegate" ||
+      delegated.report.status !== "queued" ||
+      !delegated.report.created
+    )
+      throw new Error(`Delegation was not queued: ${JSON.stringify(delegated)}`);
+    if (!(await fetch(`${baseUrl}/cdn-cgi/handler/scheduled`)).ok)
+      throw new Error("Scheduled tick for delegation failed");
+    const delegationResult = await reviewerClient.request<{
+      report: {
+        mode: string;
+        status: string;
+        runId: string | null;
+        result: { outcome?: string } | null;
+      };
+    }>("/workbench/workflows/document-review.delegate", {
+      method: "POST",
+      body: {
+        input: { documentId: "delegated-guide", text: "unused", taskId: delegated.report.taskId },
+        executionMode: "dry_run",
+      },
+    });
+    if (
+      delegationResult.report.status !== "succeeded" ||
+      delegationResult.report.result?.outcome !== "reviewed" ||
+      !delegationResult.report.runId
+    )
+      throw new Error(`Delegated run did not report back: ${JSON.stringify(delegationResult)}`);
+    const parentSnapshot = await reviewerClient.request<{
+      snapshot: { delegations: { taskId: string; status: string }[]; childRuns: { id: string }[] };
+    }>(`/workbench/history/runs/${encodeURIComponent(delegated.run.id)}`);
+    if (
+      parentSnapshot.snapshot.delegations.map((task) => task.status).join() !== "succeeded" ||
+      parentSnapshot.snapshot.childRuns.map((run) => run.id).join() !==
+        delegationResult.report.runId
+    )
+      throw new Error(
+        `Parent history does not show the delegated child: ${JSON.stringify(parentSnapshot)}`,
+      );
     const allocator = await client.request<{ agent: { id: string } }>(
       "/agent-packs/resource-allocator/instantiate",
       { method: "POST" },
@@ -426,8 +479,21 @@ const main = async () => {
       method: "POST",
       body: { toolName: "resource-allocator.allocate", mutationEnabled: true },
     });
+    // The local principal has no profile email; register one so email routing resolves.
+    const address = await allocatorClient.notifications.setAddress({
+      channel: "email",
+      address: "operator@conformance.test",
+    });
+    if (address.status !== "active") throw new Error("Notification address did not store");
     type AllocationCycle = {
-      report: { outcome: string; allocated: number; settled: string[]; proposalId?: string };
+      report: {
+        outcome: string;
+        allocated: number;
+        settled: string[];
+        proposalId?: string;
+        approval?: "auto" | "review";
+        dispatch?: string;
+      };
     };
     const cycle = (demand: number) =>
       allocatorClient.request<AllocationCycle>("/workbench/workflows/resource-allocator.cycle", {
@@ -440,10 +506,65 @@ const main = async () => {
       throw new Error(
         `Allocator did not no-op then escalate: ${JSON.stringify([quiet, escalated])}`,
       );
+    // The allocator's action is policy controlled: one unattended allocation a day.
     const proposalId = escalated.report.proposalId!;
+    if (escalated.report.approval !== "auto" || escalated.report.dispatch !== "executed")
+      throw new Error(
+        `First allocation did not dispatch under policy: ${JSON.stringify(escalated)}`,
+      );
+    const pendingReview = await allocatorClient.admin.actions({ review: "pending" });
+    const autoDispatched = pendingReview.proposals.find((item) => item.id === proposalId);
+    if (
+      pendingReview.proposals.length !== 1 ||
+      autoDispatched?.status !== "executed" ||
+      autoDispatched.approval?.decision !== "auto" ||
+      autoDispatched.approval.reviewedAt !== null
+    )
+      throw new Error(`Auto dispatch is not pending review: ${JSON.stringify(pendingReview)}`);
+    const settledCycle = await cycle(10);
+    const secondProposalId = settledCycle.report.proposalId!;
+    if (
+      settledCycle.report.settled.join() !== proposalId ||
+      settledCycle.report.allocated !== 5 ||
+      settledCycle.report.outcome !== "escalated" ||
+      settledCycle.report.approval !== "review" ||
+      settledCycle.report.dispatch !== "proposed"
+    )
+      throw new Error(
+        `Policy allocation was not projected or the second was not held: ${JSON.stringify(settledCycle)}`,
+      );
     if ((await cycle(10)).report.outcome !== "no_change")
       throw new Error("A repeated observation proposed again");
-    const execution = await allocatorClient.admin.requestAction(proposalId);
+    // Package notifications: the escalation alert reaches the recorded email transport on one
+    // scheduled tick; the info observations fold into a single digest.
+    if (!(await fetch(`${baseUrl}/cdn-cgi/handler/scheduled`)).ok)
+      throw new Error("Scheduled tick for notification delivery failed");
+    const deliveries = await allocatorClient.notifications.deliveries();
+    const alerts = deliveries.deliveries.filter((item) => item.eventType === "capacity.escalated");
+    const digestDelivery = deliveries.deliveries.find(
+      (item) => item.eventType === "notification.digest",
+    );
+    if (
+      alerts.length !== 2 ||
+      alerts.some((item) => item.channel !== "email" || item.status !== "delivered") ||
+      digestDelivery?.status !== "delivered" ||
+      !/^\d+ updates?$/.test(digestDelivery.title ?? "")
+    )
+      throw new Error(`Package notifications did not deliver: ${JSON.stringify(deliveries)}`);
+    if (!(await fetch(`${baseUrl}/cdn-cgi/handler/scheduled`)).ok)
+      throw new Error("Second scheduled tick failed");
+    if (
+      (await allocatorClient.notifications.deliveries()).deliveries.length !==
+      deliveries.deliveries.length
+    )
+      throw new Error("A replayed scheduled tick delivered notifications again");
+    const reviewed = await allocatorClient.admin.reviewAction(proposalId);
+    if (reviewed.approval.decision !== "auto" || !reviewed.approval.reviewedAt)
+      throw new Error("Post-hoc review did not record");
+    const stillPending = await allocatorClient.admin.actions({ review: "pending" });
+    if (stillPending.proposals.map((item) => item.id).join() !== secondProposalId)
+      throw new Error(`Review queue drifted: ${JSON.stringify(stillPending)}`);
+    const execution = await allocatorClient.admin.requestAction(secondProposalId);
     const approvedAllocation = await allocatorClient.request<{
       approvalRequest: { status: string };
     }>(`/tools/approvals/${encodeURIComponent(execution.approvalRequest.id)}/approve`, {
@@ -451,13 +572,9 @@ const main = async () => {
     });
     if (approvedAllocation.approvalRequest.status !== "approved")
       throw new Error("Allocation approval did not complete");
-    const settledCycle = await cycle(10);
-    if (
-      settledCycle.report.settled.join() !== proposalId ||
-      settledCycle.report.allocated !== 5 ||
-      settledCycle.report.outcome !== "escalated"
-    )
-      throw new Error(`Approved allocation was not projected: ${JSON.stringify(settledCycle)}`);
+    const secondSettled = await cycle(10);
+    if (secondSettled.report.settled.join() !== secondProposalId)
+      throw new Error(`Approved allocation was not projected: ${JSON.stringify(secondSettled)}`);
     if ((await cycle(10)).report.settled.length)
       throw new Error("Replaying the cycle projected an allocation twice");
     const overview = await allocatorClient.queries.run<{
@@ -468,8 +585,10 @@ const main = async () => {
       await allocatorClient.state.entries({ target: "simulation", type: "effect" })
     ).entries.filter((entry) => entry.data.proposalId === proposalId);
     if (
-      overview.output.pools.find((item) => item.pool === "primary")?.available !== 15 ||
+      overview.output.pools.find((item) => item.pool === "primary")?.available !== 10 ||
       overview.output.requests.find((item) => item.id === proposalId)?.status !== "allocated" ||
+      overview.output.requests.find((item) => item.id === secondProposalId)?.status !==
+        "allocated" ||
       ledger.length !== 1
     )
       throw new Error(`Allocator ledger or query drifted: ${JSON.stringify({ overview, ledger })}`);
@@ -1299,7 +1418,7 @@ const main = async () => {
     const seed = startManagedProcess(
       "pnpm",
       ["exec", "wrangler", "d1", "execute", "operloom_local", ...common, "--file", stateFixture],
-      { label: "runtime-state-fixture", cwd: runtimeRoot, stdio: "pipe", maxRssMb: 1536 },
+      { label: "runtime-state-fixture", cwd: runtimeRoot, stdio: "pipe", maxRssMb: 2048 },
     );
     seed.child.stdout?.resume();
     seed.child.stderr?.resume();

@@ -1,6 +1,16 @@
+import type { NotificationChannel, NotificationSeverity } from "@operloom/agent-sdk/control-plane";
 import { resolveCredentialVault, type CredentialVault } from "./credential-vault";
 import { pushEnabled } from "./feature-gates";
 import { isRecord, json } from "./http";
+import {
+  inQuietHours,
+  listChannelPreferences,
+  quietHoursEnd,
+  resolveChannelAddress,
+  resolveChannelPreference,
+  resolveChannelTransport,
+  type ChannelTransport,
+} from "./notification-channels";
 import {
   createId,
   type AgentIdentity,
@@ -34,20 +44,29 @@ type DeliveryRow = {
   id: string;
   user_id: string;
   workspace_id: string;
-  device_id: string;
+  channel: NotificationChannel;
+  device_id: string | null;
+  address_ref: string | null;
   event_type: string;
   target_type: string;
   target_id: string;
   route: string;
+  severity: NotificationSeverity;
+  title: string | null;
+  body: string | null;
   status: "queued" | "sent" | "delivered" | "failed" | "expired";
   attempt_count: number;
   provider_ticket_id: string | null;
   last_error_code: string | null;
+  not_before: string | null;
   expires_at: string;
   delivered_at: string | null;
   created_at: string;
   updated_at: string;
 };
+const deliveryColumns = `id, user_id, workspace_id, channel, device_id, address_ref, event_type, target_type,
+  target_id, route, severity, title, body, status, attempt_count, provider_ticket_id, last_error_code,
+  not_before, expires_at, delivered_at, created_at, updated_at`;
 
 export type NotificationPayload = {
   token: string;
@@ -340,21 +359,47 @@ export const handleNotificationPreferences = async (
 };
 
 type NotificationIntent = {
-  category: "approval" | "terminal";
+  category: "approval" | "terminal" | "package";
   eventType: string;
   targetType: string;
   targetId: string;
   route: string;
+  severity: NotificationSeverity;
+  title: string;
+  body: string;
 };
 
-export const notificationIntentForEvent = (input: {
+export type NotificationEventInput = {
   type: string;
   targetType?: string;
   targetId?: string;
   data?: Record<string, unknown>;
-}): NotificationIntent | null => {
+  /** Package-emitted events carry their own copy and routing defaults. */
+  package?: {
+    severity: NotificationSeverity;
+    title: string;
+    body: string;
+    defaultChannels: readonly NotificationChannel[];
+  };
+};
+
+export const notificationIntentForEvent = (
+  input: NotificationEventInput,
+): NotificationIntent | null => {
   const targetId = input.targetId ?? "";
   if (!targetId) return null;
+  if (input.package) {
+    return {
+      category: "package",
+      eventType: input.type,
+      targetType: input.targetType ?? "record",
+      targetId,
+      route: "history",
+      severity: input.package.severity,
+      title: input.package.title,
+      body: input.package.body,
+    };
+  }
   if (input.type === "approval.requested" || input.type === "action.approval.requested") {
     return {
       category: "approval",
@@ -362,6 +407,9 @@ export const notificationIntentForEvent = (input: {
       targetType: input.targetType ?? "approvalRequest",
       targetId,
       route: "approvals",
+      severity: "action",
+      title: "Action needed",
+      body: "Open Operloom to review.",
     };
   }
   const actionStatus = typeof input.data?.status === "string" ? input.data.status : "";
@@ -384,74 +432,302 @@ export const notificationIntentForEvent = (input: {
     targetType: input.targetType ?? (input.type.startsWith("action") ? "actionProposal" : "run"),
     targetId,
     route: input.type.startsWith("action") ? "actions" : "history",
+    severity: "info",
+    title: "Workbench update",
+    body: "Open Operloom for the latest result.",
   };
+};
+
+const dedupeKey = (intent: NotificationIntent, channel: NotificationChannel, address: string) =>
+  `${channel}:${address}:${intent.eventType}:${intent.targetType}:${intent.targetId}`;
+
+const insertDelivery = async (
+  env: Env,
+  identity: AgentIdentity,
+  intent: NotificationIntent,
+  target: { channel: NotificationChannel; deviceId: string | null; addressRef: string | null },
+  notBefore: string | null,
+) => {
+  const deliveryId = createId("cf-notification");
+  const timestamp = new Date().toISOString();
+  const result = await env.DB.prepare(
+    `INSERT OR IGNORE INTO control_notification_deliveries (
+       id, user_id, workspace_id, channel, device_id, address_ref, event_type, target_type, target_id, route,
+       severity, title, body, dedupe_key, status, not_before, expires_at, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?)`,
+  )
+    .bind(
+      deliveryId,
+      identity.scope.userId,
+      identity.scope.workspaceId,
+      target.channel,
+      target.deviceId,
+      target.addressRef,
+      intent.eventType,
+      intent.targetType,
+      intent.targetId,
+      intent.route,
+      intent.severity,
+      intent.title,
+      intent.body,
+      dedupeKey(intent, target.channel, target.deviceId ?? target.addressRef ?? "none"),
+      notBefore,
+      new Date(Date.now() + deliveryRetentionMs).toISOString(),
+      timestamp,
+      timestamp,
+    )
+    .run();
+  if (((result as { meta?: { changes?: number } }).meta?.changes ?? 0) !== 1) return false;
+  await handOffToQueue(env, deliveryId, notBefore);
+  return true;
+};
+
+// Without a queue binding the scheduled sweep drains `queued` rows inline.
+const handOffToQueue = async (env: Env, deliveryId: string, notBefore: string | null) => {
+  if (!env.NOTIFICATIONS) return;
+  try {
+    const delaySeconds = notBefore
+      ? Math.min(43_200, Math.max(0, Math.ceil((Date.parse(notBefore) - Date.now()) / 1000)))
+      : 0;
+    await env.NOTIFICATIONS.send(
+      { deliveryId, phase: "send" },
+      delaySeconds > 0 ? { delaySeconds } : undefined,
+    );
+  } catch {
+    await env.DB.prepare(
+      `UPDATE control_notification_deliveries SET last_error_code = 'queue_enqueue_failed',
+         updated_at = ? WHERE id = ? AND status = 'queued'`,
+    )
+      .bind(new Date().toISOString(), deliveryId)
+      .run();
+  }
 };
 
 export const enqueueNotificationEvent = async (
   env: Env,
   identity: AgentIdentity,
-  event: Parameters<typeof notificationIntentForEvent>[0],
+  event: NotificationEventInput,
+  now = new Date(),
 ) => {
-  if (!pushEnabled(env) || !env.NOTIFICATIONS) return { queued: 0 };
   const intent = notificationIntentForEvent(event);
   if (!intent) return { queued: 0 };
-  const devices = await env.DB.prepare(
-    `SELECT device.id FROM control_client_devices device
-     LEFT JOIN control_notification_preferences preference
-       ON preference.user_id = device.user_id AND preference.workspace_id = device.workspace_id
-     WHERE device.user_id = ? AND device.workspace_id = ? AND device.status = 'active'
-       AND CASE WHEN ? = 'approval' THEN COALESCE(preference.approval_required, 1)
-                ELSE COALESCE(preference.terminal_outcomes, 1) END = 1`,
-  )
-    .bind(identity.scope.userId, identity.scope.workspaceId, intent.category)
-    .all<{ id: string }>();
-  const timestamp = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + deliveryRetentionMs).toISOString();
   let queued = 0;
-  for (const device of devices.results) {
-    const deliveryId = createId("cf-notification");
-    const result = await env.DB.prepare(
-      `INSERT OR IGNORE INTO control_notification_deliveries (
-         id, user_id, workspace_id, device_id, event_type, target_type, target_id, route,
-         status, expires_at, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?)`,
-    )
-      .bind(
-        deliveryId,
-        identity.scope.userId,
-        identity.scope.workspaceId,
-        device.id,
-        intent.eventType,
-        intent.targetType,
-        intent.targetId,
-        intent.route,
-        expiresAt,
-        timestamp,
-        timestamp,
+  const preferences = await listChannelPreferences(env, identity);
+  // Platform approval/terminal pushes keep their behaviour; package `info` only reaches digests.
+  if (
+    pushEnabled(env) &&
+    env.NOTIFICATIONS &&
+    !(intent.category === "package" && intent.severity === "info")
+  ) {
+    const pushPreference = resolveChannelPreference(preferences, "push", intent.eventType);
+    const pushAllowed =
+      intent.category === "package"
+        ? (pushPreference?.enabled ?? (event.package!.defaultChannels.includes("push") ? 1 : 0)) ===
+          1
+        : (pushPreference?.enabled ?? 1) === 1;
+    if (pushAllowed) {
+      const devices = await env.DB.prepare(
+        `SELECT device.id FROM control_client_devices device
+         LEFT JOIN control_notification_preferences preference
+           ON preference.user_id = device.user_id AND preference.workspace_id = device.workspace_id
+         WHERE device.user_id = ? AND device.workspace_id = ? AND device.status = 'active'
+           AND CASE WHEN ? = 'approval' THEN COALESCE(preference.approval_required, 1)
+                    WHEN ? = 'terminal' THEN COALESCE(preference.terminal_outcomes, 1)
+                    ELSE 1 END = 1`,
       )
-      .run();
-    if (((result as { meta?: { changes?: number } }).meta?.changes ?? 0) !== 1) continue;
-    try {
-      await env.NOTIFICATIONS.send({ deliveryId, phase: "send" });
-    } catch {
-      await env.DB.prepare(
-        `UPDATE control_notification_deliveries SET last_error_code = 'queue_enqueue_failed',
-           updated_at = ? WHERE id = ? AND status = 'queued'`,
-      )
-        .bind(new Date().toISOString(), deliveryId)
-        .run();
+        .bind(identity.scope.userId, identity.scope.workspaceId, intent.category, intent.category)
+        .all<{ id: string }>();
+      for (const device of devices.results) {
+        if (
+          await insertDelivery(
+            env,
+            identity,
+            intent,
+            { channel: "push", deviceId: device.id, addressRef: null },
+            null,
+          )
+        )
+          queued += 1;
+      }
     }
-    queued += 1;
+  }
+  for (const channel of ["email", "sms"] as const) {
+    const preference = resolveChannelPreference(preferences, channel, intent.eventType);
+    const enabled =
+      preference?.enabled === 1 ||
+      (preference === null &&
+        intent.category === "package" &&
+        event.package!.defaultChannels.includes(channel));
+    if (!enabled) continue;
+    const address = await resolveChannelAddress(env, identity.scope, channel);
+    if (!address) continue;
+    if (intent.severity === "info") {
+      const inserted = await env.DB.prepare(
+        `INSERT OR IGNORE INTO control_notification_digest_items (
+           id, user_id, workspace_id, channel, event_type, target_type, target_id, title, body, created_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+        .bind(
+          createId("cf-digest-item"),
+          identity.scope.userId,
+          identity.scope.workspaceId,
+          channel,
+          intent.eventType,
+          intent.targetType,
+          intent.targetId,
+          intent.title,
+          intent.body,
+          now.toISOString(),
+        )
+        .run();
+      if (((inserted as { meta?: { changes?: number } }).meta?.changes ?? 0) === 1) queued += 1;
+      continue;
+    }
+    // Alerts ignore quiet hours; actions wait until the window closes.
+    const notBefore =
+      intent.severity === "action" && inQuietHours(preference, now)
+        ? quietHoursEnd(preference!, now).toISOString()
+        : null;
+    if (
+      await insertDelivery(
+        env,
+        identity,
+        intent,
+        { channel, deviceId: null, addressRef: address.ref },
+        notBefore,
+      )
+    )
+      queued += 1;
   }
   return { queued };
 };
 
+export const handleListNotificationDeliveries = async (
+  env: Env,
+  identity: AgentIdentity,
+  url: URL,
+) => {
+  const requested = Number(url.searchParams.get("limit") ?? 25);
+  const limit = Math.max(1, Math.min(100, Number.isFinite(requested) ? requested : 25));
+  const rows = await env.DB.prepare(
+    `SELECT ${deliveryColumns} FROM control_notification_deliveries
+     WHERE user_id = ? AND workspace_id = ? ORDER BY created_at DESC LIMIT ?`,
+  )
+    .bind(identity.scope.userId, identity.scope.workspaceId, limit)
+    .all<DeliveryRow>();
+  return json({
+    ok: true,
+    deliveries: rows.results.map((row) => ({
+      id: row.id,
+      channel: row.channel,
+      eventType: row.event_type,
+      targetType: row.target_type,
+      targetId: row.target_id,
+      severity: row.severity,
+      title: row.title,
+      status: row.status,
+      attemptCount: row.attempt_count,
+      lastErrorCode: row.last_error_code,
+      notBefore: row.not_before,
+      deliveredAt: row.delivered_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })),
+  });
+};
+
+/** Folds each user's open `info` items into one email or SMS at the preferred hour. */
+export const foldNotificationDigests = async (env: Env, now = new Date()) => {
+  const groups = await env.DB.prepare(
+    `SELECT user_id, workspace_id, channel, COUNT(*) AS n, MIN(id) AS first_id
+     FROM control_notification_digest_items WHERE folded_delivery_id IS NULL
+     GROUP BY user_id, workspace_id, channel ORDER BY MIN(created_at) LIMIT 100`,
+  ).all<{
+    user_id: string;
+    workspace_id: string;
+    channel: "email" | "sms";
+    n: number;
+    first_id: string;
+  }>();
+  let folded = 0;
+  for (const group of groups.results) {
+    const identity: AgentIdentity = {
+      scope: { userId: group.user_id, workspaceId: group.workspace_id },
+      agentId: "",
+    };
+    const preference = resolveChannelPreference(
+      await listChannelPreferences(env, identity),
+      group.channel,
+      "*",
+    );
+    if (preference?.digest_hour !== null && preference?.digest_hour !== undefined) {
+      if (now.getUTCHours() !== preference.digest_hour) continue;
+    }
+    if (inQuietHours(preference, now)) continue;
+    const address = await resolveChannelAddress(env, identity.scope, group.channel);
+    if (!address) continue;
+    const items = await env.DB.prepare(
+      `SELECT id, title, body FROM control_notification_digest_items
+       WHERE user_id = ? AND workspace_id = ? AND channel = ? AND folded_delivery_id IS NULL
+       ORDER BY created_at LIMIT 50`,
+    )
+      .bind(group.user_id, group.workspace_id, group.channel)
+      .all<{ id: string; title: string; body: string }>();
+    if (!items.results.length) continue;
+    const intent: NotificationIntent = {
+      category: "package",
+      eventType: "notification.digest",
+      targetType: "digest",
+      targetId: group.first_id,
+      route: "history",
+      severity: "info",
+      title: `${items.results.length} update${items.results.length === 1 ? "" : "s"}`,
+      body: items.results
+        .map((item) => `${item.title}: ${item.body}`)
+        .join("\n")
+        .slice(0, 4000),
+    };
+    const deliveryId = createId("cf-notification");
+    const timestamp = now.toISOString();
+    const batch = await env.DB.batch([
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO control_notification_deliveries (
+           id, user_id, workspace_id, channel, device_id, address_ref, event_type, target_type, target_id, route,
+           severity, title, body, dedupe_key, status, expires_at, created_at, updated_at
+         ) VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?)`,
+      ).bind(
+        deliveryId,
+        group.user_id,
+        group.workspace_id,
+        group.channel,
+        address.ref,
+        intent.eventType,
+        intent.targetType,
+        intent.targetId,
+        intent.route,
+        intent.severity,
+        intent.title,
+        intent.body,
+        dedupeKey(intent, group.channel, address.ref),
+        new Date(now.getTime() + deliveryRetentionMs).toISOString(),
+        timestamp,
+        timestamp,
+      ),
+      env.DB.prepare(
+        `UPDATE control_notification_digest_items SET folded_delivery_id = ?
+         WHERE folded_delivery_id IS NULL AND id IN (SELECT value FROM json_each(?))`,
+      ).bind(deliveryId, JSON.stringify(items.results.map((item) => item.id))),
+    ]);
+    if (((batch[0] as { meta?: { changes?: number } })?.meta?.changes ?? 0) !== 1) continue;
+    await handOffToQueue(env, deliveryId, null);
+    folded += 1;
+  }
+  return { folded };
+};
+
 const selectDelivery = (env: Env, deliveryId: string) =>
   env.DB.prepare(
-    `SELECT id, user_id, workspace_id, device_id, event_type, target_type, target_id, route,
-            status, attempt_count, provider_ticket_id, last_error_code, expires_at,
-            delivered_at, created_at, updated_at
-     FROM control_notification_deliveries WHERE id = ? LIMIT 1`,
+    `SELECT ${deliveryColumns} FROM control_notification_deliveries WHERE id = ? LIMIT 1`,
   )
     .bind(deliveryId)
     .first<DeliveryRow>();
@@ -459,16 +735,117 @@ const selectDelivery = (env: Env, deliveryId: string) =>
 const disableInvalidDevice = async (env: Env, row: DeviceRow) =>
   revokeDevice(resolveCredentialVault(env), env, row, "disabled");
 
+const deliverThroughChannel = async (
+  env: Env,
+  transport: ChannelTransport,
+  delivery: DeliveryRow,
+  message: MessageBatch<NotificationQueueMessage>["messages"][number],
+  now: Date,
+) => {
+  const timestamp = now.toISOString();
+  if (delivery.channel === "push" || !delivery.address_ref) throw new Error("channel_mismatch");
+  const address = await resolveChannelAddress(
+    env,
+    { userId: delivery.user_id, workspaceId: delivery.workspace_id },
+    delivery.channel,
+  );
+  if (!address) {
+    await env.DB.prepare(
+      `UPDATE control_notification_deliveries SET status = 'failed', last_error_code = 'address_unavailable',
+         updated_at = ? WHERE id = ?`,
+    )
+      .bind(timestamp, delivery.id)
+      .run();
+    message.ack();
+    return;
+  }
+  const result = await transport.send({
+    channel: delivery.channel,
+    address: address.address,
+    title: delivery.title ?? "Workbench update",
+    body: delivery.body ?? "Open Operloom for the latest result.",
+    data: {
+      eventType: delivery.event_type,
+      targetType: delivery.target_type,
+      targetId: delivery.target_id,
+      route: delivery.route,
+    },
+  });
+  if (result.ok) {
+    await env.DB.prepare(
+      `UPDATE control_notification_deliveries SET status = 'delivered', delivered_at = ?, attempt_count = attempt_count + 1,
+         provider_ticket_id = ?, last_error_code = NULL, updated_at = ? WHERE id = ? AND status = 'queued'`,
+    )
+      .bind(timestamp, result.ticketId, timestamp, delivery.id)
+      .run();
+    message.ack();
+  } else if (result.retryable && delivery.attempt_count + 1 < maxDeliveryAttempts) {
+    await env.DB.prepare(
+      `UPDATE control_notification_deliveries SET attempt_count = attempt_count + 1,
+         last_error_code = ?, updated_at = ? WHERE id = ? AND status = 'queued'`,
+    )
+      .bind(result.code, timestamp, delivery.id)
+      .run();
+    message.retry({ delaySeconds: 30 * 2 ** delivery.attempt_count });
+  } else {
+    await env.DB.prepare(
+      `UPDATE control_notification_deliveries SET status = 'failed',
+         attempt_count = attempt_count + 1, last_error_code = ?, updated_at = ? WHERE id = ?`,
+    )
+      .bind(result.code, timestamp, delivery.id)
+      .run();
+    message.ack();
+  }
+};
+
 export const processNotificationQueue = async (
   batch: MessageBatch<NotificationQueueMessage>,
   env: Env,
-  input?: { port?: NotificationPort },
+  input?: { port?: NotificationPort; transport?: ChannelTransport; now?: Date },
 ) => {
   const port = input?.port ?? resolveNotificationPort(env);
+  const transport = input?.transport ?? resolveChannelTransport(env);
+  const now = input?.now ?? new Date();
   for (const message of batch.messages) {
     const delivery = await selectDelivery(env, message.body.deliveryId);
     if (!delivery || ["delivered", "failed", "expired"].includes(delivery.status)) {
       message.ack();
+      continue;
+    }
+    if (delivery.not_before && delivery.not_before > now.toISOString()) {
+      message.retry({
+        delaySeconds: Math.min(
+          43_200,
+          Math.max(1, Math.ceil((Date.parse(delivery.not_before) - now.getTime()) / 1000)),
+        ),
+      });
+      continue;
+    }
+    if (delivery.channel !== "push") {
+      if (delivery.expires_at <= now.toISOString()) {
+        await env.DB.prepare(
+          `UPDATE control_notification_deliveries SET status = 'expired', updated_at = ? WHERE id = ?`,
+        )
+          .bind(now.toISOString(), delivery.id)
+          .run();
+        message.ack();
+        continue;
+      }
+      try {
+        await deliverThroughChannel(env, transport, delivery, message, now);
+      } catch {
+        const timestamp = new Date().toISOString();
+        const retryable = delivery.attempt_count + 1 < maxDeliveryAttempts;
+        await env.DB.prepare(
+          `UPDATE control_notification_deliveries SET attempt_count = attempt_count + 1,
+             status = CASE WHEN ? THEN status ELSE 'failed' END,
+             last_error_code = 'delivery_exception', updated_at = ? WHERE id = ?`,
+        )
+          .bind(retryable ? 1 : 0, timestamp, delivery.id)
+          .run();
+        if (retryable) message.retry({ delaySeconds: 30 * 2 ** delivery.attempt_count });
+        else message.ack();
+      }
       continue;
     }
     const device = await env.DB.prepare(
@@ -476,7 +853,7 @@ export const processNotificationQueue = async (
               vault_version, status, last_seen_at, app_version, created_at, updated_at, revoked_at
        FROM control_client_devices WHERE id = ? AND status = 'active' LIMIT 1`,
     )
-      .bind(delivery.device_id)
+      .bind(delivery.device_id ?? "")
       .first<DeviceRow>();
     if (!device || delivery.expires_at <= new Date().toISOString()) {
       await env.DB.prepare(
@@ -539,11 +916,10 @@ export const processNotificationQueue = async (
         id: device.vault_object_id,
         version: device.vault_version,
       });
-      const approval = delivery.route === "approvals";
       const result = await port.deliver({
         token: token.value,
-        title: approval ? "Action needed" : "Workbench update",
-        body: approval ? "Open Operloom to review." : "Open Operloom for the latest result.",
+        title: delivery.title ?? "Workbench update",
+        body: delivery.body ?? "Open Operloom for the latest result.",
         data: { route: delivery.route, recordId: delivery.target_id },
       });
       const timestamp = new Date().toISOString();
@@ -622,8 +998,40 @@ export const revokeWorkspaceDevices = async (env: Env, workspaceId: string) => {
   return { revoked: rows.results.length - failed, failed };
 };
 
+/** Local parity for hosts without a queue binding: send due `queued` rows from the scheduled tick. */
+export const drainQueuedNotifications = async (
+  env: Env,
+  now = new Date(),
+  input?: { port?: NotificationPort; transport?: ChannelTransport; limit?: number },
+) => {
+  if (env.NOTIFICATIONS) return { drained: 0 };
+  const due = await env.DB.prepare(
+    `SELECT id FROM control_notification_deliveries
+     WHERE status = 'queued' AND expires_at > ? AND (not_before IS NULL OR not_before <= ?)
+     ORDER BY created_at ASC LIMIT ?`,
+  )
+    .bind(now.toISOString(), now.toISOString(), input?.limit ?? 50)
+    .all<{ id: string }>();
+  if (!due.results.length) return { drained: 0 };
+  const noop = () => undefined;
+  await processNotificationQueue(
+    {
+      messages: due.results.map((row) => ({
+        body: { deliveryId: row.id, phase: "send" as const },
+        ack: noop,
+        retry: noop,
+      })),
+    } as unknown as MessageBatch<NotificationQueueMessage>,
+    env,
+    { ...input, now },
+  );
+  return { drained: due.results.length };
+};
+
 export const sweepNotificationDeliveries = async (env: Env, now = new Date()) => {
   const timestamp = now.toISOString();
+  const digests = await foldNotificationDigests(env, now);
+  const drained = await drainQueuedNotifications(env, now);
   const stranded = env.NOTIFICATIONS
     ? await env.DB.prepare(
         `SELECT id FROM control_notification_deliveries
@@ -661,6 +1069,8 @@ export const sweepNotificationDeliveries = async (env: Env, now = new Date()) =>
     .run();
   return {
     requeued,
+    folded: digests.folded,
+    drained: drained.drained,
     expired: (expired as { meta?: { changes?: number } }).meta?.changes ?? 0,
     deleted: (deleted as { meta?: { changes?: number } }).meta?.changes ?? 0,
   };

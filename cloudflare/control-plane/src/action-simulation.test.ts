@@ -1,4 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
+import { capacityOperations } from "../../../tests/fixtures/provider-operation-package/control-plane";
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
@@ -109,6 +110,7 @@ const useBinding = (binding: RuntimeToolBinding) => {
     controlPlane: {
       ...original.controlPlane,
       state: capacity,
+      providerOperations: capacityOperations,
       tools: original.controlPlane.tools.map((tool) => (tool.id === toolId ? binding : tool)),
     },
   });

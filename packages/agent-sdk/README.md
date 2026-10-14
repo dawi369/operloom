@@ -104,6 +104,7 @@ Worker `Env`, authentication headers, or provider credentials:
 | `connections.resolve()`     | scoped provider request capability; never credential material                        |
 | `actions.propose/execute()` | durable proposal and policy-controlled action authority                              |
 | `events.append()`           | scoped compact runtime evidence                                                      |
+| `recipes`                   | runner-only bounded process, browser, repository, document and artifact helpers      |
 
 Return a `RuntimeResult` instead of throwing for expected domain failures:
 
@@ -220,16 +221,71 @@ are valid for at most fifteen minutes and bind complete proposal/runtime/policy/
 credential evidence. Changed content or state requires a new proposal and
 approval.
 
-## Provider operations (experimental)
+## Approval modes
 
-A Runtime Module v2 inline action can declare
-`providerOperation: { id: "capacity.allocate", version: "1" }` with a declared
-`connectionId`, required approval, and proposal/result schemas. It supplies no
-`action.execute` or `action.reconcile` callback. The approved preview is the
-operation input; the platform chooses the request identity and credential. V1
-callback actions remain supported. The backend flag
-`OPERLOOM_PROVIDER_OPERATIONS_ENABLED` defaults to false. Registry installation
-is a reviewed platform change; packages cannot register signing handlers.
+`action.approval: "required"` parks every proposal until an operator approves
+it. `action.approval: "policy_controlled"` lets the platform dispatch inside
+declared bounds and requires the `actions.policy_controlled` capability:
 
-The initial capacity-service contracts and remaining acceptance gates are in
-[provider operations](../../docs/provider-operation-contract.md).
+```ts
+approval: "policy_controlled",
+policy: {
+  limits: [
+    { kind: "count", per: "day", max: 3 },
+    { kind: "amount", field: "units", max: 50, per: "day" },
+    { kind: "allowlist", field: "resource", settingsKey: "allowedPools" },
+  ],
+},
+```
+
+`propose` evaluates every limit against the agent's earlier auto dispatches for
+the tool and the run's pinned settings, records the decision and evidence on
+the proposal, and when all hold admits and dispatches the action before
+returning `{ status: <dispatch status>, approval: "auto" }`. Otherwise it
+returns `{ status: "proposed", approval: "review" }` and the operator path
+applies. Dispatch re-checks mutation preflight, tool policy, kill switches and
+the current settings; any refusal leaves the proposal held for review with the
+reason in its evidence. Auto dispatches stay listed under
+`GET /workbench/actions?review=pending` until an owner or admin acknowledges
+them. An action that cannot be measured (a non-numeric amount field, a missing
+setting) is held, never dispatched.
+
+## Provider operations
+
+A control-plane module declares the provider requests the platform broker may
+perform for its approved actions in `providerOperations` and requires the
+`actions.provider_operations` capability:
+
+```ts
+providerOperations: [
+  {
+    id: "capacity.allocate",
+    version: "1",
+    providerId: "capacity-service",
+    auth: "bearer", // or "hmac-sha256"
+    method: "POST",
+    path: "/allocations", // required suffix of the configured endpoint path
+    inputSchema,
+    outputSchema, // closed object schema; its properties are the response allowlist
+    timeoutMs: 5000,
+    maxResponseBytes: 65536,
+    receipt: {
+      requestIdField: "requestId",
+      referenceField: "resourceId",
+      statusField: "lifecycle",
+      rejectedValues: ["rejected"],
+    },
+  },
+],
+```
+
+An inline action references one with
+`providerOperation: { id: "capacity.allocate", version: "1" }`, a declared
+`connectionId` whose connection names the same `providerId` with an `api_key`
+credential class, an approval mode, and proposal/result schemas. It supplies
+no `action.execute` or `action.reconcile` callback. The approved preview is the
+operation input; the platform supplies the request identity, endpoint and
+credential from the environment's connection provider configuration, projects
+the response through the output schema, and records a receipt. Packages never
+see credentials or raw responses. `simulate` on the action runs instead of the
+provider under the simulation effect target.

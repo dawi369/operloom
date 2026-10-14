@@ -16,6 +16,7 @@ import {
   type ActionProposalsResponse,
   type ActionRequestResponse,
   type ActionReconciliationResponse,
+  type ActionReviewResponse,
 } from "./public-action-contracts.js";
 import {
   findPublicBudgetContract,
@@ -52,6 +53,33 @@ export type RuntimeQueryResponse<T extends Record<string, unknown> = Record<stri
   queryId: string;
   output: T;
 };
+export type NotificationChannelPreference = {
+  channel: "push" | "email" | "sms";
+  eventType: string;
+  enabled: boolean;
+  quietStart: number | null;
+  quietEnd: number | null;
+  digestHour: number | null;
+  updatedAt: string;
+};
+
+export type NotificationDelivery = {
+  id: string;
+  channel: "push" | "email" | "sms";
+  eventType: string;
+  targetType: string;
+  targetId: string;
+  severity: "info" | "action" | "alert";
+  title: string | null;
+  status: "queued" | "sent" | "delivered" | "failed" | "expired";
+  attemptCount: number;
+  lastErrorCode: string | null;
+  notBefore: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type WebhookEndpoint = {
   id: string;
   url: string;
@@ -434,6 +462,34 @@ export const createRuntimeClient = (options: RuntimeClientOptions) => {
           signal,
         }),
     },
+    notifications: {
+      preferences: () =>
+        request<{ ok: true; preferences: NotificationChannelPreference[] }>(
+          "/workbench/notifications/preferences",
+        ),
+      /** `eventType` defaults to `*`, the channel-wide default. Hours are UTC. */
+      setPreference: (input: {
+        channel: "push" | "email" | "sms";
+        eventType?: string;
+        enabled: boolean;
+        quietStart?: number | null;
+        quietEnd?: number | null;
+        digestHour?: number | null;
+      }) =>
+        request<{ ok: true; preferences: NotificationChannelPreference[] }>(
+          "/workbench/notifications/preferences",
+          { method: "PUT", body: input },
+        ),
+      setAddress: (input: { channel: "email" | "sms"; address: string }) =>
+        request<{ ok: true; channel: "email" | "sms"; status: "active"; updatedAt: string }>(
+          "/workbench/notifications/address",
+          { method: "PUT", body: input },
+        ),
+      deliveries: (query: { limit?: number } = {}) =>
+        request<{ ok: true; deliveries: NotificationDelivery[] }>(
+          `/workbench/notifications/deliveries${query.limit === undefined ? "" : `?limit=${encodeURIComponent(query.limit)}`}`,
+        ),
+    },
     webhooks: {
       list: () => request<{ ok: true; endpoints: WebhookEndpoint[] }>("/webhooks"),
       /** The signing secret is returned only here. */
@@ -487,9 +543,17 @@ export const createRuntimeClient = (options: RuntimeClientOptions) => {
         request<ChatCommandResponse>(`/chat/commands/${encodeURIComponent(commandId)}`),
     },
     admin: {
-      actions: (query: { limit?: number } = {}) =>
-        request<ActionProposalsResponse>(
-          `/workbench/actions${query.limit === undefined ? "" : `?limit=${encodeURIComponent(query.limit)}`}`,
+      actions: (query: { limit?: number; review?: "pending" } = {}) => {
+        const search = new URLSearchParams();
+        if (query.limit !== undefined) search.set("limit", String(query.limit));
+        if (query.review) search.set("review", query.review);
+        const suffix = search.toString();
+        return request<ActionProposalsResponse>(`/workbench/actions${suffix ? `?${suffix}` : ""}`);
+      },
+      reviewAction: (proposalId: string) =>
+        request<ActionReviewResponse>(
+          `/workbench/actions/${encodeURIComponent(proposalId)}/review`,
+          { method: "POST" },
         ),
       requestAction: (proposalId: string) =>
         request<ActionRequestResponse>(

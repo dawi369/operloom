@@ -20,6 +20,7 @@ import {
   proposalColumns,
   selectProposal,
 } from "./action-authority-core";
+import { actionAdmissionStatements, completeActionRun } from "./action-authority-admission";
 import { executeActionProposal, reconcileActionProposal } from "./action-authority-execution";
 import { enqueueNotificationEvent } from "./notification-delivery";
 import {
@@ -67,11 +68,24 @@ const dispatchActionUpdate = async (
 export const handleListActionProposals = async (env: Env, identity: AgentIdentity, url: URL) => {
   const requested = Number(url.searchParams.get("limit") ?? 25);
   const limit = Math.max(1, Math.min(100, Number.isFinite(requested) ? requested : 25));
+  // Pending review: an operator decision is waiting (held by policy or by request),
+  // or policy dispatched and nobody has looked yet.
+  const pendingOnly = url.searchParams.get("review") === "pending";
   const rows = await env.DB.prepare(
     `SELECT ${proposalColumns} FROM control_action_proposals
-     WHERE user_id = ? AND workspace_id = ? AND agent_id = ? ORDER BY created_at DESC LIMIT ?`,
+     WHERE user_id = ? AND workspace_id = ? AND agent_id = ?
+       AND (? = 0 OR status = 'approval_requested'
+            OR (approval_decision = 'review' AND status = 'proposed')
+            OR (approval_decision = 'auto' AND reviewed_at IS NULL AND status <> 'proposed'))
+     ORDER BY created_at DESC LIMIT ?`,
   )
-    .bind(identity.scope.userId, identity.scope.workspaceId, identity.agentId, limit)
+    .bind(
+      identity.scope.userId,
+      identity.scope.workspaceId,
+      identity.agentId,
+      pendingOnly ? 1 : 0,
+      limit,
+    )
     .all<ControlActionProposalRow>();
   const proposalIds = rows.results.map((row) => row.id);
   const ledger = proposalIds.length
@@ -155,6 +169,13 @@ export const handleListActionProposals = async (env: Env, identity: AgentIdentit
             expiresAt: review.expires_at,
           }))[0] ?? null,
       externalReference: row.external_reference,
+      approval: row.approval_decision
+        ? {
+            decision: row.approval_decision,
+            evidence: parseDataJson(row.approval_evidence),
+            reviewedAt: row.reviewed_at,
+          }
+        : null,
       version: row.version,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -169,6 +190,60 @@ export const handleListActionProposals = async (env: Env, identity: AgentIdentit
           createdAt: entry.created_at,
         })),
     })),
+  });
+};
+
+/** An operator acknowledges an action that policy dispatched without them. */
+export const handleReviewAction = async (env: Env, identity: AgentIdentity, proposalId: string) => {
+  const membership = await selectMembership(env, identity.scope.userId, identity.scope.workspaceId);
+  const adminError = requireAdminMembership(membership);
+  if (adminError) return adminError;
+  const row = await selectProposal(env, identity, proposalId);
+  if (!row) return json({ ok: false, error: "Action proposal not found." }, { status: 404 });
+  if (row.approval_decision !== "auto" || row.status === "proposed")
+    return json(
+      { ok: false, code: "action_conflict", error: "Only policy-dispatched actions are reviewed." },
+      { status: 409 },
+    );
+  if (row.reviewed_at)
+    return json({
+      ok: true,
+      proposalId: row.id,
+      approval: { decision: "auto", reviewedAt: row.reviewed_at },
+    });
+  const timestamp = new Date().toISOString();
+  const updated = await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE control_action_proposals SET reviewed_at = ?, updated_at = ?
+       WHERE id = ? AND user_id = ? AND workspace_id = ? AND reviewed_at IS NULL`,
+    ).bind(timestamp, timestamp, row.id, identity.scope.userId, identity.scope.workspaceId),
+    appendLedgerStatement(env, identity, {
+      proposalId: row.id,
+      status: "reviewed",
+      summary: "Policy-dispatched action reviewed by a workspace operator.",
+      requiredStatus: row.status,
+      requiredUpdatedAt: timestamp,
+      timestamp,
+    }),
+    ...actionEvidenceStatements(env, identity, {
+      proposalId: row.id,
+      action: "action.reviewed",
+      eventType: "action.reviewed",
+      summary: "Policy-dispatched action reviewed by a workspace operator.",
+      status: row.status,
+      timestamp,
+      data: { approval: "auto" },
+    }),
+  ]);
+  if ((updated[0]?.meta?.changes ?? 0) === 0)
+    return json(
+      { ok: false, code: "action_conflict", error: "Action was reviewed concurrently." },
+      { status: 409 },
+    );
+  return json({
+    ok: true,
+    proposalId: row.id,
+    approval: { decision: "auto", reviewedAt: timestamp },
   });
 };
 
@@ -239,97 +314,14 @@ export const handleRequestActionExecution = async (
     });
     await commitActionReviewBatch(env, [
       insertActionReview(env, review, row),
-      env.DB.prepare(
-        `UPDATE control_action_proposals SET status = 'approval_requested', approval_request_id = ?,
-         policy_decision_id = ?, run_id = ?, workflow_intent_id = ?, version = version + 1,
-         updated_at = ?
-       WHERE id = ? AND user_id = ? AND workspace_id = ? AND status = 'proposed' AND version = ?`,
-      ).bind(
+      ...actionAdmissionStatements(env, identity, row, {
+        approval: "requested",
         approvalId,
-        policy.decisionId,
         runId,
         intentId,
+        review,
+        policyDecisionId: policy.decisionId,
         timestamp,
-        row.id,
-        identity.scope.userId,
-        identity.scope.workspaceId,
-        row.version,
-      ),
-      env.DB.prepare(
-        `INSERT INTO control_workflow_intents (id, user_id, workspace_id, agent_id, stage, type,
-         execution_json, payload_json, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'act', ?, ?, ?, 'interrupted', ?, ?)`,
-      ).bind(
-        intentId,
-        identity.scope.userId,
-        identity.scope.workspaceId,
-        identity.agentId,
-        `action.${row.action_type}`,
-        toJson({ mode: "execute" }),
-        toJson({ actionProposalId: row.id }),
-        timestamp,
-        timestamp,
-      ),
-      env.DB.prepare(
-        `INSERT INTO control_runs (id, user_id, workspace_id, agent_id, workflow_intent_id, status,
-         execution_json, stage, engine, heartbeat_at, last_event_at, data_json, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'interrupted', ?, 'act', 'cloudflare', ?, ?, ?, ?, ?)`,
-      ).bind(
-        runId,
-        identity.scope.userId,
-        identity.scope.workspaceId,
-        identity.agentId,
-        intentId,
-        toJson({ mode: "execute" }),
-        timestamp,
-        timestamp,
-        toJson({
-          displayName: row.summary,
-          actionProposalId: row.id,
-          summary: "Action approval required.",
-          agentRevision: identity.agentRevision ?? 0,
-          effectTarget: effectTargetOf(identity),
-        }),
-        timestamp,
-        timestamp,
-      ),
-      env.DB.prepare(
-        `INSERT INTO control_approval_requests (id, user_id, workspace_id, agent_id, workflow_intent_id,
-         run_id, tool_id, status, reason, data_json, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'requested', 'External mutation requires approval.', ?, ?, ?)`,
-      ).bind(
-        approvalId,
-        identity.scope.userId,
-        identity.scope.workspaceId,
-        identity.agentId,
-        intentId,
-        runId,
-        row.tool_id,
-        toJson({
-          actionProposalId: row.id,
-          source: "action_authority",
-          actionReviewHash: review.request_hash,
-          expiresAt: review.expires_at,
-        }),
-        timestamp,
-        timestamp,
-      ),
-      appendLedgerStatement(env, identity, {
-        proposalId: row.id,
-        status: "blocked",
-        requiredStatus: "approval_requested",
-        requiredUpdatedAt: timestamp,
-        summary: "Action is waiting for approval.",
-        timestamp,
-      }),
-      ...actionEvidenceStatements(env, identity, {
-        proposalId: row.id,
-        action: "action.approval_requested",
-        eventType: "action.approval.requested",
-        summary: "External mutation is waiting for workspace approval.",
-        status: "approval_requested",
-        timestamp,
-        data: { approvalRequestId: approvalId, runId },
       }),
     ]);
   } catch (error) {
@@ -438,38 +430,12 @@ export const approveAndExecuteActionApproval = async (
   } catch (error) {
     return reviewFailure(error);
   }
-  const completedAt = new Date().toISOString();
-  await env.DB.batch([
-    env.DB.prepare(
-      `UPDATE control_runs SET status = ?, completed_at = CASE WHEN ? = 'completed' THEN ? ELSE completed_at END,
-         failed_at = CASE WHEN ? = 'failed' THEN ? ELSE failed_at END, last_event_at = ?,
-         data_json = json_set(data_json, '$.summary', ?, '$.actionProposalId', ?), updated_at = ?
-       WHERE id = ? AND user_id = ? AND workspace_id = ? AND status = 'running'`,
-    ).bind(
-      result.status === "executed" || result.status === "reconciled" ? "completed" : "failed",
-      result.status === "executed" || result.status === "reconciled" ? "completed" : "failed",
-      completedAt,
-      result.status === "executed" || result.status === "reconciled" ? "completed" : "failed",
-      completedAt,
-      completedAt,
-      result.summary,
-      row.id,
-      completedAt,
-      approval.run_id,
-      identity.scope.userId,
-      identity.scope.workspaceId,
-    ),
-    env.DB.prepare(
-      `UPDATE control_workflow_intents SET status = ?, updated_at = ?
-       WHERE id = ? AND user_id = ? AND workspace_id = ? AND status = 'running'`,
-    ).bind(
-      result.status === "executed" || result.status === "reconciled" ? "completed" : "failed",
-      completedAt,
-      approval.workflow_intent_id,
-      identity.scope.userId,
-      identity.scope.workspaceId,
-    ),
-  ]);
+  await completeActionRun(env, identity, {
+    runId: approval.run_id,
+    intentId: approval.workflow_intent_id,
+    proposalId: row.id,
+    result,
+  });
   await dispatchActionUpdate(env, identity, {
     approvalRequestId: approval.id,
     proposalId: row.id,

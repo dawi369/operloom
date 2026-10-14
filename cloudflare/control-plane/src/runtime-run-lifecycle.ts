@@ -12,6 +12,9 @@ import {
 } from "./types";
 import { packWorkflowBindings, resolveRuntimeTool } from "../../../lib/agent-runtime/registry";
 import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
+import type { RuntimeRecord } from "@operloom/agent-sdk/control-plane";
+import { completeDelegationTaskStatement } from "./delegation-tasks";
+import { isRecord } from "./http";
 
 export type RuntimeRunIdentity = {
   runId: string;
@@ -128,20 +131,41 @@ export const startPackWorkflowRun = async (
         }
       : {};
 
+  // Lineage only: budgets stay with this run, since the requesting run may already be finished.
+  const delegationData =
+    invocation.source === "delegation"
+      ? {
+          delegation: {
+            taskId: invocation.taskId,
+            parentRunId: invocation.parentRunId,
+            rootRunId: invocation.rootRunId,
+            requesterAgentId: invocation.requesterAgentId,
+            deadlineAt: invocation.deadlineAt,
+            depth: invocation.depth,
+          },
+        }
+      : {};
   const intentPayload = toJson({
     input: input.toolInput,
     invocation: invocation.source,
     ...triggerData,
+    ...delegationData,
   });
   const runData = toJson({
     displayName: input.displayName,
     workflowType: input.workflowType,
-    source: invocation.source === "trigger" ? "trigger" : source,
+    source:
+      invocation.source === "trigger"
+        ? "trigger"
+        : invocation.source === "delegation"
+          ? "delegation"
+          : source,
     packId: input.packId,
     relation,
     ...runtimeMetadata,
     ...input.runtimeMetadata,
     ...triggerData,
+    ...delegationData,
     agentRevision: identity.agentRevision ?? 0,
     effectTarget: effectTargetOf(identity),
   });
@@ -282,6 +306,23 @@ export const startPackWorkflowRun = async (
     deadline: Date.now() + ((manifest?.resourceLimits.maxRunSeconds ?? 30) + 15) * 1_000,
   });
   await env.DB.batch([
+    ...(invocation.source === "delegation"
+      ? [
+          env.DB.prepare(
+            `UPDATE control_delegation_tasks SET run_id = ?, updated_at = ?
+             WHERE id = ? AND user_id = ? AND workspace_id = ? AND target_agent_id = ?
+               AND status = 'running' AND lease_owner = ? AND run_id IS NULL`,
+          ).bind(
+            runId,
+            timestamp,
+            invocation.taskId,
+            identity.scope.userId,
+            identity.scope.workspaceId,
+            identity.agentId,
+            invocation.leaseOwner,
+          ),
+        ]
+      : []),
     env.DB.prepare(
       `INSERT INTO control_workflow_intents (
        id, user_id, workspace_id, agent_id, stage, type, execution_json, payload_json,
@@ -546,6 +587,18 @@ export const finishPackWorkflowRun = async (
   const runResultIndex = statements.length - 1;
 
   statements.push(
+    completeDelegationTaskStatement(env, identity, {
+      runId: input.runId,
+      ok: input.ok,
+      output: isRecord(input.data.output) ? (input.data.output as RuntimeRecord) : undefined,
+      error: isRecord(input.data.error)
+        ? {
+            code: String((input.data.error as { code?: unknown }).code ?? "workflow_failed"),
+            message: String((input.data.error as { message?: unknown }).message ?? input.summary),
+          }
+        : { code: "workflow_failed", message: input.summary },
+      timestamp,
+    }),
     env.DB.prepare(
       `UPDATE control_trigger_dispatches
        SET status = ?, heartbeat_at = ?, lease_owner = NULL, lease_expires_at = NULL,

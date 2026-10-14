@@ -76,7 +76,7 @@ export const proposalColumns = `id, user_id, workspace_id, agent_id, workflow_in
   tool_call_id, pack_id, pack_version, runtime_version, binding_version, tool_id, action_type,
   connection_record_id, effect_target, status, summary, idempotency_key, input_sha256, proposal_json,
   policy_decision_id, approval_request_id, external_reference, result_json, error_json,
-  version, created_at, updated_at, terminal_at`;
+  version, created_at, updated_at, terminal_at, approval_decision, approval_evidence, reviewed_at`;
 
 export const selectProposal = (env: Env, identity: AgentIdentity, proposalId: string) =>
   env.DB.prepare(
@@ -212,7 +212,7 @@ export const resolveBinding = (row: ControlActionProposalRow) => {
       code: "action_binding_unavailable",
     });
   }
-  return { runtime, binding };
+  return { runtime, binding, operations: runtime.controlPlane.providerOperations ?? [] };
 };
 
 export const manifestConnections = (packId: string): readonly AgentPackConnectionDescriptor[] => {
@@ -290,8 +290,8 @@ export const mutationPreflight = async (
         code: "connection_not_authorized",
       });
   }
-  const { binding } = resolveBinding(row);
-  const providerOperation = providerOperationFor(env, binding, row.effect_target);
+  const { binding, operations } = resolveBinding(row);
+  const providerOperation = providerOperationFor(env, binding, operations, row.effect_target);
   if (providerOperation)
     assertSchemaValue(
       providerOperation.inputSchema,
@@ -432,7 +432,14 @@ const simulateAction = async (
     controller.abort();
   }
   if (action.providerOperation)
-    return recordSimulatedProviderOperation(env, identity, row.id, binding, output);
+    return recordSimulatedProviderOperation(
+      env,
+      identity,
+      row.id,
+      binding,
+      resolveBinding(row).operations,
+      output,
+    );
   const reference = output.resourceId ?? output.externalReference;
   return {
     proposalId: row.id,
@@ -458,7 +465,13 @@ export const dispatchAction = async (
     return simulateAction(env, identity, row, binding, proposal);
   if (binding.transport === "cloudflare_inline") {
     if (binding.action.providerOperation)
-      return dispatchProviderOperation(env, identity, row.id, binding);
+      return dispatchProviderOperation(
+        env,
+        identity,
+        row.id,
+        binding,
+        resolveBinding(row).operations,
+      );
     return binding.action.execute(
       proposal,
       executionContext(

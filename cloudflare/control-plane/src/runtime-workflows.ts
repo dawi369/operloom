@@ -12,6 +12,7 @@ import {
   assertSchemaValue,
   type AgentExecutionContext,
   type RuntimeResult,
+  type RuntimeRunDelegation,
   type RuntimeRunTrigger,
   type RuntimeToolBinding,
   type RuntimeWorkflowBinding,
@@ -35,6 +36,8 @@ import { effectTargetOf, type AgentIdentity, type Env } from "./types";
 import { authorizeWorkflowTools } from "./workflow-tool-policy";
 import { createBrokeredConnectionPort } from "./connection-broker";
 import { createDurableActionPort } from "./action-authority";
+import { createNotificationPort } from "./notification-port";
+import { createTaskPort } from "./delegation-tasks";
 import { ensureDeclaredTrigger } from "./triggers";
 import {
   claimDemoDailyUsage,
@@ -121,6 +124,19 @@ export const listRuntimeWorkflows = async (env: Env, identity: AgentIdentity) =>
       })),
   });
 };
+
+export const runDelegationContext = (
+  invocation: WorkflowInvocationContext,
+): RuntimeRunDelegation | undefined =>
+  invocation.source === "delegation"
+    ? Object.freeze({
+        taskId: invocation.taskId,
+        parentRunId: invocation.parentRunId,
+        requesterAgentId: invocation.requesterAgentId,
+        deadlineAt: invocation.deadlineAt,
+        depth: invocation.depth,
+      })
+    : undefined;
 
 export const runTriggerContext = (
   invocation: WorkflowInvocationContext,
@@ -423,6 +439,9 @@ export const executeRuntimeWorkflowRequest = async (
       executionMode: "dry_run",
       source: invocation.source === "trigger" ? "trigger" : "user",
       ...(invocation.source === "trigger" ? { trigger: runTriggerContext(invocation) } : {}),
+      ...(invocation.source === "delegation"
+        ? { delegation: runDelegationContext(invocation) }
+        : {}),
     },
     settings,
     signal: controller.signal,
@@ -446,6 +465,28 @@ export const executeRuntimeWorkflowRequest = async (
     triggers: {
       ensure: (packTriggerId) => ensureDeclaredTrigger(env, identity, pack.id, packTriggerId),
     },
+    ...(runtime.controlPlane.requirements.capabilities.includes("notifications.emit")
+      ? {
+          notifications: createNotificationPort(env, identity, { id: pack.id }, started.runId),
+        }
+      : {}),
+    ...(runtime.controlPlane.requirements.capabilities.includes("tasks.delegate")
+      ? {
+          tasks: createTaskPort(env, identity, {
+            packId: pack.id,
+            runId: started.runId,
+            runData: runDelegationContext(invocation)
+              ? {
+                  delegation: {
+                    ...runDelegationContext(invocation)!,
+                    rootRunId:
+                      invocation.source === "delegation" ? invocation.rootRunId : started.runId,
+                  },
+                }
+              : {},
+          }),
+        }
+      : {}),
     managedState: {
       async upsert(state) {
         controller.signal.throwIfAborted();

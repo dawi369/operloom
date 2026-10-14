@@ -3,11 +3,50 @@ import { defineControlPlaneModule } from "@operloom/agent-sdk/control-plane";
 export const controlPlane = defineControlPlaneModule({
   requirements: {
     minimumBackendVersion: "2.0.0",
-    capabilities: ["state.atomic", "state.migrations", "context.snapshots"],
+    capabilities: [
+      "state.atomic",
+      "state.migrations",
+      "context.snapshots",
+      "actions.provider_operations",
+    ],
   },
   packId: "external-agent-fixture",
   runtimeVersion: "1.0.0",
   compatiblePackVersions: "^1.0.0",
+  providerOperations: [
+    {
+      id: "capacity.allocate",
+      version: "1",
+      providerId: "capacity-service",
+      auth: "bearer",
+      method: "POST",
+      path: "/allocations",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["resource", "units"],
+        properties: { resource: { type: "string" }, units: { type: "integer", minimum: 1 } },
+      },
+      outputSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["requestId", "resourceId", "lifecycle"],
+        properties: {
+          requestId: { type: "string" },
+          resourceId: { type: "string" },
+          lifecycle: { type: "string", enum: ["pending", "active", "rejected"] },
+        },
+      },
+      timeoutMs: 4000,
+      maxResponseBytes: 65536,
+      receipt: {
+        requestIdField: "requestId",
+        referenceField: "resourceId",
+        statusField: "lifecycle",
+        rejectedValues: ["rejected"],
+      },
+    },
+  ],
   context: [
     {
       id: "document.input",

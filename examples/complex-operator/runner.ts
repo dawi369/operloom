@@ -1,12 +1,60 @@
 import { defineRunnerModule, type RunnerRuntimeModule } from "@operloom/agent-sdk/runner";
 
-import { operatorActionTool, operatorSnapshotTool } from "./control-plane.js";
+import { operatorActionTool, operatorPageReadTool, operatorSnapshotTool } from "./control-plane.js";
 
 const runnerDefinition: Omit<RunnerRuntimeModule, "apiVersion" | "kind"> = {
   packId: "complex-operator",
   runtimeVersion: "1.2.3",
   compatiblePackVersions: "^1.1.0",
   tools: [
+    {
+      ...operatorPageReadTool,
+      async execute(input, context) {
+        if (!context.recipes)
+          return {
+            ok: false,
+            error: { code: "recipes_unavailable", message: "Runner recipes are unavailable." },
+            summary: "The runner offered no recipes.",
+          };
+        const url = String(input.url);
+        const page = await context.recipes.browser({
+          url,
+          allowHosts: context.networkPolicy?.allowedHosts ?? [],
+          maxBytes: 16_384,
+          extract: {
+            headline: typeof input.headlineSelector === "string" ? input.headlineSelector : "h1",
+          },
+        });
+        if (page.status !== "completed")
+          return {
+            ok: false,
+            error: { code: `page_${page.status}`, message: `The page read ${page.status}.` },
+            summary: `Page read ${page.status}.`,
+          };
+        await context.recipes.artifact.upload({
+          kind: "page_excerpt",
+          title: page.title ?? url,
+          mimeType: "application/json",
+          data: {
+            url: page.finalUrl ?? url,
+            title: page.title ?? "",
+            text: page.text.slice(0, 2000),
+          },
+        });
+        return {
+          ok: true,
+          output: {
+            status: page.status,
+            engine: page.engine,
+            title: page.title ?? "",
+            headline: page.fields.headline ?? "",
+            blockedRequests: page.blockedRequests,
+            usage: context.recipes.usage(),
+          },
+          summary: `Read "${page.title ?? url}" through the ${page.engine} engine.`,
+        };
+      },
+    },
     {
       ...operatorSnapshotTool,
       execute(input) {

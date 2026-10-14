@@ -22,6 +22,10 @@ const runtimePortCapabilities = new Set([
   "usage.reservations",
   "triggers.ensure",
   "search.web",
+  "actions.provider_operations",
+  "actions.policy_controlled",
+  "notifications.emit",
+  "tasks.delegate",
 ]);
 
 const readArg = (name: string) => {

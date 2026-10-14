@@ -228,6 +228,34 @@ or a 24-hour automation soak. The gated native adapter exercises local steps and
 timer waits; explicit-wake process replay is separate from automatic recovery. See
 delivery evidence before enabling production access.
 
+## Notification channels
+
+Users choose how package and platform events reach them:
+
+```ts
+await runtime.notifications.setAddress({ channel: "sms", address: "+15555550100" });
+await runtime.notifications.setPreference({
+  channel: "email",
+  enabled: true,
+  quietStart: 22,
+  quietEnd: 6,
+  digestHour: 8,
+});
+await runtime.notifications.setPreference({
+  channel: "sms",
+  eventType: "capacity.escalated",
+  enabled: true,
+});
+const { deliveries } = await runtime.notifications.deliveries({ limit: 20 });
+```
+
+A preference row for an event type wins over the channel's `*` default. Hours
+are UTC. Email falls back to the signed-in profile address; SMS needs a stored
+number. Deliveries list channel, severity, status, attempts and the next send
+time for a deferred row. Egress uses the platform relay configured by
+`OPERLOOM_NOTIFICATION_RELAY_URL` and `OPERLOOM_NOTIFICATION_RELAY_SECRET`
+(signed like outbound webhooks); without one the delivery is recorded only.
+
 ## Webhook notifications
 
 Owners/admins subscribe an HTTPS endpoint to their control-plane events (exact

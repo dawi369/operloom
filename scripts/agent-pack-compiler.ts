@@ -271,6 +271,101 @@ export const validateLoadedModules = (
     if (controlPlane.queries !== undefined)
       assertRuntimeQueryBindings(controlPlane.queries, `${entry.package} queries`);
     if (!negotiation.ok) throw new Error(`${entry.package}: ${negotiation.message}`);
+    const limits = manifest.resourceLimits;
+    for (const [key, bound] of [
+      ["maxDelegationDepth", 8],
+      ["maxDelegationFanOut", 32],
+    ] as const) {
+      const value = (limits as Record<string, unknown>)[key];
+      if (
+        value !== undefined &&
+        (!Number.isInteger(value) || Number(value) < 1 || Number(value) > bound)
+      )
+        throw new Error(
+          `${entry.package} resourceLimits.${key} must be an integer between 1 and ${bound}.`,
+        );
+    }
+    for (const workflow of manifest.workflows)
+      if (workflow.delegable !== undefined && typeof workflow.delegable !== "boolean")
+        throw new Error(`${entry.package} workflow ${workflow.type} delegable must be boolean.`);
+    const notifications = manifest.notifications ?? [];
+    if (notifications.length && !capabilities.includes("notifications.emit"))
+      throw new Error(
+        `${entry.package} must require notifications.emit for declared notifications.`,
+      );
+    if (!notifications.length && capabilities.includes("notifications.emit"))
+      throw new Error(
+        `${entry.package} requires notifications.emit but declares no notifications.`,
+      );
+    const notificationTypes = new Set<string>();
+    for (const notification of notifications) {
+      if (
+        typeof notification.type !== "string" ||
+        !/^[a-z][a-z0-9_.-]{2,63}$/.test(notification.type) ||
+        typeof notification.description !== "string" ||
+        !notification.description.trim() ||
+        !Array.isArray(notification.defaultChannels) ||
+        notification.defaultChannels.some(
+          (channel) => !["push", "email", "sms"].includes(channel),
+        ) ||
+        new Set(notification.defaultChannels).size !== notification.defaultChannels.length
+      )
+        throw new Error(`${entry.package} notification ${String(notification?.type)} is invalid.`);
+      if (notificationTypes.has(notification.type))
+        throw new Error(`${entry.package} notification ${notification.type} is declared twice.`);
+      notificationTypes.add(notification.type);
+    }
+    const providerOperations = controlPlane.providerOperations ?? [];
+    if (providerOperations.length && !capabilities.includes("actions.provider_operations"))
+      throw new Error(
+        `${entry.package} must require actions.provider_operations for declared provider operations.`,
+      );
+    const operationKeys = new Set<string>();
+    for (const operation of providerOperations) {
+      const label = `${entry.package} provider operation ${String(operation?.id)}`;
+      if (
+        typeof operation.id !== "string" ||
+        !/^[a-z][a-z0-9.-]{0,127}$/.test(operation.id) ||
+        typeof operation.version !== "string" ||
+        !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(operation.version) ||
+        typeof operation.providerId !== "string" ||
+        !/^[a-z][a-z0-9-]{0,63}$/.test(operation.providerId) ||
+        !["bearer", "hmac-sha256"].includes(operation.auth) ||
+        !["POST", "PUT", "PATCH", "DELETE"].includes(operation.method) ||
+        typeof operation.path !== "string" ||
+        !/^\/[a-zA-Z0-9/_.-]{0,255}$/.test(operation.path) ||
+        !Number.isInteger(operation.timeoutMs) ||
+        operation.timeoutMs < 1 ||
+        !Number.isInteger(operation.maxResponseBytes) ||
+        operation.maxResponseBytes < 1
+      )
+        throw new Error(`${label} declaration is invalid.`);
+      const key = `${operation.id}@${operation.version}`;
+      if (operationKeys.has(key)) throw new Error(`${label} is declared twice.`);
+      operationKeys.add(key);
+      assertSchemaDefinition(operation.inputSchema, `${label} input`);
+      assertSchemaDefinition(operation.outputSchema, `${label} output`);
+      const properties = operation.outputSchema.properties;
+      if (
+        operation.outputSchema.type !== "object" ||
+        operation.outputSchema.additionalProperties !== false ||
+        !properties ||
+        typeof properties !== "object" ||
+        Array.isArray(properties)
+      )
+        throw new Error(`${label} output must be a closed object schema.`);
+      const fields = Object.keys(properties as Record<string, unknown>);
+      const receipt = operation.receipt;
+      if (
+        !receipt ||
+        !fields.includes(receipt.requestIdField) ||
+        !fields.includes(receipt.statusField) ||
+        (receipt.referenceField !== undefined && !fields.includes(receipt.referenceField)) ||
+        !Array.isArray(receipt.rejectedValues) ||
+        receipt.rejectedValues.some((value) => typeof value !== "string")
+      )
+        throw new Error(`${label} receipt fields must exist in the output schema.`);
+    }
     const controlPlaneTools = new Map(controlPlane.tools.map((tool) => [tool.id, tool]));
     const runnerTools = new Map(runner.tools.map((tool) => [tool.id, tool]));
     if (controlPlaneTools.size !== controlPlane.tools.length) {
@@ -304,7 +399,6 @@ export const validateLoadedModules = (
             tool.action.execute ||
             tool.action.reconcile ||
             !tool.policy.requiresApproval ||
-            tool.action.approval !== "required" ||
             typeof tool.action.providerOperation.id !== "string" ||
             typeof tool.action.providerOperation.version !== "string" ||
             !/^[a-z][a-z0-9.-]{0,127}$/.test(tool.action.providerOperation.id) ||
@@ -313,6 +407,27 @@ export const validateLoadedModules = (
           throw new Error(
             `${entry.package} provider operations require inline bindings, a connection and approval, without package execution callbacks.`,
           );
+        if (tool.action.providerOperation) {
+          const reference = tool.action.providerOperation;
+          const operation = providerOperations.find(
+            (item) => item.id === reference.id && item.version === reference.version,
+          );
+          if (!operation)
+            throw new Error(
+              `${entry.package} tool ${tool.id} references undeclared provider operation ${reference.id}@${reference.version}.`,
+            );
+          const connection = manifest.connections.find(
+            (candidate) => candidate.id === tool.action?.connectionId,
+          );
+          if (connection && connection.provider !== operation.providerId)
+            throw new Error(
+              `${entry.package} tool ${tool.id} connection provider does not match operation provider ${operation.providerId}.`,
+            );
+          if (connection && connection.credentialClass !== "api_key")
+            throw new Error(
+              `${entry.package} tool ${tool.id} provider operation requires an api_key connection.`,
+            );
+        }
         // Simulators run inline in the Worker for every transport, including runner bindings.
         if (tool.action.simulate !== undefined && typeof tool.action.simulate !== "function")
           throw new Error(`${entry.package} action ${tool.id} simulate must be a function.`);
@@ -336,9 +451,50 @@ export const validateLoadedModules = (
             `${entry.package} tool ${tool.id} action timeout must fit within the tool timeout.`,
           );
         }
-        if (tool.action.approval === "required" && !tool.policy.requiresApproval) {
+        if (!tool.policy.requiresApproval) {
           throw new Error(
             `${entry.package} tool ${tool.id} action approval contract is inconsistent.`,
+          );
+        }
+        if (tool.action.approval === "policy_controlled") {
+          const limits = tool.action.policy?.limits;
+          if (!capabilities.includes("actions.policy_controlled"))
+            throw new Error(
+              `${entry.package} must require actions.policy_controlled for policy-controlled actions.`,
+            );
+          if (!Array.isArray(limits) || limits.length === 0)
+            throw new Error(
+              `${entry.package} tool ${tool.id} policy_controlled approval needs at least one limit.`,
+            );
+          const settingsProperties = controlPlane.settings?.schema.properties;
+          for (const limit of limits) {
+            const period = "per" in limit ? limit.per : undefined;
+            const valid =
+              (limit.kind === "count" &&
+                ["hour", "day"].includes(String(period)) &&
+                Number.isInteger(limit.max) &&
+                limit.max >= 1) ||
+              (limit.kind === "amount" &&
+                typeof limit.field === "string" &&
+                /^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/.test(limit.field) &&
+                (period === undefined || ["hour", "day"].includes(String(period))) &&
+                typeof limit.max === "number" &&
+                Number.isFinite(limit.max) &&
+                limit.max > 0) ||
+              (limit.kind === "allowlist" &&
+                typeof limit.field === "string" &&
+                /^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/.test(limit.field) &&
+                typeof limit.settingsKey === "string" &&
+                Boolean(settingsProperties) &&
+                Object.prototype.hasOwnProperty.call(settingsProperties, limit.settingsKey));
+            if (!valid)
+              throw new Error(
+                `${entry.package} tool ${tool.id} declares an invalid ${String(limit.kind)} approval limit.`,
+              );
+          }
+        } else if (tool.action.policy !== undefined) {
+          throw new Error(
+            `${entry.package} tool ${tool.id} declares approval limits without policy_controlled approval.`,
           );
         }
         if (tool.action.connectionId) {
@@ -480,12 +636,55 @@ export const validateLoadedModules = (
       }
     }
     const webKinds = new Set(Object.keys(web.artifactRenderers));
+    const validBound = (value: unknown) =>
+      value === undefined ||
+      (Number.isInteger(value) && Number(value) >= 1024 && Number(value) <= 1_048_576);
     for (const renderer of manifest.artifactRenderers) {
       if (!webKinds.has(renderer.artifactKind)) {
         throw new Error(`${entry.package} is missing web renderer ${renderer.artifactKind}.`);
       }
       requireUnique(artifactKinds, "Artifact renderer", renderer.artifactKind, manifest.id);
+      const component = (web.artifactRenderers as Record<string, unknown>)[renderer.artifactKind];
+      if (renderer.renderer === "module" && typeof component !== "function")
+        throw new Error(
+          `${entry.package} artifact renderer ${renderer.artifactKind} is declared as module but the web module supplies no component.`,
+        );
+      if (renderer.renderer !== "module" && typeof component === "function")
+        throw new Error(
+          `${entry.package} artifact renderer ${renderer.artifactKind} supplies a component; declare renderer: "module".`,
+        );
+      if (!validBound(renderer.maxBytes))
+        throw new Error(
+          `${entry.package} artifact renderer ${renderer.artifactKind} maxBytes is out of range.`,
+        );
     }
+    const toolResultRenderers = manifest.toolResultRenderers ?? [];
+    const webToolRenderers = (web.toolResultRenderers ?? {}) as Record<string, unknown>;
+    const declaredToolRenderers = new Set<string>();
+    for (const renderer of toolResultRenderers) {
+      if (!manifest.tools.some((tool) => tool.id === renderer.toolId))
+        throw new Error(
+          `${entry.package} tool result renderer ${renderer.toolId} names an undeclared tool.`,
+        );
+      if (declaredToolRenderers.has(renderer.toolId))
+        throw new Error(
+          `${entry.package} tool result renderer ${renderer.toolId} is declared twice.`,
+        );
+      declaredToolRenderers.add(renderer.toolId);
+      if (typeof webToolRenderers[renderer.toolId] !== "function")
+        throw new Error(`${entry.package} is missing web tool result renderer ${renderer.toolId}.`);
+      if (
+        !Number.isInteger(renderer.version) ||
+        renderer.version < 1 ||
+        !validBound(renderer.maxBytes)
+      )
+        throw new Error(`${entry.package} tool result renderer ${renderer.toolId} is invalid.`);
+    }
+    for (const toolId of Object.keys(webToolRenderers))
+      if (!declaredToolRenderers.has(toolId))
+        throw new Error(
+          `${entry.package} web tool result renderer ${toolId} is not declared in the manifest.`,
+        );
     const healthIds = new Set(controlPlane.health.map((binding) => binding.id));
     for (const check of manifest.healthChecks) {
       if (!healthIds.has(check.id)) {

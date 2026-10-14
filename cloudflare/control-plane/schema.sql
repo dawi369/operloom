@@ -532,6 +532,9 @@ CREATE TABLE control_action_proposals (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   terminal_at TEXT,
+  approval_decision TEXT CHECK (approval_decision IN ('auto', 'review')),
+  approval_evidence TEXT NOT NULL DEFAULT '{}',
+  reviewed_at TEXT,
   UNIQUE (user_id, workspace_id, tool_id, idempotency_key)
 );
 
@@ -612,20 +615,27 @@ CREATE TABLE control_notification_deliveries (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   workspace_id TEXT NOT NULL,
-  device_id TEXT NOT NULL,
+  channel TEXT NOT NULL DEFAULT 'push' CHECK (channel IN ('push', 'email', 'sms')),
+  device_id TEXT,
+  address_ref TEXT,
   event_type TEXT NOT NULL,
   target_type TEXT NOT NULL,
   target_id TEXT NOT NULL,
   route TEXT NOT NULL,
+  severity TEXT NOT NULL DEFAULT 'action' CHECK (severity IN ('info', 'action', 'alert')),
+  title TEXT,
+  body TEXT,
+  dedupe_key TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL CHECK (status IN ('queued', 'sent', 'delivered', 'failed', 'expired')),
   attempt_count INTEGER NOT NULL DEFAULT 0,
   provider_ticket_id TEXT,
   last_error_code TEXT,
+  not_before TEXT,
   expires_at TEXT NOT NULL,
   delivered_at TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  UNIQUE (device_id, event_type, target_type, target_id)
+  CHECK ((channel = 'push') = (device_id IS NOT NULL))
 );
 
 CREATE INDEX idx_control_notification_deliveries_pending
@@ -633,6 +643,83 @@ CREATE INDEX idx_control_notification_deliveries_pending
 
 CREATE INDEX idx_control_notification_deliveries_scope
   ON control_notification_deliveries (user_id, workspace_id, created_at DESC);
+
+CREATE TABLE control_notification_channel_preferences (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  channel TEXT NOT NULL CHECK (channel IN ('push', 'email', 'sms')),
+  event_type TEXT NOT NULL DEFAULT '*',
+  enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+  quiet_start INTEGER CHECK (quiet_start IS NULL OR (quiet_start >= 0 AND quiet_start <= 23)),
+  quiet_end INTEGER CHECK (quiet_end IS NULL OR (quiet_end >= 0 AND quiet_end <= 23)),
+  digest_hour INTEGER CHECK (digest_hour IS NULL OR (digest_hour >= 0 AND digest_hour <= 23)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (user_id, workspace_id, channel, event_type)
+);
+
+CREATE TABLE control_notification_addresses (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  channel TEXT NOT NULL CHECK (channel IN ('email', 'sms')),
+  vault_object_id TEXT NOT NULL,
+  vault_version TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('active', 'disabled')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (user_id, workspace_id, channel)
+);
+
+CREATE TABLE control_notification_digest_items (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  channel TEXT NOT NULL CHECK (channel IN ('email', 'sms')),
+  event_type TEXT NOT NULL,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  folded_delivery_id TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE (user_id, workspace_id, channel, event_type, target_type, target_id)
+);
+
+CREATE INDEX idx_control_notification_digest_items_open
+  ON control_notification_digest_items (user_id, workspace_id, channel, folded_delivery_id, created_at);
+
+CREATE TABLE control_delegation_tasks (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  parent_run_id TEXT NOT NULL,
+  root_run_id TEXT NOT NULL,
+  requester_agent_id TEXT NOT NULL,
+  target_agent_id TEXT NOT NULL,
+  workflow_type TEXT NOT NULL,
+  idempotency_key TEXT NOT NULL,
+  input_json TEXT NOT NULL,
+  input_sha256 TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('queued', 'running', 'succeeded', 'failed', 'expired', 'cancelled')),
+  depth INTEGER NOT NULL CHECK (depth >= 1),
+  run_id TEXT,
+  result_json TEXT NOT NULL DEFAULT '{}',
+  error_json TEXT NOT NULL DEFAULT '{}',
+  deadline_at TEXT NOT NULL,
+  lease_owner TEXT,
+  lease_expires_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (parent_run_id, idempotency_key)
+);
+
+CREATE INDEX idx_control_delegation_tasks_queue
+  ON control_delegation_tasks (status, deadline_at, created_at);
+
+CREATE INDEX idx_control_delegation_tasks_parent
+  ON control_delegation_tasks (user_id, workspace_id, parent_run_id);
 
 CREATE TABLE control_webhook_endpoints (
   id TEXT PRIMARY KEY,
@@ -2236,6 +2323,114 @@ BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
 
 CREATE TRIGGER export_fence_control_notification_deliveries_delete
 BEFORE DELETE ON control_notification_deliveries
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id = OLD.workspace_id AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_notification_channel_preferences_insert
+BEFORE INSERT ON control_notification_channel_preferences
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id = NEW.workspace_id AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_notification_channel_preferences_update
+BEFORE UPDATE ON control_notification_channel_preferences
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id IN (OLD.workspace_id, NEW.workspace_id) AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_notification_channel_preferences_delete
+BEFORE DELETE ON control_notification_channel_preferences
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id = OLD.workspace_id AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_notification_addresses_insert
+BEFORE INSERT ON control_notification_addresses
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id = NEW.workspace_id AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_notification_addresses_update
+BEFORE UPDATE ON control_notification_addresses
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id IN (OLD.workspace_id, NEW.workspace_id) AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_notification_addresses_delete
+BEFORE DELETE ON control_notification_addresses
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id = OLD.workspace_id AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_notification_digest_items_insert
+BEFORE INSERT ON control_notification_digest_items
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id = NEW.workspace_id AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_notification_digest_items_update
+BEFORE UPDATE ON control_notification_digest_items
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id IN (OLD.workspace_id, NEW.workspace_id) AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_notification_digest_items_delete
+BEFORE DELETE ON control_notification_digest_items
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id = OLD.workspace_id AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_delegation_tasks_insert
+BEFORE INSERT ON control_delegation_tasks
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id = NEW.workspace_id AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_delegation_tasks_update
+BEFORE UPDATE ON control_delegation_tasks
+WHEN EXISTS (
+  SELECT 1 FROM control_workspace_write_fences fence
+  WHERE fence.workspace_id IN (OLD.workspace_id, NEW.workspace_id) AND fence.status = 'active'
+    AND fence.lease_expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+)
+BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
+
+CREATE TRIGGER export_fence_control_delegation_tasks_delete
+BEFORE DELETE ON control_delegation_tasks
 WHEN EXISTS (
   SELECT 1 FROM control_workspace_write_fences fence
   WHERE fence.workspace_id = OLD.workspace_id AND fence.status = 'active'

@@ -58,9 +58,20 @@ export type AgentPackTrigger =
 
 export type AgentPackArtifactRenderer = {
   artifactKind: string;
-  renderer: "json" | "markdown" | "table";
+  /** `module`: the web module supplies a component; the generic kinds render data as-is. */
+  renderer: "json" | "markdown" | "table" | "module";
   title: string;
   version: number;
+  /** Serialized payload bound for a `module` renderer; larger payloads use the JSON fallback. Default 65536. */
+  maxBytes?: number;
+};
+
+/** A tool whose chat result the web module renders with its own component. */
+export type AgentPackToolResultRenderer = {
+  toolId: string;
+  version: number;
+  /** Serialized result bound; larger results use the generic tool fallback. Default 65536. */
+  maxBytes?: number;
 };
 
 export type AgentPackHealthCheck = {
@@ -89,6 +100,10 @@ export type AgentPackResourceLimits = {
   maxToolCallsPerRun: number;
   maxConcurrentRuns: number;
   maxArtifactBytes: number;
+  /** Longest chain of delegated runs this package's workflows may sit at the end of. Default 2. */
+  maxDelegationDepth?: number;
+  /** Tasks one run may delegate. Default 4. */
+  maxDelegationFanOut?: number;
 };
 
 export type AgentPackDeclaredTool = {
@@ -104,6 +119,8 @@ export type AgentPackWorkflow = {
   type: string;
   status: "declared";
   userInvocable: boolean;
+  /** Another agent's run may delegate this workflow; user-invocable workflows always may. */
+  delegable?: boolean;
   description: string;
 };
 
@@ -143,6 +160,13 @@ export type AgentPackConnectionDescriptor = {
   scopes: readonly string[];
 };
 
+/** A notification type the package may emit and the channels it reaches when the user has not chosen. */
+export type AgentPackNotification = {
+  type: string;
+  description: string;
+  defaultChannels: readonly ("push" | "email" | "sms")[];
+};
+
 export type LocalAgentPackManifest = {
   apiVersion: 2;
   kind: "agent_pack";
@@ -165,7 +189,9 @@ export type LocalAgentPackManifest = {
   context: readonly AgentPackContextSource[];
   managedState: readonly AgentPackManagedStateDescriptor[];
   triggers: readonly AgentPackTrigger[];
+  notifications?: readonly AgentPackNotification[];
   artifactRenderers: readonly AgentPackArtifactRenderer[];
+  toolResultRenderers?: readonly AgentPackToolResultRenderer[];
   healthChecks: readonly AgentPackHealthCheck[];
   evals: readonly AgentPackEval[];
   compatibility: AgentPackCompatibility;

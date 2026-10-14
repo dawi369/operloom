@@ -1,4 +1,4 @@
-import { readRunSettings } from "./agent-settings";
+import { currentAgentSettings, readRunSettings } from "./agent-settings";
 import {
   assertSchemaValue,
   type ActionExecutionResult,
@@ -24,7 +24,15 @@ import {
   terminalStatuses,
 } from "./action-authority-core";
 import type { ActionDispatchResult, RuntimeIdentity } from "./action-authority-core";
-import { actionReviewTransition, commitActionReviewBatch, loadActionReview } from "./action-review";
+import {
+  actionReviewTransition,
+  commitActionReviewBatch,
+  createActionReview,
+  insertActionReview,
+  loadActionReview,
+} from "./action-review";
+import { actionAdmissionStatements, completeActionRun } from "./action-authority-admission";
+import { evaluateApprovalLimits, type ApprovalEvidence } from "./action-policy-limits";
 import { reconcileProviderOperation, inspectProviderAction } from "./provider-operations";
 
 export const createDurableActionPort = (
@@ -150,7 +158,7 @@ export const createDurableActionPort = (
     ]);
     if ((result[0]?.meta?.changes ?? 0) === 0) {
       const existing = await env.DB.prepare(
-        `SELECT id, status, agent_id, effect_target, proposal_json, pack_id, pack_version, runtime_version, binding_version FROM control_action_proposals
+        `SELECT id, status, agent_id, effect_target, proposal_json, pack_id, pack_version, runtime_version, binding_version, approval_decision FROM control_action_proposals
          WHERE user_id = ? AND workspace_id = ? AND tool_id = ? AND idempotency_key = ? LIMIT 1`,
       )
         .bind(
@@ -169,6 +177,7 @@ export const createDurableActionPort = (
           pack_version: string;
           runtime_version: string;
           binding_version: number;
+          approval_decision: "auto" | "review" | null;
         }>();
       if (!existing) throw new Error("action_proposal_conflict");
       if (
@@ -184,9 +193,20 @@ export const createDurableActionPort = (
           new Error("Action key already identifies different content or scope."),
           { code: "idempotency_conflict" },
         );
-      return { proposalId: existing.id, status: "proposed" };
+      return {
+        proposalId: existing.id,
+        status: "proposed",
+        ...(existing.approval_decision ? { approval: existing.approval_decision } : {}),
+      };
     }
-    return { proposalId: id, status: "proposed" };
+    if (binding.action.approval !== "policy_controlled")
+      return { proposalId: id, status: "proposed" };
+    const settings = await readRunSettings(env, identity, runtimeIdentity.runId);
+    const evidence = await evaluateApprovalLimits(env, identity, binding, proposal, settings);
+    await recordApprovalDecision(env, identity, id, evidence);
+    if (evidence.decision !== "auto")
+      return { proposalId: id, status: "proposed", approval: "review" };
+    return dispatchPolicyControlledAction(env, identity, id, binding);
   },
   async execute(proposalId) {
     return executeActionProposal(env, identity, proposalId);
@@ -195,6 +215,107 @@ export const createDurableActionPort = (
     return reconcileActionProposal(env, identity, proposalId);
   },
 });
+
+const recordApprovalDecision = (
+  env: Env,
+  identity: AgentIdentity,
+  proposalId: string,
+  evidence: ApprovalEvidence,
+) =>
+  env.DB.prepare(
+    `UPDATE control_action_proposals SET approval_decision = ?, approval_evidence = ?, updated_at = ?
+     WHERE id = ? AND user_id = ? AND workspace_id = ? AND status = 'proposed'`,
+  )
+    .bind(
+      evidence.decision,
+      toJson(evidence),
+      new Date().toISOString(),
+      proposalId,
+      identity.scope.userId,
+      identity.scope.workspaceId,
+    )
+    .run();
+
+const errorCode = (error: unknown, fallback: string) =>
+  error && typeof error === "object" && "code" in error ? String(error.code) : fallback;
+
+/**
+ * Admits and executes a `policy_controlled` proposal without a human. Every
+ * gate a human approval would pass is re-checked with current authority; any
+ * refusal leaves the proposal `proposed` with `approval: "review"` so an
+ * operator can take it from there.
+ */
+const dispatchPolicyControlledAction = async (
+  env: Env,
+  identity: AgentIdentity,
+  proposalId: string,
+  binding: RuntimeToolBinding,
+): Promise<{
+  proposalId: string;
+  status: "proposed" | ActionExecutionResult["status"];
+  approval: "auto" | "review";
+}> => {
+  const row = await selectProposal(env, identity, proposalId);
+  if (!row || row.status !== "proposed")
+    return { proposalId, status: "proposed", approval: "review" };
+  const downgrade = async (code: string) => {
+    const prior = parseJson(row.approval_evidence) as ApprovalEvidence;
+    await recordApprovalDecision(env, identity, proposalId, {
+      ...prior,
+      decision: "review",
+      downgradedBy: code,
+    });
+    return { proposalId, status: "proposed" as const, approval: "review" as const };
+  };
+  let policy: Awaited<ReturnType<typeof evaluateActionPolicy>>;
+  try {
+    await mutationPreflight(env, identity, row);
+    policy = await evaluateActionPolicy(env, identity, row, "admin_run");
+  } catch (error) {
+    return downgrade(errorCode(error, "mutation_blocked"));
+  }
+  if (policy.result.decision === "block" && policy.result.code !== "approval_required")
+    return downgrade(policy.result.code);
+  const proposal = parseJson(row.proposal_json) as ActionProposal;
+  // Current, not pinned, settings: an operator's edit since proposal must hold the action.
+  const current = await evaluateApprovalLimits(
+    env,
+    identity,
+    binding,
+    proposal,
+    await currentAgentSettings(env, identity),
+  );
+  if (current.decision !== "auto") return downgrade("approval_limit_exceeded");
+  const approvalId = createId("cf-approval");
+  const intentId = createId("cf-intent");
+  const runId = createId("cf-run");
+  const timestamp = new Date().toISOString();
+  try {
+    const review = await createActionReview(env, identity, row, {
+      approvalId,
+      runId,
+      intentId,
+      permission: policy.result.permission,
+    });
+    await commitActionReviewBatch(env, [
+      insertActionReview(env, review, row),
+      ...actionAdmissionStatements(env, identity, row, {
+        approval: "auto",
+        approvalId,
+        runId,
+        intentId,
+        review,
+        policyDecisionId: policy.decisionId,
+        timestamp,
+      }),
+    ]);
+  } catch (error) {
+    return downgrade(errorCode(error, "action_review_failed"));
+  }
+  const result = await executeActionProposal(env, identity, proposalId);
+  await completeActionRun(env, identity, { runId, intentId, proposalId, result });
+  return { proposalId, status: result.status, approval: "auto" };
+};
 
 export const executeActionProposal = async (
   env: Env,
@@ -443,8 +564,10 @@ export const reconcileActionProposal = async (
   const row = await selectProposal(env, identity, proposalId);
   if (!row)
     throw Object.assign(new Error("Action proposal not found."), { code: "action_not_found" });
-  if (row.status === "reconciled" && resolveBinding(row).binding.action?.providerOperation)
-    return reconcileProviderOperation(env, identity, row, resolveBinding(row).binding);
+  if (row.status === "reconciled" && resolveBinding(row).binding.action?.providerOperation) {
+    const resolved = resolveBinding(row);
+    return reconcileProviderOperation(env, identity, row, resolved.binding, resolved.operations);
+  }
   if (
     row.status !== "outcome_unknown" &&
     !(row.status === "executing" && resolveBinding(row).binding.action?.providerOperation)
@@ -452,7 +575,7 @@ export const reconcileActionProposal = async (
     throw Object.assign(new Error("Only unknown outcomes can be reconciled."), {
       code: "reconciliation_not_required",
     });
-  const { binding } = resolveBinding(row);
+  const { binding, operations } = resolveBinding(row);
   // Simulated outcomes resolve from their record; nothing is dispatched or simulated again.
   const simulatedRecord = row.effect_target === "simulation" && !binding.action?.providerOperation;
   if (!simulatedRecord && !binding.action?.reconcile && !binding.action?.providerOperation)
@@ -462,7 +585,7 @@ export const reconcileActionProposal = async (
   const proposal = parseJson(row.proposal_json) as ActionProposal;
   const recorded = parseJson(row.result_json) as Record<string, unknown>;
   const result: ActionExecutionResult = binding.action?.providerOperation
-    ? await reconcileProviderOperation(env, identity, row, binding)
+    ? await reconcileProviderOperation(env, identity, row, binding, operations)
     : simulatedRecord
       ? Object.keys(recorded).length
         ? {

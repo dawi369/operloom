@@ -31,7 +31,7 @@ const main = async () => {
       const key = String(request.headers["idempotency-key"] ?? "");
       assert.match(key, /^[a-f0-9]{64}$/);
       if (url.pathname.startsWith("/signed/")) {
-        const timestamp = String(request.headers["x-capacity-timestamp"]);
+        const timestamp = String(request.headers["x-operloom-timestamp"]);
         assert.ok(Math.abs(Date.now() - Date.parse(timestamp)) < 60000);
         const canonical = [
           request.method,
@@ -41,7 +41,7 @@ const main = async () => {
           timestamp,
         ].join("\n");
         assert.equal(
-          request.headers["x-capacity-signature"],
+          request.headers["x-operloom-signature"],
           createHmac("sha256", secret).update(canonical).digest("hex"),
         );
         assert.equal(request.headers.authorization, undefined);

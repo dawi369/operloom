@@ -67,6 +67,19 @@ runner tool
 Direct scoped D1/R2 access would need a measured performance or reliability
 problem first, the same scoped interface and the same audit events.
 
+## Runner Recipes
+
+Pack `runner.ts` tools do not get raw `child_process`, `fs`, `fetch` or a
+browser. The gateway hands each invocation `context.recipes` (`runner/recipes.ts`)
+with bounded `process`, `browser`, `repository`, `document` and
+`artifact.upload` building blocks. Every recipe clamps its timeout and byte cap,
+charges a per-invocation byte budget, redacts secret-looking output and reports
+usage. Network recipes are pinned to the signed `runner.sandbox.network`
+allowlist of the invoked tool; the browser recipe prefers Playwright when
+`@playwright/test` is installed and falls back to a plain fetch engine
+(`OPERLOOM_E2E_MODE=true` forces fetch). Staged recipe artifacts are merged into
+the tool result the gateway returns to Cloudflare.
+
 ## Sandbox Lifecycle And Network Policy
 
 Sandbox lifecycle/network policy v0 is a signed runner contract, not a new

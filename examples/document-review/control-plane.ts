@@ -90,6 +90,7 @@ export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
       "state.atomic",
       "models.structured",
       "usage.reservations",
+      "tasks.delegate",
     ],
   },
   tools: [
@@ -538,6 +539,77 @@ export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
           ok: true,
           output: { outcome, wordCount, snapshotId: evidence.snapshot.id, decisionId },
           summary: unchanged ? "Document is unchanged." : "Document word count recorded.",
+          artifacts: [
+            {
+              kind: "document_review_report",
+              title: `Review of ${String(input.documentId)}`,
+              mimeType: "application/json",
+              data: { documentId: String(input.documentId), outcome, wordCount, excerpt: text },
+            },
+          ],
+        };
+      },
+    },
+    {
+      type: "document-review.delegate",
+      label: "Delegate review",
+      description:
+        "Queue a document review for another agent in the workspace, or read back a delegated task.",
+      inputSchema: {
+        type: "object",
+        required: ["documentId", "text"],
+        additionalProperties: false,
+        properties: {
+          documentId: { type: "string", pattern: "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$" },
+          text: { type: "string", minLength: 1, maxLength: 8000 },
+          targetAgentId: { type: "string", minLength: 1, maxLength: 200 },
+          taskId: { type: "string", minLength: 1, maxLength: 200 },
+          deadlineMs: { type: "integer", minimum: 60000, maximum: 86400000 },
+        },
+      },
+      outputSchema: { type: "object", required: ["mode", "taskId", "status"] },
+      conformanceInput: { documentId: "guide", text: "A document to delegate." },
+      form: [
+        {
+          name: "documentId",
+          label: "Document ID",
+          description: "Stable document identity",
+          kind: "text",
+        },
+        { name: "text", label: "Text", description: "Document content", kind: "text" },
+        {
+          name: "targetAgentId",
+          label: "Target agent",
+          description: "Agent id to review the document; defaults to this agent",
+          kind: "text",
+        },
+      ],
+      toolIds: [],
+      cancellation: { adapter: "none", physicalAbort: "unsupported" },
+      async execute(input, context) {
+        if (!context.tasks) throw new Error("Task delegation is required");
+        if (typeof input.taskId === "string") {
+          const task = await context.tasks.result(input.taskId);
+          return {
+            ok: true,
+            output: { mode: "result", ...task },
+            summary: `Task ${task.taskId} is ${task.status}.`,
+          };
+        }
+        const delegated = await context.tasks.delegate({
+          agentId:
+            typeof input.targetAgentId === "string" ? input.targetAgentId : context.scope.agentId,
+          workflowType: "document-review.review",
+          input: { documentId: input.documentId, text: input.text },
+          deadlineMs: typeof input.deadlineMs === "number" ? input.deadlineMs : 600000,
+          idempotencyKey: `review-${String(input.documentId)}`,
+        });
+        return {
+          ok: true,
+          output: { mode: "delegate", ...delegated },
+          summary: delegated.created
+            ? `Delegated the review of ${String(input.documentId)}.`
+            : `The review of ${String(input.documentId)} was already delegated.`,
         };
       },
     },

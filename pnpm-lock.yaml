@@ -234,8 +234,17 @@ importers:
       '@operloom/agent-sdk':
         specifier: workspace:^
         version: link:../../packages/agent-sdk
+      react:
+        specifier: 19.3.0
+        version: 19.3.0
 
   examples/resource-allocator:
+    dependencies:
+      '@operloom/agent-sdk':
+        specifier: workspace:^
+        version: link:../../packages/agent-sdk
+
+  examples/service-desk:
     dependencies:
       '@operloom/agent-sdk':
         specifier: workspace:^

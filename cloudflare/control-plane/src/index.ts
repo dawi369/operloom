@@ -161,6 +161,7 @@ import {
   handleListKillSwitches,
   handleReconcileAction,
   handleRequestActionExecution,
+  handleReviewAction,
   handleUpdateKillSwitch,
 } from "./action-authority";
 import { releaseFeatureConfigurationValid } from "./feature-gates";
@@ -169,11 +170,13 @@ import { compiledWorkbenchVersion } from "../../../generated/agent-runtime/platf
 import {
   handleListClientDevices,
   handleNotificationPreferences,
+  handleListNotificationDeliveries,
   handleRegisterClientDevice,
   handleRevokeClientDevice,
   processNotificationQueue,
   sweepNotificationDeliveries,
 } from "./notification-delivery";
+import { handleChannelPreferences, handleNotificationAddress } from "./notification-channels";
 import type { MessageBatch, NotificationQueueMessage } from "./types";
 import {
   demoDisabledResponse,
@@ -453,6 +456,21 @@ const handleRequest = async (
     return handleNotificationPreferences(request, env, identity);
   }
 
+  if (
+    url.pathname === "/workbench/notifications/preferences" &&
+    (request.method === "GET" || request.method === "PUT")
+  ) {
+    return handleChannelPreferences(request, env, identity);
+  }
+
+  if (url.pathname === "/workbench/notifications/address" && request.method === "PUT") {
+    return handleNotificationAddress(request, env, identity);
+  }
+
+  if (url.pathname === "/workbench/notifications/deliveries" && request.method === "GET") {
+    return handleListNotificationDeliveries(env, identity, url);
+  }
+
   if (request.method === "GET" && url.pathname === "/workbench/workflows") {
     return listRuntimeWorkflows(env, identity);
   }
@@ -465,6 +483,11 @@ const handleRequest = async (
   const actionReconcileMatch = url.pathname.match(/^\/workbench\/actions\/([^/]+)\/reconcile$/);
   if (request.method === "POST" && actionReconcileMatch?.[1]) {
     return handleReconcileAction(env, identity, decodeURIComponent(actionReconcileMatch[1]));
+  }
+
+  const actionReviewMatch = url.pathname.match(/^\/workbench\/actions\/([^/]+)\/review$/);
+  if (request.method === "POST" && actionReviewMatch?.[1]) {
+    return handleReviewAction(env, identity, decodeURIComponent(actionReviewMatch[1]));
   }
 
   if (url.pathname === "/workbench/kill-switches") {

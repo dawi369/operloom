@@ -84,3 +84,58 @@ test("operations panel edits settings, runs queries and registers webhooks throu
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
 });
+
+test("history renders a package artifact card inside its bound and falls back beyond it", async ({
+  page,
+}) => {
+  test.skip(releaseMode !== "local-session");
+  test.setTimeout(120_000);
+
+  const instantiated = await page.request.post(
+    "/api/workbench/agent-packs/document-review/instantiate",
+  );
+  expect(instantiated.ok(), await instantiated.text()).toBe(true);
+  const { agent } = (await instantiated.json()) as { agent: { id: string } };
+  const switched = await page.request.post("/api/workbench/chat-session/agent-switch", {
+    data: { agentId: agent.id, target: "new_thread" },
+  });
+  expect(switched.ok(), await switched.text()).toBe(true);
+
+  const review = async (documentId: string, text: string) => {
+    const response = await page.request.post("/api/workbench/workflows/document-review.review", {
+      data: { executionMode: "dry_run", input: { documentId, text } },
+    });
+    expect(response.ok(), await response.text()).toBe(true);
+  };
+  const stamp = Date.now().toString(36);
+  await review(`card-${stamp}`, "A short reviewed document.");
+  // The report carries the reviewed text; past the renderer's 4 KiB bound the JSON view stands in.
+  await review(`long-${stamp}`, "word ".repeat(1200));
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  const history = page.getByRole("dialog", { name: "Workbench History" });
+  await expect(history).toBeVisible();
+
+  // The featured artifact's result is open by default; open the summary only when it is not.
+  const reveal = async (target: ReturnType<typeof history.locator>) => {
+    await expect(target.first()).toBeAttached();
+    if (!(await target.first().isVisible()))
+      await target.first().locator("xpath=ancestor::details[1]/summary").click();
+    await expect(target.first()).toBeVisible();
+  };
+
+  await history.getByRole("button", { name: "Open Review document" }).first().click();
+  const card = history.locator('[data-slot="pack-artifact-renderer"]');
+  const fallback = history.locator("pre").filter({ hasText: `"documentId": "long-${stamp}"` });
+  // Runs list newest first: the oversize review opens first and shows no package card.
+  await reveal(fallback);
+  await expect(history.locator('[data-runtime-renderer="document-review-report"]')).toHaveCount(0);
+
+  await history.getByRole("button", { name: "Open Review document" }).nth(1).click();
+  await reveal(card);
+  await expect(card).toContainText(`card-${stamp} · reviewed · 4 words`);
+  await expect(card).toContainText("A short reviewed document.");
+  await expectAccessible(page);
+  await page.keyboard.press("Escape");
+});

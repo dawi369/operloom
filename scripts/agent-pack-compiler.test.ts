@@ -1,4 +1,5 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { capacityOperation } from "../tests/fixtures/provider-operation-package/control-plane";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -39,6 +40,11 @@ describe("agent pack compiler", () => {
       ...contract,
       providerOperation: { id: "capacity.allocate", version: "1" },
     };
+    const operation = capacityOperation(
+      "capacity.allocate",
+      source.manifest.connections.find((item) => item.id === action.connectionId)!.provider,
+      "bearer",
+    );
     const candidate = {
       ...source,
       runner: {
@@ -47,12 +53,63 @@ describe("agent pack compiler", () => {
       },
       controlPlane: {
         ...source.controlPlane,
+        requirements: {
+          ...source.controlPlane.requirements,
+          capabilities: [
+            ...source.controlPlane.requirements.capabilities,
+            "actions.provider_operations",
+          ],
+        },
+        providerOperations: [operation],
         tools: source.controlPlane.tools.map((item) =>
           item.id === tool.id ? { ...item, transport: "cloudflare_inline" as const, action } : item,
         ),
       },
     } as typeof source;
     expect(() => validateLoadedModules([candidate])).not.toThrow();
+    const withOperations = (operations: unknown[], capabilities = true) =>
+      ({
+        ...candidate,
+        controlPlane: {
+          ...candidate.controlPlane,
+          requirements: capabilities
+            ? candidate.controlPlane.requirements
+            : source.controlPlane.requirements,
+          providerOperations: operations,
+        },
+      }) as typeof source;
+    expect(() => validateLoadedModules([withOperations([])])).toThrow(
+      "references undeclared provider operation",
+    );
+    expect(() => validateLoadedModules([withOperations([operation], false)])).toThrow(
+      "must require actions.provider_operations",
+    );
+    expect(() => validateLoadedModules([withOperations([operation, operation])])).toThrow(
+      "is declared twice",
+    );
+    expect(() =>
+      validateLoadedModules([withOperations([{ ...operation, providerId: "other-service" }])]),
+    ).toThrow("connection provider does not match");
+    expect(() =>
+      validateLoadedModules([withOperations([{ ...operation, path: "allocations" }])]),
+    ).toThrow("declaration is invalid");
+    expect(() =>
+      validateLoadedModules([
+        withOperations([
+          { ...operation, receipt: { ...operation.receipt, statusField: "missing" } },
+        ]),
+      ]),
+    ).toThrow("receipt fields must exist");
+    expect(() =>
+      validateLoadedModules([
+        withOperations([
+          {
+            ...operation,
+            outputSchema: { ...operation.outputSchema, additionalProperties: true },
+          },
+        ]),
+      ]),
+    ).toThrow("closed object schema");
     for (const change of [
       { action: { ...action, execute: () => ({}) } },
       { action: { ...action, reconcile: () => ({}) } },
@@ -73,6 +130,108 @@ describe("agent pack compiler", () => {
         "provider operations require inline bindings",
       );
     }
+  });
+
+  it("validates delegation limits and delegable flags", async () => {
+    const modules = await loadAgentModules(process.cwd());
+    const source = modules.find((item) => item.manifest.id === "document-review")!;
+    expect(() => validateLoadedModules([source])).not.toThrow();
+    for (const limits of [
+      { maxDelegationDepth: 0 },
+      { maxDelegationDepth: 9 },
+      { maxDelegationFanOut: 2.5 },
+    ])
+      expect(() =>
+        validateLoadedModules([
+          {
+            ...source,
+            manifest: {
+              ...source.manifest,
+              resourceLimits: { ...source.manifest.resourceLimits, ...limits },
+            },
+          } as typeof source,
+        ]),
+      ).toThrow("must be an integer between");
+    expect(() =>
+      validateLoadedModules([
+        {
+          ...source,
+          manifest: {
+            ...source.manifest,
+            workflows: source.manifest.workflows.map((workflow, index) =>
+              index === 0 ? { ...workflow, delegable: "yes" } : workflow,
+            ),
+          },
+        } as typeof source,
+      ]),
+    ).toThrow("delegable must be boolean");
+  });
+
+  it("validates policy-controlled approval limits", async () => {
+    const modules = await loadAgentModules(process.cwd());
+    const source = modules.find((item) => item.manifest.id === "resource-allocator")!;
+    const toolId = "resource-allocator.allocate";
+    expect(() => validateLoadedModules([source])).not.toThrow();
+    const withAction = (
+      action: Record<string, unknown>,
+      options: { capabilities?: string[]; settings?: boolean } = {},
+    ) =>
+      ({
+        ...source,
+        controlPlane: {
+          ...source.controlPlane,
+          requirements: {
+            ...source.controlPlane.requirements,
+            capabilities: options.capabilities ?? source.controlPlane.requirements.capabilities,
+          },
+          ...(options.settings === false ? { settings: undefined } : {}),
+          tools: source.controlPlane.tools.map((item) =>
+            item.id === toolId ? { ...item, action: { ...item.action, ...action } } : item,
+          ),
+        },
+      }) as typeof source;
+    const base = source.controlPlane.tools.find((item) => item.id === toolId)!.action!;
+    expect(() =>
+      validateLoadedModules([
+        withAction(
+          {},
+          {
+            capabilities: source.controlPlane.requirements.capabilities.filter(
+              (item) => item !== "actions.policy_controlled",
+            ),
+          },
+        ),
+      ]),
+    ).toThrow("must require actions.policy_controlled");
+    expect(() => validateLoadedModules([withAction({ policy: { limits: [] } })])).toThrow(
+      "needs at least one limit",
+    );
+    for (const limit of [
+      { kind: "count", per: "week", max: 1 },
+      { kind: "count", per: "day", max: 0 },
+      { kind: "amount", field: "units", max: -1 },
+      { kind: "amount", field: "bad field", max: 1 },
+      { kind: "allowlist", field: "resource", settingsKey: "missing" },
+      { kind: "window", max: 1 },
+    ])
+      expect(() => validateLoadedModules([withAction({ policy: { limits: [limit] } })])).toThrow(
+        "approval limit",
+      );
+    expect(() =>
+      validateLoadedModules([
+        withAction({
+          policy: {
+            limits: [
+              { kind: "amount", field: "units", max: 10, per: "hour" },
+              { kind: "allowlist", field: "resource", settingsKey: "policy" },
+            ],
+          },
+        }),
+      ]),
+    ).not.toThrow();
+    expect(() =>
+      validateLoadedModules([withAction({ approval: "required", policy: base.policy })]),
+    ).toThrow("without policy_controlled approval");
   });
 
   it("accepts simulators on inline and runner bindings and rejects non-function simulators", async () => {

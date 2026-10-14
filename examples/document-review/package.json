@@ -35,6 +35,7 @@
     "prepack": "pnpm clean && pnpm build"
   },
   "dependencies": {
-    "@operloom/agent-sdk": "workspace:^"
+    "@operloom/agent-sdk": "workspace:^",
+    "react": "19.3.0"
   }
 }

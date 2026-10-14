@@ -142,6 +142,8 @@ export type Env = {
   OPERLOOM_CONNECTIONS_ENABLED?: string;
   OPERLOOM_MUTATIONS_ENABLED?: string;
   OPERLOOM_PUSH_ENABLED?: string;
+  OPERLOOM_NOTIFICATION_RELAY_URL?: string;
+  OPERLOOM_NOTIFICATION_RELAY_SECRET?: string;
   OPERLOOM_DEMO_MODE?: string;
   OPERLOOM_DEMO_PACK_ALLOWLIST?: string;
   OPERLOOM_DEMO_CHAT_DAILY_LIMIT?: string;
@@ -500,6 +502,9 @@ export type ControlActionProposalRow = {
   created_at: string;
   updated_at: string;
   terminal_at: string | null;
+  approval_decision: "auto" | "review" | null;
+  approval_evidence: string;
+  reviewed_at: string | null;
 };
 
 export type ControlOperatorAlertRow = {

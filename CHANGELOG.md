@@ -2,6 +2,101 @@
 
 ## Unreleased
 
+- Runner recipes: `runner.ts` tools receive `context.recipes` with bounded
+  `process`, `browser`, `repository`, `document` and `artifact.upload` building
+  blocks plus `usage()`. Every recipe clamps its timeout and byte cap to
+  `recipeLimits`, charges a per-call 8 MiB budget, redacts secret-looking
+  output, honours the tool's signed network allowlist, and the browser recipe
+  degrades from Playwright to a plain fetch engine when no browser is installed
+  (`runner/recipes.ts`). `repo.snapshot` now runs on the repository recipe and
+  the `complex-operator` example gained `operator.page.read`; the agent-system
+  conformance journey scrapes a runner-served fixture page through it and
+  proves an off-allowlist host fails the run.
+- Bundled provider adapters in `@operloom/agent-sdk/providers`: calendar read
+  and create (Google Calendar, Microsoft Graph), mailbox read and send (Gmail,
+  Microsoft Graph), geocoding (Nominatim-shaped), routing (OSRM-shaped), news
+  search (NewsAPI-shaped) and a transactional email provider operation. Each is
+  a pure request builder and response normalizer; the tool factories
+  (`calendarReadTool`, `mailboxReadTool`, `geocodeTool`, `routeTool`,
+  `newsSearchTool`) call the brokered connection with
+  `broker://configured/<path>`, which the broker joins onto the provider's
+  configured endpoint so packages never name hosts. A tool with a `recorded`
+  sample returns it, marked `source: "recorded"`, while its connection is not
+  authorized. `examples/service-desk` binds calendar read and transactional
+  send; broker unit tests cover OAuth refresh (lease, token rotation, failure
+  to `refresh_required`) and revocation for one provider.
+
+- Agent delegation: a run hands a bounded workflow to another agent in the
+  workspace through `context.tasks.delegate({ agentId, workflowType, input,
+deadlineMs, idempotencyKey })` (capability `tasks.delegate`) and reads the
+  outcome later with `context.tasks.result(taskId)`. Tasks live in
+  `control_delegation_tasks` (migration `0004`); the scheduler tick leases
+  queued tasks and runs them as the target agent with
+  `context.run.delegation` set, expiring tasks past their deadline. The target
+  must be active in the same workspace and the workflow user-invocable or
+  `delegable`; `resourceLimits.maxDelegationDepth` (default 2) and
+  `maxDelegationFanOut` (default 4) bound chains; a replayed key returns the
+  same task and changed content conflicts. Cancelling the parent cancels its
+  queued children. The parent's history snapshot lists `delegations` and the
+  delegated runs as `childRuns`. Budgets stay with the child run (the parent
+  may already have finished); `delegation.rootRunId` records lineage.
+  `examples/document-review` gains a `delegate` workflow.
+
+- Packages render their own chat and history cards. A manifest declares
+  `artifactRenderers[].renderer: "module"` (optionally `maxBytes`) and
+  `toolResultRenderers: [{ toolId, version, maxBytes? }]`; the web module
+  supplies the React components under `artifactRenderers` and
+  `toolResultRenderers`. The console registers each compiled tool renderer
+  with assistant-ui so the model's tool calls render inline, and History uses
+  the same lookup for artifacts. Components receive sanitized message data
+  only (`ToolResultRendererProps`: tool id, status, input, output, artifact
+  refs); payloads past the bound (default 64 KiB) and renderer exceptions fall
+  back to the generic JSON view. The compiler refuses undeclared, duplicate or
+  mismatched renderers. `examples/document-review` ships a report card.
+
+- Notification channels: deliveries carry a channel (`push`, `email`, `sms`)
+  on one ledger with a dedupe key, per-channel and per-event-type preferences
+  with UTC quiet hours and a digest hour (`GET/PUT
+/workbench/notifications/preferences`), a stored email override or SMS number
+  in the vault (`PUT /workbench/notifications/address`), and a delivery list
+  (`GET /workbench/notifications/deliveries`). Packages declare
+  `notifications: [{ type, description, defaultChannels }]` and emit through
+  `context.notifications.emit` (capability `notifications.emit`); each event
+  is a control-plane event. `info` events fold into one digest per channel on
+  the scheduled tick, `action` waits out quiet hours, `alert` goes at once.
+  Email and SMS leave through a signed platform relay
+  (`OPERLOOM_NOTIFICATION_RELAY_URL` / `_SECRET`); without one, and in E2E
+  mode, a recorded transport marks the row delivered. Hosts without a queue
+  binding drain due deliveries from the scheduled sweep. Push behaviour and the
+  device routes are unchanged. Migration `0003` rebuilds the deliveries table.
+
+- Actions can declare `approval: "policy_controlled"` with
+  `policy.limits` (`count` per hour or day, `amount` of a preview field per
+  period, `allowlist` of a preview field against an agent setting) and
+  require `actions.policy_controlled`. `context.actions.propose` evaluates
+  the limits, records the decision and evidence on the proposal, and when every
+  limit holds admits and dispatches the action in the same call, returning the
+  dispatch status with `approval: "auto"`; otherwise it returns `proposed`
+  with `approval: "review"` and the operator path is unchanged. Dispatch
+  re-checks preflight, policy, kill switches and current settings, downgrading
+  to review on any refusal. Auto dispatches appear in
+  `GET /workbench/actions?review=pending` until an owner or admin acknowledges
+  them with `POST /workbench/actions/{id}/review`; the resource-allocator
+  example allows one unattended allocation a day.
+
+- Provider operations are declared by the package instead of a closed platform
+  list. A control-plane module lists `providerOperations` (id, version,
+  `providerId`, `bearer` or `hmac-sha256` auth, method, endpoint path suffix,
+  input and output schemas, timeout, response byte limit and the receipt
+  field mapping) and requires `actions.provider_operations`; a tool's
+  `action.providerOperation` must reference one of them, and its connection
+  must name the same provider with an `api_key` credential. The environment
+  still binds `providerId` to a configured connection provider, the response
+  projection is the output schema's property allowlist, and HMAC requests sign
+  with `x-operloom-timestamp` and `x-operloom-signature`. The compiler rejects
+  undeclared references, duplicate declarations, open output schemas and
+  receipt fields missing from the output.
+
 - `context.models.structured({ includeContext: false })` keeps the run's
   context snapshot out of the call, so a judgment can rest only on the evidence
   in its prompt.

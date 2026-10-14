@@ -23,6 +23,60 @@ const mutationPolicy = {
   mutationRisk: "mutation_capable" as const,
 };
 
+export const operatorPageReadTool = {
+  id: "operator.page.read",
+  description: "Read a public web page through the signed runner's bounded browser recipe.",
+  inputSchema: {
+    type: "object",
+    required: ["url"],
+    additionalProperties: false,
+    properties: {
+      url: {
+        type: "string",
+        minLength: 8,
+        maxLength: 2048,
+        examples: ["http://127.0.0.1:3101/e2e/page"],
+      },
+      headlineSelector: { type: "string", minLength: 1, maxLength: 120 },
+    },
+  },
+  outputSchema: {
+    type: "object",
+    required: ["status", "engine", "title", "headline", "blockedRequests"],
+  },
+  executionModes: ["dry_run"],
+  transport: "fly",
+  adapterVersion: "operator-page-v1",
+  timeoutMs: 20_000,
+  maxArtifactBytes: 65_536,
+  sandbox: {
+    lifecycle: {
+      template: "operator-page-v1",
+      setup: "per_invocation",
+      workspaceState: "none",
+      filesystem: "ephemeral",
+      artifactPromotion: "metadata_only",
+    },
+    network: {
+      egress: "public_web",
+      allowedSchemes: ["http", "https"],
+      allowedHosts: ["127.0.0.1", "localhost"],
+      deniedHosts: [],
+      privateNetwork: "deny",
+      enforcement: "control_plane_and_runner",
+    },
+    limits: { maxRuntimeMs: 20_000, maxArtifactBytes: 65_536 },
+  },
+  policy: {
+    reference: "operator.page.read.v1",
+    adminVisible: true,
+    modelVisible: false,
+    requiresApproval: false,
+    policyEditable: false,
+    mutationRisk: "read_only" as const,
+  },
+} as const;
+
 export const operatorSnapshotTool = {
   id: "operator.snapshot",
   description: "Return a deterministic signed-runner snapshot.",
@@ -265,6 +319,7 @@ const controlPlaneDefinition: Omit<ControlPlaneRuntimeModule, "apiVersion" | "ki
       },
     },
     operatorSnapshotTool,
+    operatorPageReadTool,
   ],
   workflows: [
     {

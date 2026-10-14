@@ -5,6 +5,7 @@ export {
   type RuntimeResult,
   type RuntimeToolBinding,
 } from "./runtime.js";
+export * from "./recipes.js";
 export {
   assertSchemaDefinition,
   assertSchemaValue,

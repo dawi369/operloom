@@ -10,6 +10,10 @@ export const implementedRuntimeCapabilities = [
   "usage.reservations",
   "triggers.ensure",
   "search.web",
+  "actions.provider_operations",
+  "actions.policy_controlled",
+  "notifications.emit",
+  "tasks.delegate",
 ] as const;
 
 export type RuntimeRequirements = {

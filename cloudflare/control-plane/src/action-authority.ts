@@ -10,5 +10,6 @@ export {
   handleListKillSwitches,
   handleReconcileAction,
   handleRequestActionExecution,
+  handleReviewAction,
   handleUpdateKillSwitch,
 } from "./action-authority-handlers";

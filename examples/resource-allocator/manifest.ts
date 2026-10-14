@@ -86,6 +86,18 @@ export const manifest = defineAgentPack({
       intervalSeconds: 60,
     },
   ],
+  notifications: [
+    {
+      type: "capacity.escalated",
+      description: "An allocation was proposed or dispatched for a pool.",
+      defaultChannels: ["email"],
+    },
+    {
+      type: "capacity.observed",
+      description: "A capacity observation changed; folded into the digest.",
+      defaultChannels: ["email"],
+    },
+  ],
   artifactRenderers: [],
   healthChecks: [],
   evals: [],

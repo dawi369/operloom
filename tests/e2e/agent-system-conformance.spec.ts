@@ -305,5 +305,42 @@ test.describe.serial("Agent-system executable conformance", () => {
         }),
       ],
     });
+
+    // The runner's browser recipe scrapes a fixture page served by the runner itself,
+    // staying inside the tool's allowed hosts while blocking the third-party script.
+    const pageRead = await worker.post("/tools/runs", {
+      data: {
+        toolName: "operator.page.read",
+        executionMode: "dry_run",
+        input: { url: "http://127.0.0.1:3101/e2e/page", headlineSelector: "#headline" },
+      },
+    });
+    expect(pageRead.status(), await pageRead.text()).toBe(201);
+    const pageReceipt = (await pageRead.json()) as {
+      output?: { status?: string; engine?: string; title?: string; headline?: string };
+      run?: { status?: string };
+      artifact?: { kind?: string; staged?: boolean };
+    };
+    expect(pageReceipt.run?.status).toBe("completed");
+    expect(pageReceipt.output).toMatchObject({
+      status: "completed",
+      engine: "fetch",
+      title: "Permit notice",
+      headline: "Permit 2026-0417 approved",
+    });
+    expect(pageReceipt.artifact).toMatchObject({ kind: "page_excerpt", staged: true });
+    const blockedPageRead = await worker.post("/tools/runs", {
+      data: {
+        toolName: "operator.page.read",
+        executionMode: "dry_run",
+        input: { url: "https://tracker.example/" },
+      },
+    });
+    // The runner refuses the off-allowlist host; the console sees the failed run, not page content.
+    expect(blockedPageRead.status()).toBe(502);
+    expect(await blockedPageRead.json()).toMatchObject({
+      ok: false,
+      run: expect.objectContaining({ status: "failed" }),
+    });
   });
 });

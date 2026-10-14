@@ -36,6 +36,10 @@
     },
     "./schemas/runtime-module.json": {
       "default": "./schemas/runtime-module.schema.json"
+    },
+    "./providers": {
+      "types": "./dist/providers.d.ts",
+      "default": "./dist/providers.js"
     }
   },
   "scripts": {

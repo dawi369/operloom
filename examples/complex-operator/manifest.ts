@@ -29,6 +29,14 @@ export const manifest: LocalAgentPackManifest = defineAgentPack({
       purpose: "Read a deterministic signed-runner snapshot.",
     },
     {
+      id: "operator.page.read",
+      invocation: "user",
+      required: false,
+      executionModes: ["dry_run"],
+      modelVisibleDefault: false,
+      purpose: "Read a public web page through the runner's bounded browser recipe.",
+    },
+    {
       id: "operator.action.propose",
       invocation: "workflow",
       required: true,
@@ -150,7 +158,7 @@ export const manifest: LocalAgentPackManifest = defineAgentPack({
   artifactRenderers: [
     {
       artifactKind: "complex_operator_report",
-      renderer: "table",
+      renderer: "module",
       title: "Complex operator report",
       version: 1,
     },

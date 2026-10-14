@@ -1,40 +1,25 @@
-import { assertSchemaValue, type RuntimeToolBinding } from "@operloom/agent-sdk/control-plane";
+import {
+  assertSchemaValue,
+  type RuntimeProviderOperation,
+  type RuntimeToolBinding,
+} from "@operloom/agent-sdk/control-plane";
 import { requireConnectionProvider } from "./connection-providers";
 import type { EffectTarget, Env } from "./types";
 
-const inputSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["resource", "units"],
-  properties: {
-    resource: { type: "string", pattern: "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$" },
-    units: { type: "integer", minimum: 1, maximum: 1000000 },
-  },
-} as const;
-const outputSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["requestId", "resourceId", "lifecycle"],
-  properties: {
-    requestId: { type: "string", pattern: "^[a-f0-9]{64}$" },
-    resourceId: { type: "string", pattern: "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$" },
-    lifecycle: { type: "string", enum: ["pending", "active", "rejected"] },
-  },
-} as const;
+export type ProviderOperations = readonly RuntimeProviderOperation[];
 
-// Trusted build-time registry. Runtime packages cannot add credential handlers.
-const operations = [
-  { id: "capacity.allocate", version: "1", providerId: "capacity-service", auth: "bearer" },
-  {
-    id: "capacity.allocate-signed",
-    version: "1",
-    providerId: "signed-capacity-service",
-    auth: "hmac-sha256",
-  },
-] as const;
+const outputFields = (operation: RuntimeProviderOperation) => {
+  const properties = operation.outputSchema.properties;
+  if (!properties || typeof properties !== "object" || Array.isArray(properties))
+    throw new Error("provider_operation_output_schema_invalid");
+  return Object.keys(properties as Record<string, unknown>);
+};
 
-/** Binding and registry validation only; simulated operations need no provider configuration. */
-export const providerOperationReference = (binding: RuntimeToolBinding) => {
+/** Binding and declaration validation only; simulated operations need no provider configuration. */
+export const providerOperationReference = (
+  binding: RuntimeToolBinding,
+  operations: ProviderOperations,
+) => {
   const action = binding.action;
   const reference = action?.providerOperation;
   if (!action || !reference) return null;
@@ -43,7 +28,6 @@ export const providerOperationReference = (binding: RuntimeToolBinding) => {
     !action.connectionId ||
     action.execute ||
     action.reconcile ||
-    action.approval !== "required" ||
     !binding.policy.requiresApproval
   )
     throw new Error("provider_operation_binding_invalid");
@@ -51,23 +35,28 @@ export const providerOperationReference = (binding: RuntimeToolBinding) => {
     (item) => item.id === reference.id && item.version === reference.version,
   );
   if (!operation) throw new Error("provider_operation_unavailable");
+  const fields = outputFields(operation);
+  if (
+    !fields.includes(operation.receipt.requestIdField) ||
+    !fields.includes(operation.receipt.statusField) ||
+    (operation.receipt.referenceField && !fields.includes(operation.receipt.referenceField))
+  )
+    throw new Error("provider_operation_receipt_invalid");
   return {
     ...operation,
-    method: "POST" as const,
     credentialClass: "api_key" as const,
-    inputSchema,
-    outputSchema,
-    timeoutMs: Math.min(5000, action.timeoutMs),
-    maxResponseBytes: 65536,
+    timeoutMs: Math.min(operation.timeoutMs, action.timeoutMs),
   };
 };
+export type ProviderOperationReference = NonNullable<ReturnType<typeof providerOperationReference>>;
 
 export const providerOperationDescriptor = (
   env: Env,
   binding: RuntimeToolBinding,
+  operations: ProviderOperations,
   providerId?: string,
 ) => {
-  const operation = providerOperationReference(binding);
+  const operation = providerOperationReference(binding, operations);
   if (!operation) return null;
   if (providerId !== undefined && providerId !== operation.providerId)
     throw new Error("provider_operation_unavailable");
@@ -84,7 +73,7 @@ export const providerOperationDescriptor = (
     url.hash ||
     url.username ||
     url.password ||
-    !url.pathname.endsWith("/allocations")
+    !url.pathname.endsWith(operation.path)
   )
     throw new Error("provider_operation_endpoint_invalid");
   return { ...operation, url: url.toString() };
@@ -96,12 +85,28 @@ export type ProviderOperationDescriptor = NonNullable<
 export const providerOperationFor = (
   env: Env,
   binding: RuntimeToolBinding,
+  operations: ProviderOperations,
   target: EffectTarget,
   providerId?: string,
 ) =>
   target === "simulation"
-    ? providerOperationReference(binding)
-    : providerOperationDescriptor(env, binding, providerId);
+    ? providerOperationReference(binding, operations)
+    : providerOperationDescriptor(env, binding, operations, providerId);
+
+/** Reads the declared receipt fields from a projected output. */
+export const providerOperationOutcome = (
+  operation: ProviderOperationReference,
+  output: Record<string, unknown>,
+) => {
+  const status = output[operation.receipt.statusField];
+  const reference = operation.receipt.referenceField
+    ? output[operation.receipt.referenceField]
+    : undefined;
+  return {
+    rejected: typeof status === "string" && operation.receipt.rejectedValues.includes(status),
+    externalReference: typeof reference === "string" ? reference : undefined,
+  };
+};
 
 export const providerOperationOutput = (
   operation: ProviderOperationDescriptor,
@@ -113,13 +118,11 @@ export const providerOperationOutput = (
     throw new Error("provider_response_invalid");
   const value = raw as Record<string, unknown>;
   // Projection is an allowlist: arbitrary provider fields never leave the broker.
-  const output = {
-    requestId: value.requestId,
-    resourceId: value.resourceId,
-    lifecycle: value.lifecycle,
-  };
+  const output: Record<string, unknown> = {};
+  for (const field of outputFields(operation)) if (field in value) output[field] = value[field];
   assertSchemaValue(operation.outputSchema, output, "Provider operation output");
-  if (output.requestId !== requestId) throw new Error("provider_response_identity_mismatch");
+  if (output[operation.receipt.requestIdField] !== requestId)
+    throw new Error("provider_response_identity_mismatch");
   const serialized = JSON.stringify(output);
   const encoded = btoa(String.fromCharCode(...new TextEncoder().encode(secret)));
   if (
@@ -131,9 +134,5 @@ export const providerOperationOutput = (
     ].some((value) => value.length > 0 && serialized.includes(value))
   )
     throw new Error("provider_response_secret_rejected");
-  return output as {
-    requestId: string;
-    resourceId: string;
-    lifecycle: "pending" | "active" | "rejected";
-  };
+  return output;
 };

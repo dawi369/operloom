@@ -52,7 +52,7 @@ export const createBrokeredConnectionPort = (
       reason: `${connectionId} is authorized through the platform broker.`,
       request: async (input) => {
         const provider = requireConnectionProvider(env, row.provider_id);
-        const requestedUrl = input.url === "broker://configured" ? provider.actionUrl : input.url;
+        const requestedUrl = resolveConfiguredUrl(provider.actionUrl, input.url);
         if (!requestedUrl) throw new Error("connection_action_endpoint_not_configured");
         const request = assertProviderRequest(env, provider, requestedUrl, input.method);
         const credential = await readConnectionCredentialForBroker(env, identity, connectionId);
@@ -108,6 +108,23 @@ export const createBrokeredConnectionPort = (
     };
   },
 });
+
+/**
+ * `broker://configured` is the provider's configured endpoint; a path and query
+ * after it are joined onto that endpoint so packages never name hosts.
+ */
+export const resolveConfiguredUrl = (actionUrl: string | undefined, requested: string) => {
+  if (!requested.startsWith("broker://configured")) return requested;
+  if (!actionUrl) return undefined;
+  const suffix = requested.slice("broker://configured".length);
+  if (!suffix) return actionUrl;
+  const base = new URL(actionUrl);
+  const relative = new URL(
+    suffix.startsWith("/") ? suffix.slice(1) : suffix,
+    `${base.origin}${base.pathname.replace(/\/?$/, "/")}`,
+  );
+  return relative.toString();
+};
 
 const readConnectionCredentialForBroker = async (
   env: Env,

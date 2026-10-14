@@ -4,7 +4,7 @@
   "files": [
     {
       "path": "dist/capabilities.d.ts",
-      "sha256": "789662e14b9e5b0b634ae3aff79d8e3241619c7055dafa4f5c3ab62c32fccb67"
+      "sha256": "2ca83c554de9801bc63bd06da2fe8a701c9b47e6f9ff1c2c8dbddcaeb95b8840"
     },
     {
       "path": "dist/compatibility.d.ts",
@@ -20,7 +20,7 @@
     },
     {
       "path": "dist/control-plane.d.ts",
-      "sha256": "5c17498176d41f5e69706230a9c2f8d7edcb83c0fa037206a6644f8847d4247a"
+      "sha256": "2f8c13ba8ea09d669e7c34c5de1dd5f312004c52567080270f8b350e366d888b"
     },
     {
       "path": "dist/durable.d.ts",
@@ -28,11 +28,11 @@
     },
     {
       "path": "dist/index.d.ts",
-      "sha256": "7cb2fa8dc85c4f1688a4c7099624af2026d022f41bffa37d67380304f62494e6"
+      "sha256": "0fa69739a3608e8c91e9aae5e12547dfcc667b57fa78e2ec8278a7fb6049f6fd"
     },
     {
       "path": "dist/manifest.d.ts",
-      "sha256": "738e1e82767db032c8a84392204bbf4114f9e2333521bcc0f78b7547980b8fff"
+      "sha256": "3893fa4eed295cc2478e599c0e214b5ea34dc1e519ab9e2b433d7afdec3ee58a"
     },
     {
       "path": "dist/models.d.ts",
@@ -43,16 +43,24 @@
       "sha256": "50d1657142a530bacf74b0c72719116c44f0eba143e660f98649bb1a4ab023a8"
     },
     {
+      "path": "dist/providers.d.ts",
+      "sha256": "a0ecaa4e7a8290b7f8dbf84a519c74d791be56531150e61df5c28d01575931f5"
+    },
+    {
       "path": "dist/queries.d.ts",
       "sha256": "439196d06be864c7ffbcbb7028b1d1370fa2ae88fbc6f5ddbbb1b0d296d6cfb5"
     },
     {
+      "path": "dist/recipes.d.ts",
+      "sha256": "1d5f1d8d86766a6865b0eb75fa9e6bc31da7cfdd8a6639dedddfc7c5b73fb25e"
+    },
+    {
       "path": "dist/runner.d.ts",
-      "sha256": "5590123aa5f7bb8b4a2b025996c19cb0bce94f4b28a5fadcaa0394c7ce92110d"
+      "sha256": "67b61753e0d0b26719c4c378c84c00eee1d07bd83f1c5e87ec2659515f3d9e6f"
     },
     {
       "path": "dist/runtime.d.ts",
-      "sha256": "5c96bb891d7ca7ea712d7ebc296600629009e7c953cabfe2f092e4a9038f7120"
+      "sha256": "37b407c18101e99f6be86f002cdda1f1ce76232680624d85f8e51694fdeae8a9"
     },
     {
       "path": "dist/schema.d.ts",
@@ -80,7 +88,7 @@
     },
     {
       "path": "dist/web.d.ts",
-      "sha256": "29023b2b7eb8ec02358d113b2281bb83363cce63d794473878bd4feddca00fc8"
+      "sha256": "376991ac21453420990b6942e40cb4441389dac0a3890d16fad6b02ecbae1486"
     },
     {
       "path": "schemas/agent-pack.schema.json",

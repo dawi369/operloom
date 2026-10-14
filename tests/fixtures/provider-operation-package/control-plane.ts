@@ -1,6 +1,9 @@
-import { defineControlPlaneModule } from "@operloom/agent-sdk/control-plane";
+import {
+  defineControlPlaneModule,
+  type RuntimeProviderOperation,
+} from "@operloom/agent-sdk/control-plane";
 
-const proposalSchema = {
+export const capacityProposalSchema = {
   type: "object",
   required: ["resource", "units"],
   additionalProperties: false,
@@ -8,15 +11,55 @@ const proposalSchema = {
     resource: { type: "string", pattern: "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$" },
     units: { type: "integer", minimum: 1, maximum: 1000000 },
   },
-};
+} as const;
+
+export const capacityOperation = (
+  id: string,
+  providerId: string,
+  auth: RuntimeProviderOperation["auth"],
+): RuntimeProviderOperation => ({
+  id,
+  version: "1",
+  providerId,
+  auth,
+  method: "POST",
+  path: "/allocations",
+  inputSchema: capacityProposalSchema,
+  outputSchema: {
+    type: "object",
+    additionalProperties: false,
+    required: ["requestId", "resourceId", "lifecycle"],
+    properties: {
+      requestId: { type: "string", pattern: "^[a-f0-9]{64}$" },
+      resourceId: { type: "string", pattern: "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$" },
+      lifecycle: { type: "string", enum: ["pending", "active", "rejected"] },
+    },
+  },
+  timeoutMs: 5000,
+  maxResponseBytes: 65536,
+  receipt: {
+    requestIdField: "requestId",
+    referenceField: "resourceId",
+    statusField: "lifecycle",
+    rejectedValues: ["rejected"],
+  },
+});
+
+export const capacityOperations: readonly RuntimeProviderOperation[] = [
+  capacityOperation("capacity.allocate", "capacity-service", "bearer"),
+  capacityOperation("capacity.allocate-signed", "signed-capacity-service", "hmac-sha256"),
+];
+
+const proposalSchema = capacityProposalSchema;
 export const controlPlane = defineControlPlaneModule({
   packId: "provider-operation-fixture",
   runtimeVersion: "1.0.0",
   compatiblePackVersions: "^1.0.0",
   requirements: {
     minimumBackendVersion: "2.0.0",
-    capabilities: ["workflow.request", "state.atomic"],
+    capabilities: ["workflow.request", "state.atomic", "actions.provider_operations"],
   },
+  providerOperations: capacityOperations,
   state: [
     {
       namespace: "capacity",

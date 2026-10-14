@@ -33,6 +33,11 @@ export default defineWorkbenchConfig({
       conformanceOnly: true,
     },
     {
+      package: "@operloom/pack-service-desk",
+      source: "./examples/service-desk",
+      conformanceOnly: true,
+    },
+    {
       package: "@operloom/provider-operation-fixture",
       source: "./tests/fixtures/provider-operation-package",
       conformanceOnly: true,

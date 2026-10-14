@@ -18,6 +18,7 @@ import { createRuntimeStatePort } from "./runtime-state";
 import { captureRuntimeContext, contextIsRequired } from "./runtime-context";
 import { createRuntimeModelPort } from "./runtime-models";
 import { createRuntimeSearchPort } from "./runtime-search";
+import { createNotificationPort } from "./notification-port";
 import { executeRuntimeToolBinding } from "./runtime-tool-execution";
 import { authorizeWorkflowTools } from "./workflow-tool-policy";
 import {
@@ -312,6 +313,13 @@ export const runDurableWorkflow = async (
                 durableAttempt,
                 signal: controller.signal,
               });
+            if (runtime.controlPlane.requirements.capabilities.includes("notifications.emit"))
+              context.notifications = createNotificationPort(
+                env,
+                identity,
+                { id: execution.pack_id },
+                runId,
+              );
             controller.signal.throwIfAborted();
             const output = await Promise.race([
               Promise.resolve().then(() => callback(context)),

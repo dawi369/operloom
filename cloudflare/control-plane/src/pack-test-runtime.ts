@@ -15,7 +15,23 @@ import { resolvePackRuntime } from "../../../lib/agent-runtime/registry";
 import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
 import type { LocalAgentPackManifest } from "../../../agent-packs";
 import type { WorkflowInvocationContext } from "./pack-workflow-runtime";
-import type { AgentIdentity, D1PreparedStatement, EffectTarget, Env } from "./types";
+import {
+  handleListNotificationDeliveries,
+  sweepNotificationDeliveries,
+} from "./notification-delivery";
+import { handleChannelPreferences } from "./notification-channels";
+import { createNotificationPort } from "./notification-port";
+import { runTriggerSchedulerTick } from "./trigger-scheduler";
+import { getControlRunSnapshot } from "./control-run-store";
+import { handleCancelExecutionRun } from "./run-control";
+import { createTaskPort } from "./delegation-tasks";
+import {
+  createId,
+  type AgentIdentity,
+  type D1PreparedStatement,
+  type EffectTarget,
+  type Env,
+} from "./types";
 
 type Statement = D1PreparedStatement & { execute(): { success: true; meta: { changes: number } } };
 
@@ -82,8 +98,8 @@ export const createPackTestRuntime = (input: {
   const target = input.effectTarget ?? "simulation";
   for (const user of users) {
     db.prepare(
-      "INSERT INTO users (id,status,created_at,updated_at) VALUES (?,'active','now','now')",
-    ).run(user);
+      "INSERT INTO users (id,email,status,created_at,updated_at) VALUES (?,?,'active','now','now')",
+    ).run(user, `${user}@example.test`);
     db.prepare(
       `INSERT INTO workspaces (id,account_id,account_source,name,status,created_by_user_id,created_at,updated_at)
        VALUES (?,?,'local','Workspace','active',?,'now','now')`,
@@ -175,6 +191,92 @@ export const createPackTestRuntime = (input: {
       ensure: (packTriggerId) =>
         ensureDeclaredTrigger(env, identity(user), manifest.id, packTriggerId),
     }),
+    notifications: (user?: string) =>
+      createNotificationPort(env, identity(user), { id: manifest.id }, "pack-test"),
+    /** One scheduler tick: due triggers, pending dispatches and queued delegation tasks. */
+    tickScheduler: (now = new Date()) =>
+      runTriggerSchedulerTick(env, { now, leaseOwner: `pack-test:${now.toISOString()}` }),
+    /** Adds a second agent of the same pack to a user's workspace. */
+    addAgent: (user: string, agentId: string) => {
+      db.prepare(
+        `INSERT INTO agents (id,workspace_id,name,status,effect_target,created_by_user_id,data_json,created_at,updated_at)
+         VALUES (?,?,?,'active',?,?,?,'now','now')`,
+      ).run(agentId, `ws-${user}`, agentId, target, user, JSON.stringify({ behavior }));
+      return agentId;
+    },
+    /** A live run with a task port, for exercising delegation outside a workflow. */
+    openRun: (user?: string) => {
+      const id = identity(user);
+      const runId = `run-${createId("test")}`;
+      const intentId = `intent-${runId}`;
+      const now = new Date().toISOString();
+      db.prepare(
+        `INSERT INTO control_workflow_intents (id,user_id,workspace_id,agent_id,stage,type,execution_json,payload_json,status,created_at,updated_at)
+         VALUES (?,?,?,?,'analyze','test','{}','{}','running',?,?)`,
+      ).run(intentId, id.scope.userId, id.scope.workspaceId, id.agentId, now, now);
+      db.prepare(
+        `INSERT INTO control_runs (id,user_id,workspace_id,agent_id,workflow_intent_id,status,execution_json,stage,engine,heartbeat_at,last_event_at,data_json,created_at,updated_at)
+         VALUES (?,?,?,?,?,'running','{}','analyze','cloudflare',?,?,?,?,?)`,
+      ).run(
+        runId,
+        id.scope.userId,
+        id.scope.workspaceId,
+        id.agentId,
+        intentId,
+        now,
+        now,
+        JSON.stringify({ displayName: "test", packId: manifest.id }),
+        now,
+        now,
+      );
+      return {
+        runId,
+        tasks: createTaskPort(env, id, { packId: manifest.id, runId, runData: {} }),
+      };
+    },
+    runSnapshot: (runId: string, user?: string) =>
+      getControlRunSnapshot(env, identity(user).scope, runId),
+    cancelRun: async (runId: string, user?: string) =>
+      json(await handleCancelExecutionRun(env, identity(user), runId)),
+    setNotificationPreference: async (body: Record<string, unknown>, user?: string) =>
+      json(
+        await handleChannelPreferences(
+          new Request("https://runtime.test/workbench/notifications/preferences", {
+            method: "PUT",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(body),
+          }),
+          env,
+          identity(user),
+        ),
+      ),
+    listNotificationDeliveries: async (user?: string) =>
+      json(
+        await handleListNotificationDeliveries(
+          env,
+          identity(user),
+          new URL("https://runtime.test/workbench/notifications/deliveries"),
+        ),
+      ),
+    /** Runs the scheduled notification sweep (digest fold and local drain) against the recorded transport. */
+    sweepNotifications: (now = new Date()) => sweepNotificationDeliveries(env, now),
+    deliveries: (user?: string) =>
+      db
+        .prepare(
+          `SELECT id, channel, event_type, target_id, severity, title, body, status, not_before
+           FROM control_notification_deliveries WHERE user_id = ? AND workspace_id = ? ORDER BY created_at, id`,
+        )
+        .all(...Object.values(identity(user).scope)) as {
+        id: string;
+        channel: string;
+        event_type: string;
+        target_id: string;
+        severity: string;
+        title: string | null;
+        body: string | null;
+        status: string;
+        not_before: string | null;
+      }[],
     entries: (type: "decision" | "effect", user?: string) =>
       (
         db

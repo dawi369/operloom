@@ -146,7 +146,19 @@ export const exportCollections: readonly ExportCollection[] = [
      app_version, created_at, updated_at, revoked_at`,
   ),
   tenantCollection("control_notification_preferences"),
-  tenantCollection("control_notification_deliveries"),
+  tenantCollection("control_notification_channel_preferences"),
+  tenantCollection(
+    "control_notification_addresses",
+    "id, user_id, workspace_id, channel, status, created_at, updated_at",
+  ),
+  tenantCollection("control_notification_digest_items"),
+  tenantCollection("control_delegation_tasks"),
+  tenantCollection(
+    "control_notification_deliveries",
+    `id, user_id, workspace_id, channel, device_id, event_type, target_type, target_id, route,
+     severity, title, status, attempt_count, last_error_code, not_before, expires_at, delivered_at,
+     created_at, updated_at`,
+  ),
   tenantCollection("control_webhook_endpoints"),
   tenantCollection("control_webhook_deliveries"),
 ];

@@ -2,8 +2,10 @@ export {
   defaultActionPort,
   defaultConnectionPort,
   defineControlPlaneModule,
+  type ActionApprovalDecision,
   type ActionPort,
   type ActionExecutionResult,
+  type ApprovalLimit,
   type ActionProposal,
   type AgentExecutionContext,
   type ConnectionCapability,
@@ -11,6 +13,14 @@ export {
   type ControlPlaneRuntimeModule,
   type RuntimeEvalBinding,
   type RuntimeHealthBinding,
+  type RuntimeNotificationEvent,
+  type RuntimeNotificationPort,
+  type NotificationChannel,
+  type NotificationSeverity,
+  type RuntimeProviderOperation,
+  type RuntimeDelegationTask,
+  type RuntimeRunDelegation,
+  type RuntimeTaskPort,
   type RuntimeRecord,
   type RuntimeResult,
   type RuntimeRunTrigger,
@@ -36,3 +46,4 @@ export * from "./simulation.js";
 export * from "./settings.js";
 export * from "./queries.js";
 export * from "./monitor.js";
+export * from "./providers.js";

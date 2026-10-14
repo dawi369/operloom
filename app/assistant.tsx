@@ -32,6 +32,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { WorkbenchMark } from "@/components/workbench/workbench-mark";
 import { Thread } from "@/components/assistant-ui/thread";
+import { PackToolRenderers } from "@/components/assistant-ui/pack-tool-renderers";
 import {
   StarterSuggestionGrid,
   ThreadWelcomeLayout,
@@ -234,6 +235,7 @@ function AgentRuntime({
 
   return (
     <AssistantRuntimeProvider runtime={providerRuntime}>
+      <PackToolRenderers />
       <RuntimeDraftHandoff
         draft={draft}
         acceptedDraft={acceptedDraft}

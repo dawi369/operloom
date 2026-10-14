@@ -90,6 +90,18 @@ export type ActionExecutionResult = {
   output?: RuntimeRecord;
 };
 
+/**
+ * A bound under which a `policy_controlled` action dispatches without a human.
+ * Counts and amounts are measured over the agent's auto-dispatched proposals for
+ * the same tool in the period; allowlists read the operator's agent settings.
+ */
+export type ApprovalLimit =
+  | { kind: "count"; per: "hour" | "day"; max: number }
+  | { kind: "amount"; field: string; max: number; per?: "hour" | "day" }
+  | { kind: "allowlist"; field: string; settingsKey: string };
+
+export type ActionApprovalDecision = "auto" | "review";
+
 export type ActionPort = {
   inspect?(proposalId: string): Promise<{
     proposal: ActionProposal | null;
@@ -99,7 +111,16 @@ export type ActionPort = {
     } | null;
     projection: { commitId: string; createdAt: string } | null;
   }>;
-  propose(input: ActionProposal): Promise<{ proposalId: string; status: "proposed" }>;
+  /**
+   * `status` stays `proposed` while a human review is needed. A
+   * `policy_controlled` action inside its limits dispatches before returning and
+   * reports the dispatch status with `approval: "auto"`.
+   */
+  propose(input: ActionProposal): Promise<{
+    proposalId: string;
+    status: "proposed" | ActionExecutionResult["status"];
+    approval?: ActionApprovalDecision;
+  }>;
   execute(proposalId: string): Promise<ActionExecutionResult>;
   reconcile?(proposalId: string): Promise<ActionExecutionResult>;
 };
@@ -126,6 +147,64 @@ export type RuntimeRunTrigger = Readonly<{
   attempt: number;
 }>;
 
+export type NotificationChannel = "push" | "email" | "sms";
+export type NotificationSeverity = "info" | "action" | "alert";
+
+/**
+ * A user-facing event the package wants delivered. The type must be declared in
+ * the manifest's `notifications`; the platform records it as a control-plane
+ * event and routes it by the user's channel preferences. `info` folds into the
+ * next digest, `action` honours quiet hours, `alert` goes out at once.
+ */
+export type RuntimeNotificationEvent = {
+  type: string;
+  title: string;
+  body: string;
+  target: { type: string; id: string };
+  severity: NotificationSeverity;
+};
+
+export type RuntimeNotificationPort = {
+  emit(event: RuntimeNotificationEvent): Promise<{ eventId: string; queued: number }>;
+};
+
+/** Present on a run that another agent's run delegated. */
+export type RuntimeRunDelegation = Readonly<{
+  taskId: string;
+  parentRunId: string;
+  requesterAgentId: string;
+  deadlineAt: string;
+  depth: number;
+}>;
+
+export type RuntimeDelegationTask = {
+  taskId: string;
+  status: "queued" | "running" | "succeeded" | "failed" | "expired" | "cancelled";
+  targetAgentId: string;
+  workflowType: string;
+  runId: string | null;
+  /** The child workflow's output when `succeeded`. */
+  result: RuntimeRecord | null;
+  error: { code: string; message: string } | null;
+  deadlineAt: string;
+};
+
+/**
+ * Hands a bounded workflow run to another agent in the workspace. The task is
+ * dispatched by the scheduler on a later tick; the requesting run reads the
+ * outcome with `result` on a later run of its own. Requires `tasks.delegate`.
+ */
+export type RuntimeTaskPort = {
+  delegate(input: {
+    agentId: string;
+    workflowType: string;
+    input: RuntimeRecord;
+    deadlineMs: number;
+    idempotencyKey: string;
+  }): Promise<{ taskId: string; status: RuntimeDelegationTask["status"]; created: boolean }>;
+  result(taskId: string): Promise<RuntimeDelegationTask>;
+};
+
 export type RuntimeTriggerPort = {
   /**
    * Installs one of the package's declared schedule or monitor triggers, enabled, for the
@@ -149,6 +228,8 @@ export type AgentExecutionContext = {
     source: "user" | "trigger" | "retry";
     /** Present when a schedule, monitor, webhook, manual or replay dispatch admitted the run. */
     trigger?: RuntimeRunTrigger;
+    /** Present when another agent's run delegated this one. */
+    delegation?: RuntimeRunDelegation;
   }>;
   /** Signed runner restrictions; network tools must enforce these on every hop. */
   networkPolicy?: Readonly<{
@@ -172,6 +253,12 @@ export type AgentExecutionContext = {
   search?: import("./search.js").RuntimeSearchPort;
   /** Present when the package requires `triggers.ensure`. */
   triggers?: RuntimeTriggerPort;
+  /** Present when the package requires `notifications.emit`. */
+  notifications?: RuntimeNotificationPort;
+  /** Present when the package requires `tasks.delegate`. */
+  tasks?: RuntimeTaskPort;
+  /** Present only inside the signed runner (`runner.ts` tools). */
+  recipes?: import("./recipes.js").RunnerRecipes;
   managedState: {
     upsert(input: ManagedStateWrite): Promise<{ id: string; version: number }>;
   };
@@ -216,6 +303,8 @@ export type RuntimeToolBinding = {
     resultSchema: JsonSchema;
     idempotency: "required";
     approval: "required" | "policy_controlled";
+    /** Required for `policy_controlled`; needs the `actions.policy_controlled` capability. */
+    policy?: { limits: readonly ApprovalLimit[] };
     timeoutMs: number;
     /**
      * Runs instead of the provider, connection or runner when the agent's effect
@@ -227,7 +316,7 @@ export type RuntimeToolBinding = {
     ) => Promise<RuntimeRecord> | RuntimeRecord;
   } & (
     | {
-        /** Platform-reviewed provider operation. Input is the approved proposal preview. */
+        /** References an entry in the module's `providerOperations`. Input is the approved proposal preview. */
         providerOperation: { id: string; version: string };
         execute?: never;
         reconcile?: never;
@@ -285,6 +374,38 @@ export type RuntimeEvalBinding = {
   run: () => Promise<{ ok: boolean; summary: string }> | { ok: boolean; summary: string };
 };
 
+/**
+ * A provider request the platform broker performs on behalf of an approved
+ * action. The module declares the contract; the environment binds `providerId`
+ * to a configured connection provider that supplies the endpoint, host
+ * allowlist and credential. Modules never see credentials.
+ */
+export type RuntimeProviderOperation = {
+  id: string;
+  version: string;
+  providerId: string;
+  /** Request authentication: `bearer` sends the stored key; `hmac-sha256` signs the canonical request. */
+  auth: "bearer" | "hmac-sha256";
+  method: "POST" | "PUT" | "PATCH" | "DELETE";
+  /** Required suffix of the provider's configured action endpoint path. */
+  path: string;
+  inputSchema: JsonSchema;
+  /** Object schema with `additionalProperties: false`; its properties are the response projection allowlist. */
+  outputSchema: JsonSchema;
+  timeoutMs: number;
+  maxResponseBytes: number;
+  /** How the projected response maps to a receipt. */
+  receipt: {
+    /** Output field that must echo the platform request id. */
+    requestIdField: string;
+    /** Output field used as the external reference, if any. */
+    referenceField?: string;
+    /** Output field whose value decides success; any `rejectedValues` entry fails the action. */
+    statusField: string;
+    rejectedValues: readonly string[];
+  };
+};
+
 export type ControlPlaneRuntimeModule = {
   apiVersion: 2;
   kind: "agent_control_plane_module";
@@ -294,6 +415,8 @@ export type ControlPlaneRuntimeModule = {
   requirements: import("./capabilities.js").RuntimeRequirements;
   tools: readonly RuntimeToolBinding[];
   workflows: readonly RuntimeWorkflowBinding[];
+  /** Requires the `actions.provider_operations` capability. */
+  providerOperations?: readonly RuntimeProviderOperation[];
   health: readonly RuntimeHealthBinding[];
   evals: readonly RuntimeEvalBinding[];
   context?: readonly import("./context.js").RuntimeContextBinding[];
@@ -323,6 +446,19 @@ export type ArtifactRendererProps = {
   };
 };
 
+/**
+ * Props for a package-owned chat renderer of one tool call. Values are the
+ * message's own data, sanitized and size-bounded by the host; the component
+ * must not fetch.
+ */
+export type ToolResultRendererProps = {
+  toolId: string;
+  status: "running" | "complete" | "incomplete" | "requires-action";
+  input: RuntimeRecord;
+  output?: unknown;
+  artifactRefs: readonly { id: string; kind: string; title?: string }[];
+};
+
 export type ManagedStateRendererProps = {
   state: {
     id: string;
@@ -343,6 +479,8 @@ export type WebRuntimeModule = {
   compatiblePackVersions: string;
   artifactRenderers: Readonly<Record<string, unknown>>;
   managedStateRenderers: Readonly<Record<string, unknown>>;
+  /** Components keyed by tool id; each must be declared in the manifest's `toolResultRenderers`. */
+  toolResultRenderers?: Readonly<Record<string, unknown>>;
 };
 
 export type AgentModulePackage = {

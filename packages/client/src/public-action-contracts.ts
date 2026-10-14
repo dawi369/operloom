@@ -26,6 +26,14 @@ export const actionProposalSummarySchema = z
       .nullable()
       .optional(),
     externalReference: z.string().nullable().optional(),
+    approval: z
+      .object({
+        decision: z.enum(["auto", "review"]),
+        evidence: jsonObject,
+        reviewedAt: timestamp.nullable(),
+      })
+      .nullable()
+      .optional(),
     version: z.number().int().nonnegative(),
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -57,8 +65,22 @@ const executionResult = z
 export const publicActionContracts = {
   "GET /workbench/actions": {
     statuses: [200],
-    query: z.object({ limit: z.coerce.number().int().min(1).max(100).default(25) }).strict(),
+    query: z
+      .object({
+        limit: z.coerce.number().int().min(1).max(100).default(25),
+        /** `pending`: held for or awaiting an operator decision, or an unreviewed auto dispatch. */
+        review: z.enum(["pending"]).optional(),
+      })
+      .strict(),
     response: z.object({ ok: z.literal(true), proposals: z.array(actionProposalSummarySchema) }),
+  },
+  "POST /workbench/actions/{id}/review": {
+    statuses: [200],
+    response: z.object({
+      ok: z.literal(true),
+      proposalId: id,
+      approval: z.object({ decision: z.literal("auto"), reviewedAt: timestamp }),
+    }),
   },
   "POST /workbench/actions/{id}/execute": {
     statuses: [202],
@@ -90,10 +112,13 @@ export type ActionRequestResponse = z.infer<
 export type ActionReconciliationResponse = z.infer<
   (typeof publicActionContracts)["POST /workbench/actions/{id}/reconcile"]["response"]
 >;
+export type ActionReviewResponse = z.infer<
+  (typeof publicActionContracts)["POST /workbench/actions/{id}/review"]["response"]
+>;
 
 export const findPublicActionContract = (method: string, path: string) => {
   const template = path.replace(
-    /^\/workbench\/actions\/[^/]+\/(execute|reconcile)$/,
+    /^\/workbench\/actions\/[^/]+\/(execute|reconcile|review)$/,
     "/workbench/actions/{id}/$1",
   );
   return publicActionContracts[`${method} ${template}` as keyof typeof publicActionContracts];

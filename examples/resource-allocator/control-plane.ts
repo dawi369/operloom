@@ -203,6 +203,13 @@ const runCycle = async (
       ],
     });
 
+  await context.notifications?.emit({
+    type: "capacity.observed",
+    severity: "info",
+    title: `Pool ${feed.pool} observed`,
+    body: `Demand ${feed.demand}, allocated ${allocated}, available ${available}.`,
+    target: { type: "observation", id: context.run.id },
+  });
   if (unmet < Number(settings.escalateAbove)) {
     await record("noop", { explanation: "Unmet demand is below the escalation threshold." });
     return done({ ...base, outcome: "noop" }, "Demand is within tolerance.");
@@ -234,7 +241,13 @@ const runCycle = async (
   });
   await record(
     "escalate",
-    { units, rationale, proposalId: proposal.proposalId, reservationId: decision.reservationId },
+    {
+      units,
+      rationale,
+      proposalId: proposal.proposalId,
+      reservationId: decision.reservationId,
+      approval: proposal.approval ?? "review",
+    },
     [
       {
         namespace,
@@ -251,9 +264,24 @@ const runCycle = async (
       },
     ],
   );
+  await context.notifications?.emit({
+    type: "capacity.escalated",
+    severity: "alert",
+    title: proposal.approval === "auto" ? "Allocation dispatched" : "Allocation needs review",
+    body: `${units} units for ${feed.pool} (${proposal.status}).`,
+    target: { type: "actionProposal", id: proposal.proposalId },
+  });
   return done(
-    { ...base, outcome: "escalated", proposalId: proposal.proposalId },
-    `Proposed ${units} units for review.`,
+    {
+      ...base,
+      outcome: "escalated",
+      proposalId: proposal.proposalId,
+      approval: proposal.approval ?? "review",
+      dispatch: proposal.status,
+    },
+    proposal.approval === "auto"
+      ? `Allocated ${units} units under policy (${proposal.status}).`
+      : `Proposed ${units} units for review.`,
   );
 };
 
@@ -271,8 +299,40 @@ export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
       "state.atomic",
       "models.structured",
       "usage.reservations",
+      "actions.provider_operations",
+      "actions.policy_controlled",
+      "notifications.emit",
     ],
   },
+  providerOperations: [
+    {
+      id: "capacity.allocate",
+      version: "1",
+      providerId: "capacity-service",
+      auth: "bearer",
+      method: "POST",
+      path: "/allocations",
+      inputSchema: proposalSchema,
+      outputSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["requestId", "resourceId", "lifecycle"],
+        properties: {
+          requestId: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          resourceId: identifier,
+          lifecycle: { type: "string", enum: ["pending", "active", "rejected"] },
+        },
+      },
+      timeoutMs: 5000,
+      maxResponseBytes: 65536,
+      receipt: {
+        requestIdField: "requestId",
+        referenceField: "resourceId",
+        statusField: "lifecycle",
+        rejectedValues: ["rejected"],
+      },
+    },
+  ],
   settings: {
     schema: {
       type: "object",
@@ -332,7 +392,9 @@ export const controlPlane: ControlPlaneRuntimeModule = defineControlPlaneModule<
         proposalSchema,
         resultSchema: { type: "object", required: ["requestId", "resourceId", "lifecycle"] },
         idempotency: "required",
-        approval: "required",
+        // One unattended allocation a day; anything beyond waits for an operator.
+        approval: "policy_controlled",
+        policy: { limits: [{ kind: "count", per: "day", max: 1 }] },
         timeoutMs: 5000,
         providerOperation: { id: "capacity.allocate", version: "1" },
         simulate: async (proposal) => ({

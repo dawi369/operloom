@@ -56,8 +56,8 @@ export type ActionReview = {
   created_at: string;
 };
 const runtimeHash = async (env: Env, row: ControlActionProposalRow) => {
-  const { binding, runtime } = resolveBinding(row);
-  const operation = providerOperationFor(env, binding, row.effect_target);
+  const { binding, runtime, operations } = resolveBinding(row);
+  const operation = providerOperationFor(env, binding, operations, row.effect_target);
   return sha256Hex(
     JSON.parse(
       JSON.stringify(
@@ -174,9 +174,11 @@ export const createActionReview = async (
     : null;
   if (row.connection_record_id && !connection)
     return fail("connection_not_authorized", "The action connection is unavailable");
+  const resolved = resolveBinding(row);
   const providerOperation = providerOperationFor(
     env,
-    resolveBinding(row).binding,
+    resolved.binding,
+    resolved.operations,
     row.effect_target,
     connection?.provider_id,
   );
