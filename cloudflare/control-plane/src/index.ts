@@ -137,6 +137,7 @@ import {
 import { handleTriggerWebhookIngress } from "./trigger-webhook";
 import { handleBilling, handleBillingWebhookIngress, reportDailyBillingUsage } from "./billing";
 import { mcpProtectedResourceMetadata } from "./mcp";
+import { handleMemory } from "./memory";
 import {
   handleCreateTrigger,
   handleCreateTriggerDispatch,
@@ -860,6 +861,8 @@ const handleRequest = async (
     return handleRuntimeBudgets(request, env, identity);
   if (url.pathname === "/workbench/billing" || url.pathname.startsWith("/workbench/billing/"))
     return handleBilling(request, env, identity);
+  if (url.pathname === "/workbench/memory" || url.pathname.startsWith("/workbench/memory/"))
+    return handleMemory(request, env, identity);
   if (request.method === "GET" && contextSnapshot)
     return handleGetContextSnapshot(env, identity, decodeURIComponent(contextSnapshot[1]!));
   if (request.method === "GET" && url.pathname === "/agents") {

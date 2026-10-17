@@ -53,6 +53,27 @@ const validFixtures = {
   billingPlans: { ok: true, defaultPlanId: "free", plans: [] },
   billingLink: { ok: true, url: "https://billing.example/session" },
   billingUsage: { ok: true, from: "2026-01-01", to: "2026-01-02", days: [], reports: [] },
+  memoryList: {
+    ok: true,
+    records: [],
+    limits: { recordBytes: 1, activeRecords: 1, totalBytes: 1 },
+  },
+  memoryRecord: {
+    ok: true,
+    record: {
+      id: "m1",
+      kind: "note",
+      key: "k",
+      title: "t",
+      content: {},
+      source: "user",
+      status: "active",
+      agentId: null,
+      version: 1,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    },
+  },
   billingUsageReport: {
     ok: true,
     report: {

@@ -333,6 +333,43 @@ test.describe.serial("Agent-system executable conformance", () => {
       code: "console_only_operation",
     });
 
+    // Memory: the user writes a goal, the observe workflow remembered a conclusion, both are
+    // recalled over /v1, and the user can confirm proposals and forget anything.
+    const goal = await worker.put("/workbench/memory/goal/paper-book", {
+      data: { title: "Grow the paper book to $500", content: { targetUsd: 500 } },
+    });
+    expect(goal.status(), await goal.text()).toBe(200);
+    const memory = (await (await worker.get("/workbench/memory?status=all")).json()) as {
+      records: Array<{ id: string; kind: string; key: string; source: string; status: string }>;
+    };
+    expect(memory.records).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "goal",
+          key: "paper-book",
+          source: "user",
+          status: "active",
+        }),
+        expect.objectContaining({
+          kind: "conclusion",
+          key: "observation:service-boundary",
+          source: "workflow",
+          status: "active",
+        }),
+      ]),
+    );
+    const directMemory = await direct.memory.list({ status: "all" });
+    expect(directMemory.records.map((record) => record.key)).toContain("paper-book");
+    const forgotten = await worker.delete(
+      `/workbench/memory/${encodeURIComponent(memory.records.find((record) => record.kind === "goal")!.id)}`,
+    );
+    expect(forgotten.status(), await forgotten.text()).toBe(200);
+    expect(await forgotten.json()).toMatchObject({ record: { status: "archived" } });
+    const otherMemory = (await (await otherTenant.get("/workbench/memory?status=all")).json()) as {
+      records: unknown[];
+    };
+    expect(otherMemory.records).toEqual([]);
+
     // MCP exposes the same workflows as tools behind the same bearer and a client allowlist.
     const mcpUrl = `${workerOrigin}/v1/workspaces/${encodeURIComponent(worker.workspaceId)}/agents/${encodeURIComponent(worker.agentId)}/mcp`;
     const rpc = (body: unknown, headers: Record<string, string> = {}) =>

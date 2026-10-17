@@ -11,6 +11,10 @@ import {
   publicBillingOpenApiQueryParameters,
 } from "./public-billing-contracts.js";
 import {
+  publicMemoryOpenApiOperation,
+  publicMemoryOpenApiQueryParameters,
+} from "./public-memory-contracts.js";
+import {
   publicUpgradeOpenApiOperation,
   publicUpgradeOpenApiQueryParameters,
 } from "./public-upgrade-contracts.js";
@@ -129,6 +133,10 @@ export const publicApiRoutes = [
   ["DELETE", "/workbench/devices/{id}"],
   ["GET", "/workbench/notification-preferences"],
   ["PUT", "/workbench/notification-preferences"],
+  ["GET", "/workbench/memory"],
+  ["PUT", "/workbench/memory/{kind}/{key}"],
+  ["POST", "/workbench/memory/{id}/confirm"],
+  ["DELETE", "/workbench/memory/{id}"],
   ["GET", "/workbench/billing"],
   ["GET", "/workbench/billing/plans"],
   ["PUT", "/workbench/billing/plan"],
@@ -183,6 +191,7 @@ const publicApiOperation = (method: string, path: string, scopeParameters: reado
     publicUpgradeOpenApiQueryParameters(method, path),
     publicBudgetOpenApiQueryParameters(method, path),
     publicBillingOpenApiQueryParameters(method, path),
+    publicMemoryOpenApiQueryParameters(method, path),
     publicContextOpenApiQueryParameters(method, path),
     publicActionOpenApiQueryParameters(method, path),
   ].flat(),
@@ -196,6 +205,7 @@ const publicApiOperation = (method: string, path: string, scopeParameters: reado
   ...publicContextOpenApiOperation(method, path),
   ...publicBudgetOpenApiOperation(method, path),
   ...publicBillingOpenApiOperation(method, path),
+  ...publicMemoryOpenApiOperation(method, path),
   ...publicActionOpenApiOperation(method, path),
 });
 

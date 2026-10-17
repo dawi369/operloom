@@ -6,6 +6,7 @@ import {
   type AgentExecutionContext,
   type RuntimeResult,
   type RuntimeToolBinding,
+  type RuntimeMemoryRecord,
   type RuntimeWorkflowBinding,
 } from "@operloom/agent-sdk";
 import { fileURLToPath } from "node:url";
@@ -92,6 +93,7 @@ export const runAgentPackConformance = async (root: string, requested: string) =
   const createContext = (workflowId: string) => {
     let stateVersion = 0;
     let toolCalls = 0;
+    const memoryRecords: RuntimeMemoryRecord[] = [];
     const controller = new AbortController();
     let context: AgentExecutionContext;
     const invoke = async (
@@ -160,6 +162,30 @@ export const runAgentPackConformance = async (root: string, requested: string) =
         },
       },
       events: { async append() {} },
+      memory: {
+        async list(filter) {
+          return memoryRecords.filter((record) => !filter?.kind || record.kind === filter.kind);
+        },
+        async remember(record) {
+          const existing = memoryRecords.find(
+            (candidate) => candidate.kind === record.kind && candidate.key === record.key,
+          );
+          const stored = {
+            id: existing?.id ?? `conformance-memory-${memoryRecords.length + 1}`,
+            kind: record.kind,
+            key: record.key,
+            title: record.title,
+            content: record.content,
+          };
+          if (existing) memoryRecords.splice(memoryRecords.indexOf(existing), 1, stored);
+          else memoryRecords.push(stored);
+          return stored;
+        },
+        async forget(id) {
+          const index = memoryRecords.findIndex((record) => record.id === id);
+          if (index >= 0) memoryRecords.splice(index, 1);
+        },
+      },
     };
     return {
       context,

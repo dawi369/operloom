@@ -15,6 +15,7 @@ export const implementedRuntimeCapabilities = [
   "notifications.emit",
   "tasks.delegate",
   "entitlements.read",
+  "memory.recall",
 ] as const;
 
 export type RuntimeRequirements = {

@@ -161,6 +161,7 @@ export const purgeWorkspace = async (env: Env, identity: AgentIdentity, job: Con
     "control_notification_digest_items",
     "control_delegation_tasks",
     "control_billing_usage_reports",
+    "control_memory_records",
     "control_workspace_subscriptions",
     "control_notification_addresses",
     "control_notification_channel_preferences",

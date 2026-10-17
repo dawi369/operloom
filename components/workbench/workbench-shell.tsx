@@ -12,6 +12,7 @@ import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import {
   ActivityIcon,
   BotIcon,
+  BrainIcon,
   HistoryIcon,
   Loader2Icon,
   MessageSquarePlusIcon,
@@ -93,6 +94,14 @@ const WorkbenchHistoryPanel = dynamic(
   { ssr: false },
 );
 
+const WorkbenchMemoryPanel = dynamic(
+  () =>
+    import("@/components/workbench/workbench-memory-panel").then(
+      (module) => module.WorkbenchMemoryPanel,
+    ),
+  { ssr: false },
+);
+
 const WorkbenchOperationsPanel = dynamic(
   () =>
     import("@/components/workbench/workbench-operations-panel").then(
@@ -143,6 +152,7 @@ function WorkbenchShellContent({
   const [capabilitiesOpen, setCapabilitiesOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [operationsOpen, setOperationsOpen] = useState(false);
+  const [memoryOpen, setMemoryOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [historyFocus, setHistoryFocus] = useState<HistoryFocusRequest | null>(null);
   const [adminAccess, setAdminAccess] = useState<{ isAdmin: boolean } | null>(null);
@@ -442,6 +452,12 @@ function WorkbenchShellContent({
         icon: HistoryIcon,
         execute: openHistory,
       },
+      {
+        id: "memory",
+        label: "Memory",
+        icon: BrainIcon,
+        execute: () => setMemoryOpen(true),
+      },
       ...(!demoMode
         ? [
             {
@@ -560,6 +576,14 @@ function WorkbenchShellContent({
             onOpenChange={handleHistoryOpenChange}
             onCloseAutoFocus={handlePanelCloseAutoFocus}
             onFocusConsumed={handleHistoryFocusConsumed}
+          />
+          <WorkbenchMemoryPanel
+            open={memoryOpen}
+            onOpenChange={(nextOpen) => {
+              setMemoryOpen(nextOpen);
+              if (!nextOpen) focusComposerAfterOverlayClose();
+            }}
+            onCloseAutoFocus={handlePanelCloseAutoFocus}
           />
           {!demoMode ? (
             <WorkbenchOperationsPanel

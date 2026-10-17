@@ -343,6 +343,31 @@ event for the same target is delivered once per channel. Packages never see
 addresses or transports; locally and in conformance a recorded transport marks
 the delivery row delivered.
 
+### Memory
+
+A package that requires `memory.recall` receives `context.memory` in workflow
+steps:
+
+```ts
+const record = await context.memory?.remember({
+  kind: "conclusion",
+  key: `observation:${subject}`,
+  title: `Observed ${subject}`,
+  content: { subject, observedAt },
+});
+const earlier = await context.memory?.list({ kind: "conclusion" });
+await context.memory?.forget(record.id);
+```
+
+Writes default to `scope: "agent"` (pass `scope: "user"` for a user-wide
+record), are recorded with `source: "workflow"` and the run id, and replace an
+earlier record with the same kind and key. Active records are rendered as
+title plus content into the `## Memory` section of every chat turn for that
+user, so keep content small and factual. Packs cannot read another agent's
+records or the user's user-wide goals except through what the platform puts in
+the prompt. Goal and preference records authored by a model start as
+`proposed`; the user confirms them from the console memory panel.
+
 ### Settings And Queries
 
 `settings` declares a JSON schema, defaults, and the top-level keys operators

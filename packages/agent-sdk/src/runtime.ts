@@ -194,6 +194,25 @@ export type RuntimeDelegationTask = {
  * dispatched by the scheduler on a later tick; the requesting run reads the
  * outcome with `result` on a later run of its own. Requires `tasks.delegate`.
  */
+/** A durable, user-scoped fact the model recalls on every turn. Content is bounded JSON. */
+export type RuntimeMemoryRecord = {
+  id: string;
+  kind: "goal" | "preference" | "watchlist" | "conclusion" | "note";
+  /** Stable slug; writing the same kind and key again updates the record. */
+  key: string;
+  title: string;
+  content: RuntimeRecord;
+};
+
+/** Present when the package requires `memory.recall`. Writes land as `workflow` source. */
+export type RuntimeMemoryPort = {
+  list(filter?: { kind?: RuntimeMemoryRecord["kind"] }): Promise<readonly RuntimeMemoryRecord[]>;
+  remember(
+    record: Omit<RuntimeMemoryRecord, "id"> & { scope?: "user" | "agent" },
+  ): Promise<RuntimeMemoryRecord>;
+  forget(id: string): Promise<void>;
+};
+
 /** Read-only view of the workspace plan; limits are the budget ceiling the platform enforces. */
 export type RuntimeEntitlements = {
   planId: string;
@@ -268,6 +287,8 @@ export type AgentExecutionContext = {
   tasks?: RuntimeTaskPort;
   /** Present when the package requires `entitlements.read`: the workspace plan as policy input. */
   entitlements?: RuntimeEntitlements;
+  /** Present when the package requires `memory.recall`: the user's durable memory. */
+  memory?: RuntimeMemoryPort;
   /** Present only inside the signed runner (`runner.ts` tools). */
   recipes?: import("./recipes.js").RunnerRecipes;
   managedState: {

@@ -31,6 +31,8 @@ export const workbenchQueryKeys = {
     [...workbenchQueryKeys.tenant(workspaceId), "session"] as const,
   threads: (workspaceId: string | null | undefined, status: "active" | "archived") =>
     [...workbenchQueryKeys.tenant(workspaceId), "threads", status] as const,
+  memory: (workspaceId?: string | null) =>
+    [...workbenchQueryKeys.tenant(workspaceId), "memory"] as const,
   agents: (workspaceId?: string | null) =>
     [...workbenchQueryKeys.tenant(workspaceId), "agents"] as const,
   workflows: (workspaceId?: string | null) =>
@@ -239,6 +241,38 @@ const invalidate = (queryClient: QueryClient, keys: readonly QueryKey[]) =>
   Promise.all(keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
 
 export const invalidateWorkbenchQueries = invalidate;
+
+export const useWorkbenchMemory = (
+  input: TenantInput & { status?: "active" | "proposed" | "archived" | "all" } = {},
+) => {
+  const client = useWorkbenchClient();
+  return useQuery({
+    queryKey: workbenchQueryKeys.memory(input.workspaceId),
+    queryFn: ({ signal }) => client.memory.list({ status: input.status ?? "all" }, { signal }),
+    enabled: enabled(input),
+  });
+};
+
+export const useRememberMemory = (workspaceId?: string | null) =>
+  useTenantMutation<
+    Parameters<WorkbenchClient["memory"]["remember"]>[0],
+    Awaited<ReturnType<WorkbenchClient["memory"]["remember"]>>
+  >({
+    mutationFn: (client, input) => client.memory.remember(input),
+    invalidations: () => [workbenchQueryKeys.memory(workspaceId)],
+  });
+
+export const useConfirmMemory = (workspaceId?: string | null) =>
+  useTenantMutation<string, Awaited<ReturnType<WorkbenchClient["memory"]["confirm"]>>>({
+    mutationFn: (client, id) => client.memory.confirm(id),
+    invalidations: () => [workbenchQueryKeys.memory(workspaceId)],
+  });
+
+export const useForgetMemory = (workspaceId?: string | null) =>
+  useTenantMutation<string, Awaited<ReturnType<WorkbenchClient["memory"]["forget"]>>>({
+    mutationFn: (client, id) => client.memory.forget(id),
+    invalidations: () => [workbenchQueryKeys.memory(workspaceId)],
+  });
 
 export const clearWorkbenchTenantCache = (queryClient: QueryClient, workspaceId?: string | null) =>
   queryClient.removeQueries({ queryKey: workbenchQueryKeys.tenant(workspaceId) });

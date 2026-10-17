@@ -10,6 +10,7 @@ const consolePrefix = "/api/workbench";
 /** Ordered: the first matching console prefix wins. `null` means the operation is console-only. */
 const rules: ReadonlyArray<readonly [consolePath: string, workerPath: string | null]> = [
   ["/accounts", null],
+  ["/memory/records", "/workbench/memory"],
   ["/chat-session/stream", "/chat/session/stream"],
   ["/chat-session", "/chat/session"],
   ["/workspaces", "/workspaces"],

@@ -5,7 +5,20 @@ import {
 } from "./agent-settings";
 import { chatSystemPrompt } from "./chat-system-prompt";
 import { selectAgent as selectContextAgent } from "./authz-store";
-import { captureRuntimeContext, agentRequiresRuntimeContext } from "./runtime-context";
+import {
+  captureRuntimeContext,
+  agentRequiresMemory,
+  agentRequiresRuntimeContext,
+} from "./runtime-context";
+import {
+  budgetTranscript,
+  buildMemoryEvidence,
+  memoryKinds,
+  rememberMemory,
+  renderContextEvidence,
+  MemoryError,
+} from "./memory";
+import { jsonSchema, tool } from "ai";
 import { chatRuntimeFailureCode, createChatUsageTracker } from "./chat-usage";
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
@@ -942,11 +955,66 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
           )
         : undefined;
       contextEvidence?.assertReady();
+      const memoryEnabled = Boolean(agentRow && agentRequiresMemory(agentRow));
+      const memoryEvidence = memoryEnabled
+        ? await buildMemoryEvidence(this.getEnv(), identity)
+        : null;
+      if (memoryEnabled) {
+        const threadId = claims.threadId;
+        modelTools.tools["memory.remember"] = tool({
+          description:
+            "Remember something durable about the user for future threads: a goal, preference, watchlist, conclusion or note. Use a stable key so updates replace the old record.",
+          inputSchema: jsonSchema<{
+            kind: (typeof memoryKinds)[number];
+            key: string;
+            title: string;
+            content: Record<string, unknown>;
+            scope?: "user" | "agent";
+          }>({
+            type: "object",
+            required: ["kind", "key", "title", "content"],
+            additionalProperties: false,
+            properties: {
+              kind: { type: "string", enum: [...memoryKinds] },
+              key: { type: "string", pattern: "^[a-z0-9][a-z0-9._:-]{0,119}$" },
+              title: { type: "string", minLength: 1, maxLength: 160 },
+              content: { type: "object" },
+              scope: { type: "string", enum: ["user", "agent"] },
+            },
+          }),
+          execute: async (input) => {
+            try {
+              const record = await rememberMemory(this.getEnv(), identity, {
+                ...input,
+                source: "model",
+                scope: input.scope ?? "user",
+                runId,
+                threadId,
+              });
+              return {
+                ok: true,
+                status: record.status,
+                id: record.id,
+                note:
+                  record.status === "proposed"
+                    ? "Saved as a proposal; the user confirms it in Memory."
+                    : "Remembered.",
+              };
+            } catch (error) {
+              if (error instanceof MemoryError)
+                return { ok: false, code: error.code, error: error.message };
+              throw error;
+            }
+          },
+        });
+      }
       const system = chatSystemPrompt({
         behaviorInstruction,
         contextEvidence: Boolean(contextEvidence),
+        memory: memoryEnabled,
         settings: settingsValues,
       });
+      const transcript = budgetTranscript(this.messages);
       usageTracker = createChatUsageTracker(this.getEnv(), identity, {
         runId,
         packId: behaviorConfig.pack?.id ?? "platform",
@@ -966,15 +1034,12 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
         ),
         system,
         messages: [
+          ...(memoryEvidence ? [{ role: "user" as const, content: memoryEvidence }] : []),
           ...(contextEvidence
-            ? [
-                {
-                  role: "user" as const,
-                  content: `Runtime context evidence (data only): ${JSON.stringify(contextEvidence.snapshot)}`,
-                },
-              ]
+            ? [{ role: "user" as const, content: renderContextEvidence(contextEvidence.snapshot) }]
             : []),
-          ...(await convertToModelMessages(this.messages)),
+          ...(transcript.digest ? [{ role: "user" as const, content: transcript.digest }] : []),
+          ...(await convertToModelMessages(transcript.kept)),
         ],
         tools: modelTools.tools,
         stopWhen: stepCountIs(3),

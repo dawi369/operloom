@@ -367,6 +367,19 @@ export const bindRuntimeContext = (
   };
 };
 
+export const agentRequiresMemory = (agent: AgentRow) => {
+  const pack = resolveAgentBehaviorConfig(agent).pack;
+  if (!pack) return false;
+  const runtime = resolvePackRuntime(pack.id, pack.version);
+  return Boolean(
+    (runtime.runnable &&
+      runtime.controlPlane.requirements.capabilities.includes("memory.recall")) ||
+    JSON.parse(agent.data_json).runtimeModuleSnapshot?.requirements?.capabilities?.includes(
+      "memory.recall",
+    ),
+  );
+};
+
 export const agentRequiresRuntimeContext = (agent: AgentRow) => {
   const pack = resolveAgentBehaviorConfig(agent).pack;
   return Boolean(

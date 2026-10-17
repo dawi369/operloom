@@ -36,6 +36,7 @@ import {
 } from "./route-map.js";
 import type { z } from "zod";
 import type { publicBillingContracts } from "./public-billing-contracts.js";
+import type { MemoryKind, MemoryRecord } from "./public-memory-contracts.js";
 
 export type WorkbenchClientPlatform = "web" | "ios" | "android";
 
@@ -509,6 +510,48 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
           "billingUsageReport",
           "/api/workbench/billing/usage/report",
           { method: "POST", body: input },
+        ),
+    },
+    memory: {
+      list: (
+        input: {
+          kind?: MemoryKind;
+          status?: "active" | "proposed" | "archived" | "all";
+          scope?: "user" | "agent";
+        } = {},
+        options: WorkbenchReadOptions = {},
+      ) =>
+        request<{ ok: true; records: MemoryRecord[] }>(
+          "memoryList",
+          `/api/workbench/memory${queryString(input)}`,
+          options,
+        ),
+      remember: (input: {
+        kind: MemoryKind;
+        key: string;
+        title: string;
+        content: Record<string, unknown>;
+        scope?: "user" | "agent";
+      }) =>
+        request<{ ok: true; record: MemoryRecord }>(
+          "memoryRecord",
+          `/api/workbench/memory/${input.kind}/${encodeURIComponent(input.key)}`,
+          {
+            method: "PUT",
+            body: { title: input.title, content: input.content, scope: input.scope },
+          },
+        ),
+      confirm: (id: Id) =>
+        request<{ ok: true; record: MemoryRecord }>(
+          "memoryRecord",
+          `/api/workbench/memory/records/${encodeURIComponent(id)}/confirm`,
+          { method: "POST" },
+        ),
+      forget: (id: Id) =>
+        request<{ ok: true; record: MemoryRecord }>(
+          "memoryRecord",
+          `/api/workbench/memory/records/${encodeURIComponent(id)}`,
+          { method: "DELETE" },
         ),
     },
     notificationPreferences: {

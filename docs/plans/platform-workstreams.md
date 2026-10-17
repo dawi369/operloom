@@ -368,3 +368,54 @@ merged and the ported modules are verified.
 
 Acceptance: all gates green; `git branch -vv` shows only `main` and
 `codex/mobile-wip`.
+
+## Run 11 — W12 Memory and context
+
+Goal: the model knows the user. Durable, user-scoped memory follows the user
+across threads and agents, enters every chat turn as trusted evidence, is
+inspectable and deletable by the user, and is written by the user, by
+workflows, or by the model under policy.
+
+Driver products: Polymancer (goals, risk preferences, watchlists, prior
+conclusions across research threads) and the roofing operator (customer
+notes, job context, crew preferences). Both need the same primitive.
+
+Storage (migration `0007_memory_records.sql`, schema parity, export and purge):
+`control_memory_records` (id, user_id, workspace_id, agent_id NULL for
+user-wide, kind `goal|preference|watchlist|conclusion|note`, key, title,
+content_json, source `user|model|workflow`, status `active|proposed|archived`,
+run_id, thread_id, version, created_at, updated_at); unique on
+(user, workspace, kind, key, agent). Caps: 8 KiB per record, 200 active
+records and 256 KiB per user and workspace (`memory_quota_exceeded`).
+
+Writes: `PUT /workbench/memory/{kind}/{key}` (user, always `active`),
+`POST /workbench/memory/{id}/confirm`, `DELETE /workbench/memory/{id}`
+(archive). Workflows declaring `memory.recall` get `context.memory`
+(`list`, `remember`, `forget`); their writes are `source: workflow`, active.
+Chat gets a platform tool `memory.remember` when the pack declares
+`memory.recall`: `note`, `conclusion` and `watchlist` land active with
+`source: model`; `goal` and `preference` land `proposed` until the user
+confirms. Every record shows who wrote it.
+
+Recall: on a chat turn for a pack declaring `memory.recall`, the Worker
+builds a bounded memory section (24 KiB): active user-wide and agent records
+ordered by kind, then the agent's five most recent completed-run artifact
+summaries. It is injected as evidence beside the context snapshot. The
+context snapshot is rendered as one section per source ordered by trust
+instead of one JSON blob. The system prompt tells the model memory is the
+user's durable context and to propose updates with `memory.remember`.
+
+Transcript budget: the model receives the most recent messages that fit a
+48,000 character budget plus a deterministic digest of dropped user turns;
+no summarizing model call in this run.
+
+Routes on `/v1` with `client.memory.*`, console Memory panel (list, add note,
+confirm, forget), SDK capability `memory.recall`.
+
+Acceptance: unit tests for quota, status transitions, recall assembly and
+transcript budgeting; agent-system conformance writes a user record, has the
+`complex-operator.observe` workflow remember a conclusion, lists both over
+`/v1`, confirms and forgets.
+
+Non-goals: semantic retrieval, embeddings, cross-workspace memory,
+LLM summarization of transcripts.

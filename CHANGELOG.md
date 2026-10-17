@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Memory and context (W12): durable per-user memory records (`goal`,
+  `preference`, `watchlist`, `conclusion`, `note`) scoped user-wide or to one
+  agent, with `proposed`/`active`/`archived` status. Users write through
+  `PUT /workbench/memory/{kind}/{key}`, confirm proposals and forget records;
+  packs that require `memory.recall` get `context.memory` in workflows; chat
+  exposes a `memory.remember` tool whose goal and preference writes stay
+  proposed until confirmed. Every chat turn now starts with a recall section,
+  the last five artifact summaries and the context snapshot grouped by trust,
+  and long transcripts are budgeted to 48,000 chars with a digest of what was
+  dropped. Migration 0007; console gets a `/memory` panel.
 - Billing: Polar ships as a second provider module (merchant of record):
   checkout, customer portal, Standard Webhooks verification and usage event
   ingestion; `OPERLOOM_BILLING_PROVIDER=polar`. Migration 0006 widens the

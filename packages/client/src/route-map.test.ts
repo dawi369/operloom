@@ -73,6 +73,10 @@ const operations: Array<() => Promise<unknown>> = [
   () => client.billing.portal({ returnUrl: "https://a/z" }),
   () => client.billing.usage({ from: "2026-01-01", to: "2026-01-02" }),
   () => client.billing.reportUsage({ day: "2026-01-01" }),
+  () => client.memory.list({ status: "all" }),
+  () => client.memory.remember({ kind: "note", key: "k", title: "t", content: {} }),
+  () => client.memory.confirm("m1"),
+  () => client.memory.forget("m1"),
   () => client.notificationPreferences.get(),
   () => client.notificationPreferences.update({ approvalRequired: true, terminalOutcomes: true }),
 ];
@@ -90,6 +94,7 @@ describe("control-plane route map", () => {
     expect(calls.map((call) => call.path)).toContain("/v1/me/chat/session/threads/th1/activate");
     expect(calls.map((call) => call.path)).toContain("/v1/me/workbench/billing/usage");
     expect(calls.map((call) => call.path)).toContain("/v1/me/tools/approvals/ap1/approve");
+    expect(calls.map((call) => call.path)).toContain("/v1/me/workbench/memory/m1/confirm");
   });
 
   it("keeps console-only operations off the control plane", async () => {

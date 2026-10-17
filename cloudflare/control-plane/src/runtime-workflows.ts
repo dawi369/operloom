@@ -38,6 +38,7 @@ import { createBrokeredConnectionPort } from "./connection-broker";
 import { createDurableActionPort } from "./action-authority";
 import { createNotificationPort } from "./notification-port";
 import { resolveEntitlements } from "./billing-plans";
+import { createMemoryPort } from "./memory";
 import { createTaskPort } from "./delegation-tasks";
 import { ensureDeclaredTrigger } from "./triggers";
 import {
@@ -478,6 +479,9 @@ export const executeRuntimeWorkflowRequest = async (
       ? {
           notifications: createNotificationPort(env, identity, { id: pack.id }, started.runId),
         }
+      : {}),
+    ...(runtime.controlPlane.requirements.capabilities.includes("memory.recall")
+      ? { memory: createMemoryPort(env, identity, { runId: started.runId }) }
       : {}),
     ...(runtime.controlPlane.requirements.capabilities.includes("entitlements.read")
       ? { entitlements: await runtimeEntitlements(env, identity.scope.workspaceId) }

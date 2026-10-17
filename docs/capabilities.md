@@ -86,6 +86,7 @@ deferred.
 | C17 | Connection broker: OAuth code + PKCE, API keys, WorkOS Vault custody, host allowlist      | Done    | x   | x   | Provider definitions are environment configuration. |
 | C18 | Bundled read providers: maps/geocoding, news, public records, calendar read, mailbox read | Missing |     | x   | Generic brokered read tools packs bind to. See W4.  |
 | C19 | Attachments and files on R2                                                               | Done    | x   | x   |                                                     |
+| C35 | Durable user memory (goals, preferences, watchlists, conclusions) recalled every turn     | Done    | x   | x   | `memory.recall`; model proposals need user confirm. |
 
 ### External action
 
@@ -136,6 +137,7 @@ work depends on it.
 | W9  | Financial custody and signing                                          | C24                | W1, W2, legal read |
 | W10 | Mobile shell, rebuilt on `@operloom/client`                            | C30, C26           | W3, W6             |
 | W11 | Runner recipes and local runner parity                                 | C34                |                    |
+| W12 | Memory and context budget                                              | C35, C16           |                    |
 
 ### W1 Open provider operations
 

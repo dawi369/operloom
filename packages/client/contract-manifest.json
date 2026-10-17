@@ -3,7 +3,7 @@
   "runtimeSchemas": [
     {
       "path": "client/src/response-schemas.ts",
-      "sha256": "cfdca114fe15273e7e4d77b4cb18d08bd2b3a44c4f2e6a6a3855d7522282b696"
+      "sha256": "12a8a5cc73af037f1ec19a26229cac533674023ab4189adb2e4dd7c966581e6b"
     },
     {
       "path": "client/src/validation.ts",
@@ -49,7 +49,7 @@
         },
         {
           "path": "client/dist/client.d.ts",
-          "sha256": "42685fc67e8761b19d7e1519d9c61842c9f6d2dffd79d130d304f4c3fc3130e7"
+          "sha256": "04d17b2354fe5028a6b904d6c6216081a12ed3553919cc499016f4076efa2b2a"
         },
         {
           "path": "client/dist/contracts/agents-chat.d.ts",
@@ -85,7 +85,7 @@
         },
         {
           "path": "client/dist/index.d.ts",
-          "sha256": "8a21f7bc4d8c79757875c5b1a6907a0ef763199194809d13692e46e175e69f85"
+          "sha256": "35a912e66e96c71402d8e1454a3104b2a1c61f65946b5041d67244e3b13b0e24"
         },
         {
           "path": "client/dist/messages.d.ts",
@@ -97,7 +97,7 @@
         },
         {
           "path": "client/dist/public-api.d.ts",
-          "sha256": "5f428eeb2b53a82b68a88b8e84f92b579bb0352d09b749c5b48e66f8ceea4e33"
+          "sha256": "7f251fb13ca95572d94d9fef33a570b858efa37bb620cb8b02550a72a9169ea9"
         },
         {
           "path": "client/dist/public-billing-contracts.d.ts",
@@ -116,6 +116,10 @@
           "sha256": "4b3d0073141ad4734cb4e2d05f8e7e1e98176a4c0606a8bcdd498ca24ac4d411"
         },
         {
+          "path": "client/dist/public-memory-contracts.d.ts",
+          "sha256": "c00b0eaebf508aaf8e437faa799834578fa0c7fc4595a899fcb6c768d2e87e8a"
+        },
+        {
           "path": "client/dist/public-state-contracts.d.ts",
           "sha256": "32689d48fc7854daef305b1763a8741173718e14cd8baab0af46c7c8cb98aa9d"
         },
@@ -129,7 +133,7 @@
         },
         {
           "path": "client/dist/response-schemas.d.ts",
-          "sha256": "0217a130bc200879a2ad9f38504c9c141cd9e030701e33caf849530352dea529"
+          "sha256": "acdb84ff34c5d2bb7b0df2cf237563ccfbadc455c5df38e4bcbf8296c4ba5fea"
         },
         {
           "path": "client/dist/route-map.d.ts",
@@ -151,7 +155,7 @@
       "files": [
         {
           "path": "react/dist/index.d.ts",
-          "sha256": "8e34ee0a1c2616f184ea2378d29536d835e5741be94477fab84ec4b7173494d6"
+          "sha256": "34eddc186f97f0bbb8c2c0a0d4e975bfcfc82bebb88490634d167f9164801653"
         }
       ]
     }

@@ -124,7 +124,10 @@ const controlPlaneDefinition: Omit<ControlPlaneRuntimeModule, "apiVersion" | "ki
   packId: "complex-operator",
   runtimeVersion: "1.2.3",
   compatiblePackVersions: "^1.1.0",
-  requirements: { minimumBackendVersion: "2.0.0", capabilities: ["workflow.request"] },
+  requirements: {
+    minimumBackendVersion: "2.0.0",
+    capabilities: ["workflow.request", "memory.recall"],
+  },
   tools: [
     {
       id: "operator.signal.read",
@@ -375,6 +378,13 @@ const controlPlaneDefinition: Omit<ControlPlaneRuntimeModule, "apiVersion" | "ki
           status: "review",
           summary: "Deterministic observation completed.",
           data: report,
+        });
+        // The conclusion outlives this run: later chat turns recall it as memory.
+        await context.memory?.remember({
+          kind: "conclusion",
+          key: `observation:${subject}`,
+          title: `Observed ${subject}: ${String(signal.output.signal)}`,
+          content: { subject, signal: signal.output.signal, status: snapshot.output.status },
         });
         return {
           ok: true,
