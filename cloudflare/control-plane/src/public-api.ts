@@ -3,6 +3,7 @@ import { compiledWorkbenchVersion } from "../../../generated/agent-runtime/platf
 import { WorkbenchAuthError } from "../../../lib/workbench/agent-identity-types";
 import { withCors } from "./cors";
 import { json, type ControlPlaneAuthContext } from "./http";
+import { handleMcp } from "./mcp";
 import { authenticatePublicApi, publicApiCommandRequest } from "./public-api-auth";
 import type { Env } from "./types";
 import { agentRevisionConflict } from "./agent-execution-revisions";
@@ -49,6 +50,17 @@ export const handlePublicApi = async (
         )
       )
         throw new WorkbenchAuthError("Invalid target", 400);
+      if (operation === "/mcp") {
+        response = await handleMcp({ request, env, principal, context, target, dispatch });
+        const headers = new Headers(response.headers);
+        headers.set("x-request-id", requestId);
+        headers.set("cache-control", "no-store");
+        return withCors(
+          new Response(response.body, { status: response.status, headers }),
+          request,
+          env,
+        );
+      }
       let commandSource = request;
       const actionContract = findPublicActionContract(request.method, operation ?? "");
       if (
@@ -110,6 +122,12 @@ export const handlePublicApi = async (
   } catch (error) {
     const known = error instanceof WorkbenchAuthError;
     const conflict = agentRevisionConflict(error);
+    const mcpChallenge: Record<string, string> =
+      known && error.status === 401 && new URL(request.url).pathname.endsWith("/mcp")
+        ? {
+            "www-authenticate": `Bearer resource_metadata="${new URL(request.url).origin}/.well-known/oauth-protected-resource"`,
+          }
+        : {};
     const fenced =
       !known && error instanceof Error && error.message.includes("workspace_export_in_progress");
     response = fenced
@@ -129,7 +147,7 @@ export const handlePublicApi = async (
             code: conflict?.code ?? (known ? `http_${error.status}` : "internal_error"),
             error: conflict?.error ?? (known ? error.message : "Public API request failed"),
           },
-          { status: conflict ? 409 : known ? error.status : 500 },
+          { status: conflict ? 409 : known ? error.status : 500, headers: mcpChallenge },
         );
   }
   const headers = new Headers(response.headers);

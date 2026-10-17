@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { applyBillingEvent, handleBilling, handleBillingWebhookIngress } from "./billing";
+import {
+  applyBillingEvent,
+  handleBilling,
+  handleBillingWebhookIngress,
+  reportDailyBillingUsage,
+} from "./billing";
 import {
   clampLimitsToPlan,
   entitlementsFor,
@@ -481,6 +486,65 @@ describe("billing routes", () => {
       status: 409,
       body: { code: "billing_day_open" },
     });
+  });
+
+  it("reports yesterday for every workspace with usage on the scheduler tick", async () => {
+    const runtime = createPackTestRuntime({ packId: "operloom", users: ["user", "other"] });
+    const identity = runtime.identity();
+    const insert = runtime.db.prepare(
+      `INSERT INTO control_resource_reservations (id,user_id,workspace_id,agent_id,run_id,run_kind,budget_run_id,budget_run_kind,request_hash,kind,
+         estimated_input_tokens,reserved_tokens,input_tokens,output_tokens,status,usage_source,day,created_at,expires_at,
+         agent_revision,pack_id,operation_key,policy_version,preconditions_met)
+       VALUES (?,?,?,?,?,'workflow',?,'workflow',?,'model',5,10,5,5,'settled','provider',?,'now','later',0,'operloom',?,1,1)`,
+    );
+    const now = new Date("2026-03-02T04:00:00.000Z");
+    insert.run(
+      "r1",
+      "user",
+      identity.scope.workspaceId,
+      identity.agentId,
+      "run",
+      "run",
+      "h1",
+      "2026-03-01",
+      "op-1",
+    );
+    insert.run("r2", "other", "ws-other", "agent-other", "run", "run", "h2", "2026-03-01", "op-2");
+    insert.run(
+      "r3",
+      "user",
+      identity.scope.workspaceId,
+      identity.agentId,
+      "run",
+      "run",
+      "h3",
+      "2026-03-02",
+      "op-3",
+    );
+    expect(await reportDailyBillingUsage(runtime.env, now)).toEqual({
+      day: "2026-03-01",
+      selected: 2,
+      reported: 2,
+    });
+    expect(await reportDailyBillingUsage(runtime.env, now)).toEqual({
+      day: "2026-03-01",
+      selected: 0,
+      reported: 0,
+    });
+    const rows = runtime.db
+      .prepare(
+        "SELECT workspace_id, day, status, tokens FROM control_billing_usage_reports ORDER BY workspace_id",
+      )
+      .all();
+    expect(rows).toEqual([
+      { workspace_id: "ws-other", day: "2026-03-01", status: "skipped", tokens: 10 },
+      {
+        workspace_id: identity.scope.workspaceId,
+        day: "2026-03-01",
+        status: "skipped",
+        tokens: 10,
+      },
+    ]);
   });
 
   it("gates features by plan", async () => {

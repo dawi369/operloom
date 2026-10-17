@@ -1,0 +1,69 @@
+name: Release gates
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Nightly at 03:17 UTC so a broken gate is noticed before the next working day.
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Security audit and production build
+        run: pnpm verify:security && pnpm build
+        env:
+          SENTRY_AUTH_TOKEN: ""
+      - name: Portable frontend contract
+        run: pnpm conformance:client
+      - name: Production Docker boundary
+        run: pnpm verify:docker
+
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: sudo apt-get update && sudo apt-get install --yes ripgrep
+      - run: pnpm conformance:level2
+      - run: pnpm conformance:agent-system
+      - run: pnpm conformance:data-lifecycle
+      - run: pnpm conformance:connections
+      - run: pnpm conformance:actions
+      - run: pnpm conformance:level3
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-failure-evidence
+          if-no-files-found: ignore
+          path: |
+            output/conformance
+            output/playwright
+            cloudflare/control-plane/.wrangler/logs

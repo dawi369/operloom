@@ -54,6 +54,7 @@ export const authenticatePublicApi = async (
         membershipRole: "owner",
         membershipRoles: ["owner"],
         verifiedAuthenticationTime: Date.now(),
+        clientId: "local-api",
       },
     };
   }

@@ -112,7 +112,7 @@ deferred.
 | C28 | Web console as a `/v1` client                                                                                     | Done    | x   | x   |                                                                                                                                                                          |
 | C29 | Headless `/v1`, `@operloom/client`, `@operloom/react`                                                             | Done    | x   | x   |                                                                                                                                                                          |
 | C30 | Mobile shell                                                                                                      | Partial | x   | x   | `apps/mobile` Expo shell on `@operloom/client` (`target: "control-plane"`): WorkOS PKCE sign-in, chat, approvals, workspace switch. Push and store builds pending (W10). |
-| C31 | MCP adapter (OAuth, allowlist, MCP Apps widgets) for ChatGPT and Claude apps                                      | Missing | x   |     | See W7.                                                                                                                                                                  |
+| C31 | MCP adapter (OAuth, allowlist, MCP Apps widgets) for ChatGPT and Claude apps                                      | Done    | x   |     | `/v1/me/mcp` Streamable HTTP server: workflows and queries as tools, WorkOS bearer plus client allowlist, renderer kind in `_meta` (W7).                                 |
 | C32 | Billing and entitlements                                                                                          | Done    | x   | x   | Plans as budget ceilings and feature sets; manual and Stripe modules (W8).                                                                                               |
 | C33 | Signed heavy-tool runner (Fly transport), `runner.ts` in every package                                            | Done    | x   | x   | Same schemas, policy, budgets and receipts as inline tools; optional per pack.                                                                                           |
 | C34 | Runner recipes: headless browser, container or binary execution, document and repository processing, local parity | Missing | x   | x   | Packs write these from scratch today; `repo.snapshot` is the only example. See W11.                                                                                      |
@@ -242,6 +242,6 @@ A fork chooses its subset without touching platform code:
 
 Gaps found in a fork are built here as generic workstreams and merged down.
 Executable specs for W1–W6, W8, W10 and W11 are in
-[plans/platform-workstreams.md](plans/platform-workstreams.md); W7 and W9
-wait for a later series. See
+[plans/platform-workstreams.md](plans/platform-workstreams.md); W7 shipped as a
+follow-up to that series and W9 waits for the legal read. See
 [forking](forking.md) and [agent packs](agent-packs.md).

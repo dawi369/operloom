@@ -155,6 +155,9 @@ export const publicApiRoutes = [
   ["GET", "/events"],
   ["GET", "/events/latest"],
   ["GET", "/events/stream"],
+  ["POST", "/mcp"],
+  ["GET", "/mcp"],
+  ["DELETE", "/mcp"],
 ] as const;
 
 export const matchesPublicApiRoute = (method: string, path: string) =>

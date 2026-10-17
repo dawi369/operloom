@@ -153,6 +153,22 @@ Convenience methods cover common reads and export submission. Existing role
 requirements and feature gates still apply. Export download is a binary HTTP
 response and should be fetched with the authenticated URL directly.
 
+### MCP adapter
+
+`POST /v1/me/mcp` (or the explicit workspace and agent scope) serves the active
+agent as an MCP server over Streamable HTTP, stateless: `initialize`, `ping`,
+`tools/list` and `tools/call`. Every user-invocable workflow becomes
+`workflow_<type>` and every query `query_<id>`; a call runs the same
+`/workbench/workflows/{type}` or `/queries/{id}` operation the console uses,
+so policy, budgets, approvals and history apply unchanged. Results carry
+`structuredContent` plus `_meta["operloom/renderer"]` (the artifact kind) so
+an MCP Apps widget can reuse the pack's data-only renderers. Authentication
+is the same WorkOS bearer as the rest of `/v1`; the token's client id must
+also appear in `OPERLOOM_MCP_ALLOWED_CLIENT_IDS`. Unauthenticated calls get a
+`WWW-Authenticate` challenge pointing at
+`/.well-known/oauth-protected-resource`, which names the WorkOS issuer so
+ChatGPT and Claude connectors can complete OAuth on their own.
+
 ### Console client against the Worker
 
 `createWorkbenchClient` and `createWorkbenchRealtimeAdapter` default to the

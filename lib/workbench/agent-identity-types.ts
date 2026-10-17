@@ -11,6 +11,8 @@ export type WorkbenchAgentIdentity = {
   sessionId?: Id;
   /** Signed identity-provider auth_time; never supplied by a client body. */
   verifiedAuthenticationTime?: number;
+  /** OAuth client that minted the token; `local-api` for the loopback token. */
+  clientId?: string;
   userEmail?: string;
   userName?: string;
   membershipRole?: string;

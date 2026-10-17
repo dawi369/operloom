@@ -333,6 +333,58 @@ test.describe.serial("Agent-system executable conformance", () => {
       code: "console_only_operation",
     });
 
+    // MCP exposes the same workflows as tools behind the same bearer and a client allowlist.
+    const mcpUrl = `${workerOrigin}/v1/workspaces/${encodeURIComponent(worker.workspaceId)}/agents/${encodeURIComponent(worker.agentId)}/mcp`;
+    const rpc = (body: unknown, headers: Record<string, string> = {}) =>
+      request.post(mcpUrl, {
+        data: body,
+        headers: {
+          authorization: "Bearer e2e-control-plane-token",
+          "x-operloom-local-user": e2eOwner,
+          ...headers,
+        },
+      });
+    const unauthenticated = await request.post(mcpUrl, {
+      data: { jsonrpc: "2.0", id: 0, method: "ping" },
+    });
+    expect(unauthenticated.status()).toBe(401);
+    expect(unauthenticated.headers()["www-authenticate"]).toContain("oauth-protected-resource");
+    const metadata = await request.get(`${workerOrigin}/.well-known/oauth-protected-resource`);
+    expect(await metadata.json()).toMatchObject({ resource: `${workerOrigin}/v1/me/mcp` });
+    const initialized = await rpc({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: { protocolVersion: "2025-06-18" },
+    });
+    expect(initialized.status(), await initialized.text()).toBe(200);
+    expect(await initialized.json()).toMatchObject({
+      result: { serverInfo: { name: "operloom" } },
+    });
+    const tools = (await (await rpc({ jsonrpc: "2.0", id: 2, method: "tools/list" })).json()) as {
+      result: { tools: Array<{ name: string }> };
+    };
+    expect(tools.result.tools.map((tool) => tool.name)).toContain(
+      "workflow_complex-operator_observe",
+    );
+    const observed = (await (
+      await rpc({
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: { name: "workflow_complex-operator_observe", arguments: { subject: "mcp" } },
+      })
+    ).json()) as {
+      result: {
+        isError: boolean;
+        structuredContent: Record<string, unknown>;
+        _meta: Record<string, string>;
+      };
+    };
+    expect(observed.result.isError).toBe(false);
+    expect(observed.result.structuredContent).toMatchObject({ signal: { signal: "nominal" } });
+    expect(observed.result._meta["operloom/renderer"]).toBe("complex_operator_report");
+
     // Plans are a budget ceiling: an admin cannot raise limits past the plan, and a manual
     // plan change moves the ceiling.
     const billing = await worker.get("/workbench/billing");

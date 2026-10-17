@@ -97,7 +97,7 @@
         },
         {
           "path": "client/dist/public-api.d.ts",
-          "sha256": "fc1642c4c8e70a3db66753f3bafc0f7af65a3d31967afc033019507656a2b737"
+          "sha256": "5f428eeb2b53a82b68a88b8e84f92b579bb0352d09b749c5b48e66f8ceea4e33"
         },
         {
           "path": "client/dist/public-billing-contracts.d.ts",

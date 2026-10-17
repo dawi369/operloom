@@ -97,7 +97,7 @@ const main = async () => {
       2,
     )}\n`,
   );
-  run("pnpm", ["install", "--ignore-workspace", "--offline"], consumer);
+  run("pnpm", ["install", "--ignore-workspace", "--prefer-offline"], consumer);
 
   writeFileSync(
     resolve(consumer, "consumer.mjs"),

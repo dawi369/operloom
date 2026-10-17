@@ -10,13 +10,29 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dawi369.operloom",
-      "infoPlist": { "ITSAppUsesNonExemptEncryption": false }
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.dawi369.operloom",
-      "adaptiveIcon": { "backgroundColor": "#f7f5ef" }
+      "adaptiveIcon": {
+        "backgroundColor": "#f7f5ef"
+      }
     },
-    "plugins": ["expo-router", "expo-secure-store", "expo-web-browser"],
-    "experiments": { "typedRoutes": true }
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "workbench"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

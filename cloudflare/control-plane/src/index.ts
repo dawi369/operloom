@@ -135,7 +135,8 @@ import {
   handleRetryWebhookDelivery,
 } from "./webhooks";
 import { handleTriggerWebhookIngress } from "./trigger-webhook";
-import { handleBilling, handleBillingWebhookIngress } from "./billing";
+import { handleBilling, handleBillingWebhookIngress, reportDailyBillingUsage } from "./billing";
+import { mcpProtectedResourceMetadata } from "./mcp";
 import {
   handleCreateTrigger,
   handleCreateTriggerDispatch,
@@ -205,6 +206,8 @@ const handleRequest = async (
     return handleDurableDeploymentProbe(request, env);
   if (url.pathname.startsWith("/v1/"))
     return handlePublicApi(request, env, (command, auth) => handleRequest(command, env, ctx, auth));
+  if (request.method === "GET" && url.pathname.startsWith("/.well-known/oauth-protected-resource"))
+    return withCors(json(mcpProtectedResourceMetadata(url.origin, env)), request, env);
 
   if (request.method === "GET" && url.pathname === "/health/live") {
     return json({
@@ -1040,6 +1043,7 @@ export default Sentry.withSentry<Env>(
           deliverDurableApprovalWakes(env),
           expireActionReviews(env),
           sweepProviderOperationPayloads(env),
+          reportDailyBillingUsage(env, new Date(controller.scheduledTime)),
         ]),
       );
     },

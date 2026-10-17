@@ -10,24 +10,23 @@ permissions:
   contents: read
 
 concurrency:
-  group: verify-${{ github.workflow }}-${{ github.ref }}
+  group: verify-${{ github.ref }}
   cancel-in-progress: true
 
+# Development posture: one fast job per push. Browser conformance, Docker and the
+# production build run in release-gates.yml on demand or nightly.
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 12
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.33.0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -35,15 +34,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify repository
-        run: pnpm verify
+      - name: Verify (typecheck, lint, unit tests, contracts, migrations)
+        run: pnpm verify:fast
         env:
           SENTRY_AUTH_TOKEN: ""
 
-      - name: Verify portable frontend contract
-        run: pnpm conformance:client
-
-      - name: Upload SDK and extension failure evidence
+      - name: Upload failure evidence
         if: failure()
         uses: actions/upload-artifact@v7
         with:
@@ -54,88 +50,3 @@ jobs:
             output/extension-contract
             output/sdk-consumer
             output/client-consumer
-
-  docker:
-    needs: verify
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10.33.0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Verify production Docker boundary
-        run: pnpm verify:docker
-
-  browser:
-    needs: verify
-    runs-on: ubuntu-24.04
-    # Full conformance takes about 15 minutes; allow headroom for hosted-runner variance.
-    timeout-minutes: 20
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10.33.0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Install runner dependencies
-        run: sudo apt-get update && sudo apt-get install --yes ripgrep
-
-      - name: Verify Level 2 conformance
-        run: pnpm conformance:level2
-
-      - name: Verify agent extension system
-        run: pnpm conformance:agent-system
-
-      - name: Verify customer data lifecycle
-        run: pnpm conformance:data-lifecycle
-
-      - name: Verify connection brokerage
-        run: pnpm conformance:connections
-
-      - name: Verify mutation authority
-        run: pnpm conformance:actions
-
-      - name: Verify Level 3 conformance
-        run: pnpm conformance:level3
-
-      - name: Upload browser failure evidence
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: browser-failure-evidence
-          if-no-files-found: ignore
-          path: |
-            output/conformance
-            output/playwright
-            output/extension-contract
-            output/sdk-consumer
-            cloudflare/control-plane/.wrangler/logs

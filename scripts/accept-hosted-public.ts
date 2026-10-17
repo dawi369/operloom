@@ -36,6 +36,46 @@ const readHealth = async (origin: string, path: string, expectedService: string)
   };
 };
 
+/** Unauthenticated probes of the new public surfaces: they must refuse, never leak, never 500. */
+const readPublicSurface = async (origin: string) => {
+  const probe = async (path: string, init: RequestInit, expectedStatuses: number[]) => {
+    const response = await fetch(`${origin}${path}`, {
+      ...init,
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!expectedStatuses.includes(response.status))
+      throw new Error(
+        `${path} answered HTTP ${response.status}, expected ${expectedStatuses.join("/")}`,
+      );
+    return { path, status: response.status };
+  };
+  const metadata = await fetch(`${origin}/.well-known/oauth-protected-resource`, {
+    signal: AbortSignal.timeout(10_000),
+  });
+  const body = (await metadata.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!metadata.ok || body?.resource !== `${origin}/v1/me/mcp`)
+    throw new Error("MCP protected-resource metadata is missing or points elsewhere");
+  const challenge = await fetch(`${origin}/v1/me/mcp`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (
+    challenge.status !== 401 ||
+    !challenge.headers.get("www-authenticate")?.includes("resource_metadata")
+  )
+    throw new Error(`MCP without a bearer answered HTTP ${challenge.status} without a challenge`);
+  return [
+    { path: "/.well-known/oauth-protected-resource", status: metadata.status },
+    { path: "/v1/me/mcp", status: challenge.status },
+    await probe("/v1/me/workbench/billing", {}, [401]),
+    // Unsigned billing webhooks are refused; a manual provider has no ingress at all.
+    await probe("/billing-ingress/stripe", { method: "POST", body: "{}" }, [401, 404]),
+    await probe("/v1/openapi.json", {}, [200]),
+  ];
+};
+
 const main = async () => {
   const web = requiredOrigin("HOSTED_WEB_ORIGIN");
   const cloudflare = requiredOrigin("HOSTED_CLOUDFLARE_ORIGIN");
@@ -48,6 +88,7 @@ const main = async () => {
     await readHealth(fly, "/health/live", "operloom-runner"),
     await readHealth(fly, "/health", "operloom-runner"),
   ];
+  const surfaces = await readPublicSurface(cloudflare);
   const commit = process.env.GITHUB_SHA?.trim() ?? "";
   const report = {
     schemaVersion: 1,
@@ -56,6 +97,7 @@ const main = async () => {
     generatedAt: new Date().toISOString(),
     ok: true,
     checks,
+    surfaces,
     serviceVersions: Object.fromEntries(
       checks.map((check) => [String(check.service), String(check.release)]),
     ),

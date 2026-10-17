@@ -106,11 +106,11 @@ export const verifyWorkbenchAccessToken = async (
         ? await jwtVerify(token, keyOverride, verificationOptions)
         : await jwtVerify(token, keyOverride ?? remoteKey, verificationOptions);
     const claims = payload as AccessTokenClaims;
-    const allowedClient =
+    const clientId =
       typeof claims.client_id === "string"
-        ? config.allowedClientIds.has(claims.client_id)
-        : [...tokenAudiences(claims)].some((audience) => config.allowedClientIds.has(audience));
-    if (!allowedClient) {
+        ? claims.client_id
+        : [...tokenAudiences(claims)].find((audience) => config.allowedClientIds.has(audience));
+    if (!clientId || !config.allowedClientIds.has(clientId)) {
       throw new WorkbenchAuthError("Client is not allowed", 401);
     }
     if (typeof claims.sub !== "string" || !claims.sub.trim()) {
@@ -135,6 +135,7 @@ export const verifyWorkbenchAccessToken = async (
       accountSource,
       workspaceSource: accountSource,
       organizationId,
+      clientId,
       sessionId: typeof claims.sid === "string" ? claims.sid : undefined,
       ...(typeof claims.auth_time === "number" &&
       Number.isFinite(claims.auth_time) &&

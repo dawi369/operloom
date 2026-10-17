@@ -2,6 +2,7 @@ import {
   useActivateAgent,
   useActivateWorkspace,
   useWorkbenchAgents,
+  useWorkbenchClient,
   useWorkbenchSession,
   useWorkbenchWorkspaces,
 } from "@operloom/react";
@@ -10,6 +11,7 @@ import { Pressable, Text, View } from "react-native";
 import { useMobileAuth } from "../../src/auth/auth-provider";
 import { Screen } from "../../src/components/screen";
 import { mobileConfig } from "../../src/config";
+import { revokeDeviceDelivery } from "../../src/notifications/device-delivery";
 import { colors } from "../../src/theme";
 
 const Row = ({ label, active, onPress }: { label: string; active: boolean; onPress(): void }) => (
@@ -30,6 +32,7 @@ const Row = ({ label, active, onPress }: { label: string; active: boolean; onPre
 
 export default function SettingsScreen() {
   const auth = useMobileAuth();
+  const client = useWorkbenchClient();
   const session = useWorkbenchSession();
   const workspaceId = session.data?.workspace?.id ?? null;
   const workspaces = useWorkbenchWorkspaces();
@@ -64,7 +67,7 @@ export default function SettingsScreen() {
         </View>
         <Pressable
           accessibilityRole="button"
-          onPress={() => void auth.signOut()}
+          onPress={() => void revokeDeviceDelivery(client).finally(() => auth.signOut())}
           style={{ borderColor: colors.danger, borderWidth: 1, borderRadius: 12, padding: 12 }}
         >
           <Text style={{ color: colors.danger, textAlign: "center", fontWeight: "600" }}>

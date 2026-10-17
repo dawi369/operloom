@@ -9,7 +9,7 @@ import {
   selectSubscription,
   type WorkspaceSubscription,
 } from "./billing-plans";
-import { billingProviderFor, type BillingEvent } from "./billing-provider";
+import { billingProviderFor, type BillingEvent, type BillingProvider } from "./billing-provider";
 import { json, parseJson } from "./http";
 import { createId, type AgentIdentity, type Env } from "./types";
 
@@ -95,6 +95,99 @@ const recordEvent = (
     JSON.stringify(data ?? {}),
     now,
   );
+
+type UsageReportRow = { id: string; status: string; provider: string; reportedAt: string | null };
+
+/** Idempotent per workspace and day; a replayed call returns the stored report. */
+export const reportUsageForDay = async (
+  env: Env,
+  provider: BillingProvider,
+  workspaceId: string,
+  day: string,
+  now: string,
+) => {
+  const existing = await env.DB.prepare(
+    "SELECT id,status,provider,reported_at reportedAt FROM control_billing_usage_reports WHERE workspace_id = ? AND day = ?",
+  )
+    .bind(workspaceId, day)
+    .first<UsageReportRow>();
+  if (existing && existing.status !== "pending")
+    return { ok: true as const, report: existing, replayed: true };
+  const [totals] = await dailyUsage(env, workspaceId, day, day);
+  const subscription = await selectSubscription(env, workspaceId);
+  const report = {
+    workspaceId,
+    day,
+    modelCalls: totals?.modelCalls ?? 0,
+    toolCalls: totals?.toolCalls ?? 0,
+    tokens: totals?.tokens ?? 0,
+    providerCustomerId: subscription?.providerCustomerId ?? null,
+  };
+  const outcome = await provider.reportUsage(report);
+  const status = outcome.accepted ? "reported" : "skipped";
+  const id = existing?.id ?? createId("usage-report");
+  await env.DB.prepare(
+    `INSERT INTO control_billing_usage_reports (id,workspace_id,day,provider,model_calls,tool_calls,tokens,status,provider_reference,reported_at,created_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?)
+     ON CONFLICT(workspace_id, day) DO UPDATE SET status=excluded.status,provider=excluded.provider,model_calls=excluded.model_calls,
+       tool_calls=excluded.tool_calls,tokens=excluded.tokens,provider_reference=excluded.provider_reference,reported_at=excluded.reported_at`,
+  )
+    .bind(
+      id,
+      workspaceId,
+      day,
+      provider.id,
+      report.modelCalls,
+      report.toolCalls,
+      report.tokens,
+      status,
+      outcome.reference,
+      outcome.accepted ? now : null,
+      now,
+    )
+    .run();
+  return {
+    ok: true as const,
+    report: {
+      id,
+      status,
+      provider: provider.id,
+      reportedAt: outcome.accepted ? now : null,
+      ...report,
+    },
+  };
+};
+
+/**
+ * Scheduler tick: reports yesterday for every workspace that used resources and has no
+ * report yet. Bounded per tick; the unique (workspace, day) row makes retries safe.
+ */
+export const reportDailyBillingUsage = async (env: Env, now: Date, limit = 50) => {
+  const provider = billingProviderFor(env, billingCatalog.plans);
+  const day = new Date(now.getTime() - 24 * 60 * 60_000).toISOString().slice(0, 10);
+  const rows = await env.DB.prepare(
+    `SELECT DISTINCT r.workspace_id workspaceId FROM control_resource_reservations r
+     WHERE r.day = ? AND NOT EXISTS (
+       SELECT 1 FROM control_billing_usage_reports u WHERE u.workspace_id = r.workspace_id AND u.day = ? AND u.status <> 'pending'
+     ) LIMIT ?`,
+  )
+    .bind(day, day, limit)
+    .all<{ workspaceId: string }>();
+  let reported = 0;
+  for (const row of rows.results ?? []) {
+    try {
+      await reportUsageForDay(env, provider, row.workspaceId, day, now.toISOString());
+      reported += 1;
+    } catch (error) {
+      console.warn("billing.usage_report_failed", {
+        workspaceId: row.workspaceId,
+        day,
+        error: String(error),
+      });
+    }
+  }
+  return { day, selected: rows.results?.length ?? 0, reported };
+};
 
 export const handleBilling = async (request: Request, env: Env, identity: AgentIdentity) => {
   const url = new URL(request.url);
@@ -260,56 +353,8 @@ export const handleBilling = async (request: Request, env: Env, identity: AgentI
           { ok: false, code: "billing_day_open", error: "Only completed days are reported." },
           { status: 409 },
         );
-      const existing = await env.DB.prepare(
-        "SELECT id,status,provider,reported_at reportedAt FROM control_billing_usage_reports WHERE workspace_id = ? AND day = ?",
-      )
-        .bind(workspaceId, day)
-        .first<{ id: string; status: string; provider: string; reportedAt: string | null }>();
-      if (existing && existing.status !== "pending")
-        return json({ ok: true, report: existing, replayed: true });
-      const [totals] = await dailyUsage(env, workspaceId, day, day);
-      const subscription = await selectSubscription(env, workspaceId);
-      const report = {
-        workspaceId,
-        day,
-        modelCalls: totals?.modelCalls ?? 0,
-        toolCalls: totals?.toolCalls ?? 0,
-        tokens: totals?.tokens ?? 0,
-        providerCustomerId: subscription?.providerCustomerId ?? null,
-      };
-      const outcome = await provider.reportUsage(report);
-      const status = outcome.accepted ? "reported" : "skipped";
-      const id = existing?.id ?? createId("usage-report");
-      await env.DB.prepare(
-        `INSERT INTO control_billing_usage_reports (id,workspace_id,day,provider,model_calls,tool_calls,tokens,status,provider_reference,reported_at,created_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?)
-         ON CONFLICT(workspace_id, day) DO UPDATE SET status=excluded.status,provider=excluded.provider,model_calls=excluded.model_calls,
-           tool_calls=excluded.tool_calls,tokens=excluded.tokens,provider_reference=excluded.provider_reference,reported_at=excluded.reported_at`,
-      )
-        .bind(
-          id,
-          workspaceId,
-          day,
-          provider.id,
-          report.modelCalls,
-          report.toolCalls,
-          report.tokens,
-          status,
-          outcome.reference,
-          outcome.accepted ? now : null,
-          now,
-        )
-        .run();
-      return json({
-        ok: true,
-        report: {
-          id,
-          status,
-          provider: provider.id,
-          reportedAt: outcome.accepted ? now : null,
-          ...report,
-        },
-      });
+      const outcome = await reportUsageForDay(env, provider, workspaceId, day, now);
+      return json(outcome);
     }
     return json({ ok: false, code: "not_found", error: "Not found" }, { status: 404 });
   } catch (error) {

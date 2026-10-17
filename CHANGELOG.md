@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- MCP adapter (W7): `POST /v1/me/mcp` serves the active agent's user-invocable
+  workflows and queries as MCP tools over stateless Streamable HTTP, behind the
+  WorkOS bearer and `OPERLOOM_MCP_ALLOWED_CLIENT_IDS`; results carry the pack's
+  renderer kind in `_meta`, and `/.well-known/oauth-protected-resource`
+  publishes the authorization server for ChatGPT and Claude connectors.
+- Mobile push: `apps/mobile` registers the install with `/workbench/devices`
+  after sign-in, revokes it on sign-out and routes notification taps to the
+  approvals or chat tab.
+- Daily usage reports now run on the scheduler tick for every workspace that
+  used resources the previous day (idempotent per workspace and day).
+- CI: one fast `verify:fast` job per push; browser conformance, Docker and the
+  production build moved to `release-gates.yml` (manual or nightly). The SDK
+  consumer check uses `--prefer-offline` so a cold pnpm cache no longer fails
+  it. Removed six unused `@radix-ui/*` packages.
 - Cleanup: removed orphaned modules the runtime v2 and series work made dead
   (the pre-Durable-Object `cloudflare-chat-runtime`, the console tool registry,
   the mobile access-token shim, two unused workbench components and two
