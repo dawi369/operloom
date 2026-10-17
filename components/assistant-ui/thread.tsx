@@ -373,29 +373,33 @@ const ComposerSlashCommandPopover: FC<{
       <ComposerPrimitive.Unstable_TriggerPopover.Action {...slash.action} />
       <ComposerPrimitive.Unstable_TriggerPopoverItems>
         {(items) =>
-          items.map((item, index) => {
-            const command = commands.find((entry) => entry.id === item.id);
-            const Icon = command?.icon;
+          items.length === 0 ? (
+            <div className="text-muted-foreground px-2.5 py-2 text-xs">No matching command</div>
+          ) : (
+            items.map((item, index) => {
+              const command = commands.find((entry) => entry.id === item.id);
+              const Icon = command?.icon;
 
-            return (
-              <ComposerPrimitive.Unstable_TriggerPopoverItem
-                key={item.id}
-                item={item}
-                index={index}
-                className="data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground flex w-full items-start gap-2 rounded-md px-2.5 py-2 text-left text-sm outline-none"
-              >
-                {Icon ? <Icon className="text-muted-foreground mt-0.5 size-4 shrink-0" /> : null}
-                <span className="min-w-0 flex-1">
-                  <span className="block font-medium">{item.label}</span>
-                  {item.description ? (
-                    <span className="text-muted-foreground mt-0.5 block text-xs">
-                      {item.description}
-                    </span>
-                  ) : null}
-                </span>
-              </ComposerPrimitive.Unstable_TriggerPopoverItem>
-            );
-          })
+              return (
+                <ComposerPrimitive.Unstable_TriggerPopoverItem
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  className="data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground flex w-full items-start gap-2 rounded-md px-2.5 py-2 text-left text-sm outline-none"
+                >
+                  {Icon ? <Icon className="text-muted-foreground mt-0.5 size-4 shrink-0" /> : null}
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium">{item.label}</span>
+                    {item.description ? (
+                      <span className="text-muted-foreground mt-0.5 block text-xs">
+                        {item.description}
+                      </span>
+                    ) : null}
+                  </span>
+                </ComposerPrimitive.Unstable_TriggerPopoverItem>
+              );
+            })
+          )
         }
       </ComposerPrimitive.Unstable_TriggerPopoverItems>
     </ComposerPrimitive.Unstable_TriggerPopover>
