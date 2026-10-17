@@ -69,6 +69,14 @@ function DialogContent({
       />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        // Radix would focus the first button, which paints a focus ring when the dialog was
+        // opened from the keyboard. Land focus on the container instead; Tab still reaches controls.
+        onOpenAutoFocus={(event) => {
+          props.onOpenAutoFocus?.(event);
+          if (event.defaultPrevented) return;
+          event.preventDefault();
+          (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
+        }}
         className={cn(
           "bg-card/97 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-xl border p-6 shadow-[0_28px_90px_-36px_rgb(15_31_36/0.48)] backdrop-blur-xl duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg",
           className,

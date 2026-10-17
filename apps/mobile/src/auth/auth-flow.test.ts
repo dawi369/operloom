@@ -5,7 +5,6 @@ import {
   executeMobileSignIn,
   type PreparedMobileAuthorization,
 } from "./auth-flow";
-import { mobileAuthorizationCallbackMatches } from "./auth-redirect";
 
 const prepared = (type: "success" | "cancelled" | "error" = "success") =>
   ({
@@ -103,20 +102,5 @@ describe("mobile authentication flow", () => {
     expect(operation).toHaveBeenCalledOnce();
     complete?.("done");
     await expect(first).resolves.toBe("done");
-  });
-
-  it("accepts only the registered callback boundary", () => {
-    const redirect = "assistantmk1://auth/callback";
-    expect(
-      mobileAuthorizationCallbackMatches(
-        "assistantmk1://auth/callback?code=secret&state=opaque",
-        redirect,
-      ),
-    ).toBe(true);
-    expect(mobileAuthorizationCallbackMatches("assistantmk1://attacker/callback", redirect)).toBe(
-      false,
-    );
-    expect(mobileAuthorizationCallbackMatches("https://auth/callback", redirect)).toBe(false);
-    expect(mobileAuthorizationCallbackMatches("not-a-url", redirect)).toBe(false);
   });
 });

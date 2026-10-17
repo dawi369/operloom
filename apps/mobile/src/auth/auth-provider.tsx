@@ -15,6 +15,7 @@ import { createSingleFlight, type MobileAuthFailure } from "./auth-flow";
 import {
   refreshWorkosSession,
   signInWithWorkos,
+  type MobileSignInProvider,
   type StoredMobileSession,
 } from "./workos-mobile-auth";
 
@@ -27,7 +28,7 @@ type AuthContextValue = {
   error: MobileAuthFailure | null;
   configured: boolean;
   getAccessToken(input?: { minValidityMs?: number }): Promise<string | null>;
-  signIn(): Promise<void>;
+  signIn(provider?: MobileSignInProvider): Promise<void>;
   signOut(): Promise<void>;
   clearError(): void;
 };
@@ -143,33 +144,36 @@ export function MobileAuthProvider({ children }: PropsWithChildren) {
     [refresh, session],
   );
 
-  const signIn = useCallback(async () => {
-    return signInFlight
-      .run(async () => {
-        const generation = ++authorityGeneration.current;
-        setOperation("signing-in");
-        setError(null);
-        const result = await signInWithWorkos({ persistSession: saveSession });
-        if (result.type === "signed-in" && authorityGeneration.current === generation) {
-          setSession(result.session);
-          setState("signed-in");
-        } else if (result.type === "failed") {
-          setError(result.failure);
-        }
-        setOperation("idle");
-      })
-      .catch(() => {
-        // The flow is intentionally total. This is a final UI boundary for programming errors.
-        const failure: MobileAuthFailure = {
-          stage: "authorization_request",
-          code: "request_failed",
-          message: "Sign-in could not be started. Please try again.",
-          retryable: true,
-        };
-        setError(failure);
-        setOperation("idle");
-      });
-  }, [signInFlight]);
+  const signIn = useCallback(
+    async (provider?: MobileSignInProvider) => {
+      return signInFlight
+        .run(async () => {
+          const generation = ++authorityGeneration.current;
+          setOperation("signing-in");
+          setError(null);
+          const result = await signInWithWorkos({ provider, persistSession: saveSession });
+          if (result.type === "signed-in" && authorityGeneration.current === generation) {
+            setSession(result.session);
+            setState("signed-in");
+          } else if (result.type === "failed") {
+            setError(result.failure);
+          }
+          setOperation("idle");
+        })
+        .catch(() => {
+          // The flow is intentionally total. This is a final UI boundary for programming errors.
+          const failure: MobileAuthFailure = {
+            stage: "authorization_request",
+            code: "request_failed",
+            message: "Sign-in could not be started. Please try again.",
+            retryable: true,
+          };
+          setError(failure);
+          setOperation("idle");
+        });
+    },
+    [signInFlight],
+  );
 
   const signOut = useCallback(async () => {
     authorityGeneration.current += 1;

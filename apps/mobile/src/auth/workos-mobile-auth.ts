@@ -9,6 +9,9 @@ import {
 } from "./auth-flow";
 import { launchSystemAuthorization } from "./system-authorization";
 
+/** AuthKit provider hints; omit to show the hosted chooser with every enabled method. */
+export type MobileSignInProvider = "authkit" | "GoogleOAuth" | "AppleOAuth" | "GitHubOAuth";
+
 export type StoredMobileSession = {
   accessToken: string;
   refreshToken?: string;
@@ -38,6 +41,7 @@ const fromTokenResponse = (
 });
 
 export async function signInWithWorkos(input: {
+  provider?: MobileSignInProvider;
   persistSession(session: StoredMobileSession): Promise<void>;
   reportStage?(stage: MobileAuthStage): void;
   reportFailure?(failure: MobileAuthFailure): void;
@@ -51,6 +55,7 @@ export async function signInWithWorkos(input: {
         responseType: AuthSession.ResponseType.Code,
         scopes: ["openid", "profile", "email", "offline_access"],
         usePKCE: true,
+        extraParams: { provider: input.provider ?? "authkit" },
       });
       const url = await request.makeAuthUrlAsync(discovery);
       if (!request.codeVerifier) throw new Error("PKCE verifier was not created");
