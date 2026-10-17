@@ -59,7 +59,7 @@ const planView = (plan: (typeof billingCatalog.plans)[number]) => ({
   seats: plan.seats,
   limits: plan.limits,
   features: plan.features,
-  purchasable: Boolean(plan.providerPrices?.stripe),
+  purchasable: Boolean(plan.providerPrices?.stripe || plan.providerPrices?.polar),
 });
 
 const dailyUsage = async (env: Env, workspaceId: string, from: string, to: string) => {
@@ -394,7 +394,7 @@ export const applyBillingEvent = async (env: Env, event: BillingEvent) => {
       workspaceId: event.workspaceId,
       planId,
       status: event.status,
-      provider: "stripe",
+      provider: event.provider,
       providerCustomerId: event.providerCustomerId,
       providerSubscriptionId: event.providerSubscriptionId,
       currentPeriodEnd: event.currentPeriodEnd,

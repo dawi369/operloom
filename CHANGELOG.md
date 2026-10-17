@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Billing: Polar ships as a second provider module (merchant of record):
+  checkout, customer portal, Standard Webhooks verification and usage event
+  ingestion; `OPERLOOM_BILLING_PROVIDER=polar`. Migration 0006 widens the
+  subscription provider set.
 - MCP adapter (W7): `POST /v1/me/mcp` serves the active agent's user-invocable
   workflows and queries as MCP tools over stateless Streamable HTTP, behind the
   WorkOS bearer and `OPERLOOM_MCP_ALLOWED_CLIENT_IDS`; results carry the pack's

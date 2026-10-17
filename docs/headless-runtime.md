@@ -399,15 +399,21 @@ await client.billing.reportUsage({ day: "2026-01-31" });
 ```
 
 `OPERLOOM_BILLING_PROVIDER` selects the module: `manual` (default) lets an
-owner/admin assign plans directly; `stripe` uses `STRIPE_SECRET_KEY` for hosted
-checkout and the billing portal, matches plans by `providerPrices.stripe`, and
-verifies `Stripe-Signature` on `POST /billing-ingress/stripe` (forwarded by the
-console at `/api/billing-webhooks/stripe`) with `STRIPE_WEBHOOK_SECRET`.
-`checkout.session.completed`, `customer.subscription.updated` and
-`customer.subscription.deleted` update the subscription row; every other event
-is acknowledged and ignored. Daily usage reports aggregate settled reservations
-and are idempotent per workspace and day; the Stripe module posts them as meter
-events, the manual module records them as `skipped`.
+owner/admin assign plans directly. `polar` is the merchant-of-record option
+(Polar handles tax and invoicing): `POLAR_ACCESS_TOKEN` creates checkouts and
+customer-portal sessions, plans match by `providerPrices.polar` (a product id),
+and `POST /billing-ingress/polar` verifies Standard Webhooks headers with
+`POLAR_WEBHOOK_SECRET`; `subscription.*` events update the row, usage is
+ingested as `operloom_tokens` events keyed by the workspace as external
+customer. `stripe` uses `STRIPE_SECRET_KEY` for hosted checkout and the billing
+portal, matches plans by `providerPrices.stripe`, and verifies
+`Stripe-Signature` with `STRIPE_WEBHOOK_SECRET`; `checkout.session.completed`
+and `customer.subscription.updated|deleted` update the row and usage posts as
+meter events. The console forwards both at `/api/billing-webhooks/{provider}`.
+Daily usage reports aggregate settled reservations, run on the scheduler tick
+for the previous day and are idempotent per workspace and day; the manual
+module records them as `skipped`. Neither external module has been exercised
+against a live account yet.
 
 ## Experimental durable submission
 

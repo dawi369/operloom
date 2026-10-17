@@ -14,7 +14,14 @@ import {
   requireEntitlement,
   resolveEntitlements,
 } from "./billing-plans";
-import { hmacSha256Hex, mapStripeEvent, verifyStripeSignature } from "./billing-provider";
+import {
+  createPolarBillingProvider,
+  hmacSha256Hex,
+  mapPolarEvent,
+  mapStripeEvent,
+  verifyPolarSignature,
+  verifyStripeSignature,
+} from "./billing-provider";
 import { createPackTestRuntime } from "./pack-test-runtime";
 import { handleRuntimeBudgets } from "./runtime-usage";
 
@@ -197,6 +204,157 @@ describe("stripe provider", () => {
   });
 });
 
+describe("polar provider", () => {
+  const secret = "whsec_polar-test-secret";
+  const sign = async (id: string, timestamp: number, body: string) => {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode("polar-test-secret"),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const bytes = await crypto.subtle.sign(
+      "HMAC",
+      key,
+      new TextEncoder().encode(`${id}.${timestamp}.${body}`),
+    );
+    return btoa(String.fromCharCode(...new Uint8Array(bytes)));
+  };
+  const plans = loadBillingCatalog({
+    plans: [{ ...plan("team", 9), providerPrices: { polar: "prod_team" } }],
+  }).plans;
+
+  it("verifies Standard Webhooks signatures within tolerance", async () => {
+    const now = 1_700_000_000_000;
+    const timestamp = Math.floor(now / 1000);
+    const body = JSON.stringify({ type: "subscription.active", data: { id: "sub_1" } });
+    const signature = await sign("msg_1", timestamp, body);
+    const headers = (overrides: Record<string, string> = {}) =>
+      new Headers({
+        "webhook-id": "msg_1",
+        "webhook-timestamp": String(timestamp),
+        "webhook-signature": `v1,${signature}`,
+        ...overrides,
+      });
+    expect(await verifyPolarSignature(headers(), body, secret, now)).toBe(true);
+    expect(
+      await verifyPolarSignature(
+        headers({ "webhook-signature": `v1,bogus v1,${signature}` }),
+        body,
+        secret,
+        now,
+      ),
+    ).toBe(true);
+    expect(await verifyPolarSignature(headers(), body + " ", secret, now)).toBe(false);
+    expect(await verifyPolarSignature(headers({ "webhook-id": "msg_2" }), body, secret, now)).toBe(
+      false,
+    );
+    expect(await verifyPolarSignature(headers(), body, secret, now + 6 * 60_000)).toBe(false);
+    expect(await verifyPolarSignature(new Headers(), body, secret, now)).toBe(false);
+  });
+
+  it("maps subscription events by product id and workspace metadata", () => {
+    expect(
+      mapPolarEvent(
+        {
+          type: "subscription.active",
+          data: {
+            id: "sub_1",
+            status: "active",
+            product_id: "prod_team",
+            customer_id: "cus_1",
+            current_period_end: "2027-01-01T00:00:00Z",
+            metadata: { workspaceId: "ws-1" },
+          },
+        },
+        plans,
+      ),
+    ).toMatchObject({
+      type: "subscription.changed",
+      provider: "polar",
+      workspaceId: "ws-1",
+      planId: "team",
+      status: "active",
+      providerCustomerId: "cus_1",
+    });
+    expect(
+      mapPolarEvent(
+        {
+          type: "subscription.revoked",
+          data: { id: "sub_1", status: "active", customer: { id: "cus_1", external_id: "ws-2" } },
+        },
+        plans,
+      ),
+    ).toMatchObject({ status: "cancelled", workspaceId: "ws-2", planId: null });
+    expect(mapPolarEvent({ type: "order.created", data: { id: "o1" } }, plans)).toMatchObject({
+      type: "ignored",
+    });
+    expect(
+      mapPolarEvent({ type: "subscription.updated", data: { id: "sub_9" } }, plans),
+    ).toMatchObject({ type: "ignored", reason: "subscription_without_workspace" });
+  });
+
+  it("creates checkouts and portals and ingests usage through the Polar API", async () => {
+    const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+    const fetcher: typeof fetch = async (input, init) => {
+      calls.push({ url: String(input), body: JSON.parse(String(init?.body)) });
+      const url = String(input);
+      return Response.json(
+        url.endsWith("/checkouts/")
+          ? { url: "https://polar.sh/checkout/abc" }
+          : url.endsWith("/customer-sessions/")
+            ? { customer_portal_url: "https://polar.sh/portal/abc" }
+            : { inserted: 1 },
+      );
+    };
+    const provider = createPolarBillingProvider(
+      { POLAR_ACCESS_TOKEN: "polar_oat_test" },
+      plans,
+      fetcher,
+    );
+    expect(
+      await provider.createCheckout({
+        workspaceId: "ws-1",
+        plan: plans[0]!,
+        customerEmail: "a@b.c",
+        successUrl: "https://a/ok",
+        cancelUrl: "https://a/no",
+      }),
+    ).toEqual({ url: "https://polar.sh/checkout/abc" });
+    expect(calls[0]).toMatchObject({
+      url: "https://api.polar.sh/v1/checkouts/",
+      body: { products: ["prod_team"], external_customer_id: "ws-1", metadata: { planId: "team" } },
+    });
+    expect(
+      await provider.createPortal({ providerCustomerId: "cus_1", returnUrl: "https://a/x" }),
+    ).toEqual({ url: "https://polar.sh/portal/abc" });
+    expect(
+      await provider.reportUsage({
+        workspaceId: "ws-1",
+        day: "2026-01-01",
+        modelCalls: 1,
+        toolCalls: 2,
+        tokens: 30,
+        providerCustomerId: null,
+      }),
+    ).toEqual({
+      accepted: true,
+      reference: "ws-1:2026-01-01",
+    });
+    expect(calls[2]!.body).toMatchObject({
+      events: [{ name: "operloom_tokens", external_customer_id: "ws-1", metadata: { tokens: 30 } }],
+    });
+    const unconfigured = createPolarBillingProvider({}, plans, fetcher);
+    await expect(
+      unconfigured.createPortal({ providerCustomerId: "c", returnUrl: "https://a" }),
+    ).rejects.toMatchObject({ code: "billing_provider_unconfigured" });
+    expect(
+      await unconfigured.verifyWebhook(new Request("https://x", { method: "POST" }), "{}"),
+    ).toBeNull();
+  });
+});
+
 describe("billing routes", () => {
   const request = (path: string, init: RequestInit = {}) =>
     new Request(`https://runtime.test${path}`, {
@@ -325,6 +483,7 @@ describe("billing routes", () => {
     });
     await applyBillingEvent(runtime.env, {
       type: "subscription.changed",
+      provider: "stripe",
       workspaceId: identity.scope.workspaceId,
       planId: "free",
       status: "active",

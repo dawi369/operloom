@@ -8,6 +8,7 @@ import type { Env } from "./types";
 export type BillingEvent =
   | {
       type: "subscription.changed";
+      provider: Exclude<BillingProviderId, "manual">;
       workspaceId: string;
       planId: string | null;
       status: SubscriptionStatus;
@@ -139,6 +140,7 @@ export const mapStripeEvent = (event: unknown, plans: readonly BillingPlan[]): B
         return { type: "ignored", eventId, reason: "checkout_without_workspace" };
       return {
         type: "subscription.changed",
+        provider: "stripe",
         workspaceId,
         planId: string(metadata.planId),
         status: "active",
@@ -161,6 +163,7 @@ export const mapStripeEvent = (event: unknown, plans: readonly BillingPlan[]): B
       const priceId = string((first.price as Record<string, unknown> | undefined)?.id);
       return {
         type: "subscription.changed",
+        provider: "stripe",
         workspaceId,
         planId: planFromPrice(priceId) ?? string(metadata.planId),
         status:
@@ -273,7 +276,173 @@ export const createStripeBillingProvider = (
   };
 };
 
-export const billingProviderFor = (env: Env, plans: readonly BillingPlan[]): BillingProvider =>
-  env.OPERLOOM_BILLING_PROVIDER?.trim() === "stripe"
-    ? createStripeBillingProvider(env, plans)
-    : manualBillingProvider;
+const base64 = (bytes: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(bytes)));
+
+/**
+ * Polar signs with Standard Webhooks: base64 HMAC-SHA256 over `id.timestamp.body` under the
+ * `webhook-signature` header (`v1,<sig>` entries), bounded by `webhook-timestamp`.
+ */
+export const verifyPolarSignature = async (
+  headers: Headers,
+  rawBody: string,
+  secret: string,
+  now = Date.now(),
+  toleranceMs = 5 * 60_000,
+) => {
+  const id = headers.get("webhook-id");
+  const timestamp = Number(headers.get("webhook-timestamp"));
+  const signatures = (headers.get("webhook-signature") ?? "")
+    .split(" ")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.startsWith("v1,"))
+    .map((entry) => entry.slice(3));
+  if (!id || !Number.isFinite(timestamp) || signatures.length === 0) return false;
+  if (Math.abs(now - timestamp * 1000) > toleranceMs) return false;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret.replace(/^whsec_/, "")),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const expected = base64(
+    await crypto.subtle.sign("HMAC", key, encoder.encode(`${id}.${timestamp}.${rawBody}`)),
+  );
+  return signatures.some((signature) => constantTimeEqual(signature, expected));
+};
+
+const polarStatus = (status: unknown): SubscriptionStatus => {
+  switch (status) {
+    case "active":
+    case "trialing":
+      return "active";
+    case "past_due":
+    case "unpaid":
+    case "incomplete":
+      return "past_due";
+    default:
+      return "cancelled";
+  }
+};
+
+/** Maps a verified Polar event; plans are matched by product id, the workspace by metadata or external customer id. */
+export const mapPolarEvent = (event: unknown, plans: readonly BillingPlan[]): BillingEvent => {
+  const envelope = (event ?? {}) as Record<string, unknown>;
+  const type = String(envelope.type ?? "");
+  const eventId =
+    string((envelope.data as Record<string, unknown> | undefined)?.id) ?? `polar:${type}`;
+  const data = (envelope.data ?? {}) as Record<string, unknown>;
+  const metadata = (data.metadata ?? {}) as Record<string, unknown>;
+  const customer = (data.customer ?? {}) as Record<string, unknown>;
+  if (!type.startsWith("subscription."))
+    return { type: "ignored", eventId, reason: `unhandled_${type || "event"}` };
+  const workspaceId = string(metadata.workspaceId) ?? string(customer.external_id);
+  if (!workspaceId) return { type: "ignored", eventId, reason: "subscription_without_workspace" };
+  const productId =
+    string(data.product_id) ?? string((data.product as Record<string, unknown> | undefined)?.id);
+  const planId =
+    plans.find((plan) => plan.providerPrices?.polar === productId)?.id ?? string(metadata.planId);
+  const revoked = type === "subscription.revoked" || type === "subscription.canceled";
+  return {
+    type: "subscription.changed",
+    provider: "polar",
+    workspaceId,
+    planId,
+    status: revoked ? "cancelled" : polarStatus(data.status),
+    providerCustomerId: string(data.customer_id) ?? string(customer.id),
+    providerSubscriptionId: string(data.id),
+    currentPeriodEnd: typeof data.current_period_end === "string" ? data.current_period_end : null,
+    seats: null,
+    eventId,
+  };
+};
+
+export const createPolarBillingProvider = (
+  env: Pick<Env, "POLAR_ACCESS_TOKEN" | "POLAR_WEBHOOK_SECRET" | "POLAR_API_BASE_URL">,
+  plans: readonly BillingPlan[],
+  fetcher: typeof fetch = fetch,
+): BillingProvider => {
+  const accessToken = env.POLAR_ACCESS_TOKEN?.trim() ?? "";
+  const webhookSecret = env.POLAR_WEBHOOK_SECRET?.trim() ?? "";
+  const baseUrl = (env.POLAR_API_BASE_URL?.trim() || "https://api.polar.sh").replace(/\/$/, "");
+  const call = async (path: string, body: Record<string, unknown>) => {
+    if (!accessToken)
+      throw Object.assign(new Error("Polar is not configured."), {
+        code: "billing_provider_unconfigured",
+      });
+    const response = await fetcher(`${baseUrl}/v1${path}`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const parsed = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!response.ok)
+      throw Object.assign(new Error("Polar request failed."), {
+        code: `polar_http_${response.status}`,
+        status: 502,
+      });
+    return parsed;
+  };
+  return {
+    id: "polar",
+    async createCheckout(input) {
+      const product = input.plan.providerPrices?.polar;
+      if (!product) return null;
+      const session = await call("/checkouts/", {
+        products: [product],
+        success_url: input.successUrl,
+        external_customer_id: input.workspaceId,
+        ...(input.customerEmail ? { customer_email: input.customerEmail } : {}),
+        metadata: { workspaceId: input.workspaceId, planId: input.plan.id },
+      });
+      return typeof session.url === "string" ? { url: session.url } : null;
+    },
+    async createPortal(input) {
+      const session = await call("/customer-sessions/", { customer_id: input.providerCustomerId });
+      return typeof session.customer_portal_url === "string"
+        ? { url: session.customer_portal_url }
+        : null;
+    },
+    async verifyWebhook(request, rawBody) {
+      if (!webhookSecret || !(await verifyPolarSignature(request.headers, rawBody, webhookSecret)))
+        return null;
+      try {
+        return mapPolarEvent(JSON.parse(rawBody), plans);
+      } catch {
+        return null;
+      }
+    },
+    async reportUsage(report) {
+      const ingested = await call("/events/ingest", {
+        events: [
+          {
+            name: "operloom_tokens",
+            external_customer_id: report.workspaceId,
+            metadata: {
+              day: report.day,
+              tokens: report.tokens,
+              model_calls: report.modelCalls,
+              tool_calls: report.toolCalls,
+            },
+          },
+        ],
+      });
+      return {
+        accepted: true,
+        reference:
+          typeof ingested.inserted === "number" ? `${report.workspaceId}:${report.day}` : null,
+      };
+    },
+  };
+};
+
+export const billingProviderFor = (env: Env, plans: readonly BillingPlan[]): BillingProvider => {
+  switch (env.OPERLOOM_BILLING_PROVIDER?.trim()) {
+    case "stripe":
+      return createStripeBillingProvider(env, plans);
+    case "polar":
+      return createPolarBillingProvider(env, plans);
+    default:
+      return manualBillingProvider;
+  }
+};

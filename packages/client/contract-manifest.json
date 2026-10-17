@@ -49,7 +49,7 @@
         },
         {
           "path": "client/dist/client.d.ts",
-          "sha256": "b8498d2aea39d563d4a7aba179c044db68b28e8033ef523baade10a833c0ab52"
+          "sha256": "42685fc67e8761b19d7e1519d9c61842c9f6d2dffd79d130d304f4c3fc3130e7"
         },
         {
           "path": "client/dist/contracts/agents-chat.d.ts",
@@ -101,7 +101,7 @@
         },
         {
           "path": "client/dist/public-billing-contracts.d.ts",
-          "sha256": "f97d80f371233a7eece24cb76bc779468546e9579683145b2b2d4e46c537dda2"
+          "sha256": "7d2ebc224dbe3c115474edd856cc8fbaf19421021232e098fb58e402f954fd7d"
         },
         {
           "path": "client/dist/public-budget-contracts.d.ts",
@@ -129,7 +129,7 @@
         },
         {
           "path": "client/dist/response-schemas.d.ts",
-          "sha256": "55fc0a757514ee8d52eef7106c57438cbf976c628e79e1b4c80620d9e5be6aed"
+          "sha256": "0217a130bc200879a2ad9f38504c9c141cd9e030701e33caf849530352dea529"
         },
         {
           "path": "client/dist/route-map.d.ts",
@@ -151,7 +151,7 @@
       "files": [
         {
           "path": "react/dist/index.d.ts",
-          "sha256": "101cd7461a6f1cc628e810f634740a714a417513080f880144d160c237c0a798"
+          "sha256": "8e34ee0a1c2616f184ea2378d29536d835e5741be94477fab84ec4b7173494d6"
         }
       ]
     }

@@ -29,6 +29,9 @@ export async function POST(
     headers: {
       "content-type": request.headers.get("content-type") ?? "application/json",
       "stripe-signature": request.headers.get("stripe-signature") ?? "",
+      "webhook-id": request.headers.get("webhook-id") ?? "",
+      "webhook-timestamp": request.headers.get("webhook-timestamp") ?? "",
+      "webhook-signature": request.headers.get("webhook-signature") ?? "",
     },
     body,
   });

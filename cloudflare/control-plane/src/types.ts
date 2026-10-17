@@ -144,7 +144,10 @@ export type Env = {
   OPERLOOM_PUSH_ENABLED?: string;
   OPERLOOM_NOTIFICATION_RELAY_URL?: string;
   OPERLOOM_NOTIFICATION_RELAY_SECRET?: string;
-  OPERLOOM_BILLING_PROVIDER?: "manual" | "stripe";
+  OPERLOOM_BILLING_PROVIDER?: "manual" | "stripe" | "polar";
+  POLAR_ACCESS_TOKEN?: string;
+  POLAR_WEBHOOK_SECRET?: string;
+  POLAR_API_BASE_URL?: string;
   OPERLOOM_MCP_ALLOWED_CLIENT_IDS?: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;

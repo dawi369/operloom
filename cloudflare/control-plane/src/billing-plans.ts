@@ -9,7 +9,7 @@ import type { Env } from "./types";
  */
 export const billingFeatures = ["delegation", "notifications.relay", "runner"] as const;
 export type BillingFeature = (typeof billingFeatures)[number];
-export type BillingProviderId = "manual" | "stripe";
+export type BillingProviderId = "manual" | "stripe" | "polar";
 export type SubscriptionStatus = "active" | "past_due" | "cancelled";
 
 export type BillingPlan = {

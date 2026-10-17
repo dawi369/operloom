@@ -14,7 +14,7 @@ const planId = z.string().regex(/^[a-z][a-z0-9_-]{0,39}$/);
 export const billingFeatureSchema = z.enum(["delegation", "notifications.relay", "runner"]);
 export type BillingFeature = z.infer<typeof billingFeatureSchema>;
 const subscriptionStatus = z.enum(["active", "past_due", "cancelled"]);
-const providerId = z.enum(["manual", "stripe"]);
+const providerId = z.enum(["manual", "stripe", "polar"]);
 
 export const workspaceEntitlementsSchema = z.object({
   planId,

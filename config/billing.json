@@ -32,7 +32,8 @@
       },
       "features": ["delegation", "notifications.relay", "runner"],
       "providerPrices": {
-        "stripe": ""
+        "stripe": "",
+        "polar": ""
       }
     }
   ]

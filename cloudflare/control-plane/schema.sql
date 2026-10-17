@@ -3919,7 +3919,7 @@ CREATE TABLE control_workspace_subscriptions (
   workspace_id TEXT PRIMARY KEY,
   plan_id TEXT NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('active', 'past_due', 'cancelled')),
-  provider TEXT NOT NULL CHECK (provider IN ('manual', 'stripe')),
+  provider TEXT NOT NULL CHECK (provider IN ('manual', 'stripe', 'polar')),
   provider_customer_id TEXT,
   provider_subscription_id TEXT,
   current_period_end TEXT,
