@@ -191,6 +191,7 @@ function WorkbenchShellContent({
   useEffect(() => {
     if (!hasAuthenticatedSession || !workspaceId || session?.isStale) return;
     const warmLikelyPanels = () => {
+      warmSurface("workspace");
       warmSurface("agents");
       warmSurface("history");
     };
@@ -410,7 +411,10 @@ function WorkbenchShellContent({
               id: "workspace",
               label: "Workspace",
               icon: Building2Icon,
-              execute: () => setWorkspaceOpen(true),
+              execute: () => {
+                warmSurface("workspace");
+                setWorkspaceOpen(true);
+              },
             },
           ]
         : []),
@@ -448,7 +452,7 @@ function WorkbenchShellContent({
             },
           ]
         : []),
-      ...(!demoMode || adminAccess?.isAdmin
+      ...(adminAccess?.isAdmin
         ? [
             {
               id: "admin",

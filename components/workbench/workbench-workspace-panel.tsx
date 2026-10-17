@@ -61,8 +61,9 @@ export function WorkbenchWorkspacePanel({
   onCloseAutoFocus?: (event: Event) => void;
 }) {
   const { switchToOrganization } = useAuth();
-  const accountsQuery = useWorkbenchAccounts(open);
-  const workspacesQuery = useWorkbenchWorkspaces(open);
+  // Enabled regardless of `open` so the shell's preload fills the cache before the first click.
+  const accountsQuery = useWorkbenchAccounts(true);
+  const workspacesQuery = useWorkbenchWorkspaces(true);
   const { refetch: refetchAccounts } = accountsQuery;
   const { refetch: refetchWorkspaces } = workspacesQuery;
   const { mutateAsync: activateWorkspace } = useActivateWorkspace();
@@ -89,7 +90,8 @@ export function WorkbenchWorkspacePanel({
     (currentMembership.role === "owner" || currentMembership.role === "admin");
 
   const loadPanel = useCallback(async () => {
-    setLoading(true);
+    // Show cached lists immediately; only block on the network when nothing is cached yet.
+    setLoading(!accountsQuery.data || !workspacesQuery.data);
     setError(null);
     try {
       const [accountResult, workspaceResult] = await Promise.all([
@@ -139,7 +141,7 @@ export function WorkbenchWorkspacePanel({
     } finally {
       setLoading(false);
     }
-  }, [refetchAccounts, refetchWorkspaces]);
+  }, [accountsQuery.data, refetchAccounts, refetchWorkspaces, workspacesQuery.data]);
 
   useEffect(() => {
     if (!open) return;

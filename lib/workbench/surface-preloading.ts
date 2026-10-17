@@ -1,6 +1,6 @@
 import { workbenchQueryKeys, type QueryClient, type WorkbenchClient } from "@operloom/react";
 
-export type WorkbenchPreloadSurface = "agents" | "history";
+export type WorkbenchPreloadSurface = "agents" | "history" | "workspace";
 
 /** Warm bounded list data without pulling run details, artifact bodies, or runner-backed content. */
 export const preloadWorkbenchSurface = ({
@@ -19,6 +19,20 @@ export const preloadWorkbenchSurface = ({
       queryKey: workbenchQueryKeys.agents(workspaceId),
       queryFn: ({ signal }) => client.agents.list({ signal }),
     });
+  }
+
+  // Accounts and workspaces are account-scoped, so the switcher opens populated after a switch too.
+  if (surface === "workspace") {
+    return Promise.all([
+      queryClient.prefetchQuery({
+        queryKey: workbenchQueryKeys.accounts,
+        queryFn: ({ signal }) => client.workspaces.listAccounts({ signal }),
+      }),
+      queryClient.prefetchQuery({
+        queryKey: workbenchQueryKeys.workspaces,
+        queryFn: ({ signal }) => client.workspaces.list({ signal }),
+      }),
+    ]);
   }
 
   return Promise.all([

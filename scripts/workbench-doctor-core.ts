@@ -64,6 +64,16 @@ export const diagnoseWorkbench = async ({
   for (const key of ["OPERLOOM_BACKEND_URL", "OPERLOOM_LOCAL_API_TOKEN"]) {
     requireValue(frontend, key, ".env.local");
   }
+  // Pre-rename names are ignored by the code; a stale .env.local silently loses admin access.
+  const legacyKeys = Object.keys(frontend).filter(
+    (key) =>
+      key.startsWith("WORKBENCH_") && !(`OPERLOOM_${key.slice("WORKBENCH_".length)}` in frontend),
+  );
+  if (legacyKeys.length) {
+    failures.push(
+      `.env.local uses retired names without OPERLOOM_ equivalents: ${legacyKeys.join(", ")} (rename WORKBENCH_* to OPERLOOM_*)`,
+    );
+  }
   for (const key of ["OPERLOOM_LOCAL_API_TOKEN", "OPERLOOM_AGENT_CONNECTION_SECRET"]) {
     requireValue(worker, key, "cloudflare/control-plane/.dev.vars");
   }
