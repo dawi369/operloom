@@ -6,6 +6,14 @@ packages:
 
 # pnpm v11 reads project settings here, not from the package.json pnpm field.
 minimumReleaseAgeExclude:
+  # Expo SDK patch releases track Xcode/iOS fixes; wait-time would block simulator builds.
+  - "expo"
+  - "expo-*"
+  - "@expo/*"
+  - react-native
+  - "babel-preset-expo"
+  - "@react-native/*"
+  - "react-native-*"
   - "@esbuild/*"
   - brace-expansion
   - esbuild

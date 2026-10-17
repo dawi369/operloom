@@ -46,6 +46,22 @@ need separate prompts, budgets or approval posture.
   `control-plane.ts` with `simulate`, its signing step in `runner.ts`; the `external` effect target stops
   failing closed only when W9 is complete and the legal read is done.
 
+## Billing shape (mobile first)
+
+Polymancer sells Plus inside the iOS app, so Apple requires in-app purchase
+for that path; web checkout cannot be the only door. The platform already
+treats billing as modules writing one subscription row, so the shape is:
+
+- **Polar** for web checkout and invoices (merchant of record handles tax).
+- **RevenueCat** for App Store and Play purchases: a third `BillingProvider`
+  module with no checkout or portal, webhook verification by shared secret,
+  `app_user_id` = workspace id, entitlement ids mapped through
+  `providerPrices.revenuecat`; `react-native-purchases` and a paywall screen
+  in `apps/mobile`. Not built yet; the module is a drop-in when the paywall is
+  a milestone.
+- The subscription row records which provider wrote it; last verified event
+  wins. Manual plan assignment stays an admin escape hatch.
+
 ## Decisions to take
 
 - Alert transport for the "wallet moved" fast path: the external alerter posts

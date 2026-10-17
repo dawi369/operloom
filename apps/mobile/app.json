@@ -29,7 +29,8 @@
         {
           "defaultChannel": "workbench"
         }
-      ]
+      ],
+      "./plugins/with-scene-lifecycle"
     ],
     "experiments": {
       "typedRoutes": true
