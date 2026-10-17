@@ -135,6 +135,7 @@ import {
   handleRetryWebhookDelivery,
 } from "./webhooks";
 import { handleTriggerWebhookIngress } from "./trigger-webhook";
+import { handleBilling, handleBillingWebhookIngress } from "./billing";
 import {
   handleCreateTrigger,
   handleCreateTriggerDispatch,
@@ -277,6 +278,11 @@ const handleRequest = async (
 
   if (request.method === "POST" && url.pathname === "/workbench/connection-capabilities/redeem") {
     return handleRedeemConnectionCapability(request, env);
+  }
+
+  const billingIngressMatch = url.pathname.match(/^\/billing-ingress\/([^/]+)$/);
+  if (request.method === "POST" && billingIngressMatch?.[1]) {
+    return handleBillingWebhookIngress(request, env, decodeURIComponent(billingIngressMatch[1]));
   }
 
   const triggerIngressMatch = url.pathname.match(/^\/trigger-ingress\/([^/]+)$/);
@@ -849,6 +855,8 @@ const handleRequest = async (
     return handleRuntimeBudgets(request, env, identity);
   if (request.method === "GET" && url.pathname === "/workbench/usage")
     return handleRuntimeBudgets(request, env, identity);
+  if (url.pathname === "/workbench/billing" || url.pathname.startsWith("/workbench/billing/"))
+    return handleBilling(request, env, identity);
   if (request.method === "GET" && contextSnapshot)
     return handleGetContextSnapshot(env, identity, decodeURIComponent(contextSnapshot[1]!));
   if (request.method === "GET" && url.pathname === "/agents") {

@@ -27,6 +27,42 @@ const validFixtures = {
   managedState: { ok: true, states: [] },
   devices: { ok: true, devices: [] },
   notificationPreferences: { ok: true },
+  billing: {
+    ok: true,
+    provider: "manual",
+    entitlements: {
+      planId: "free",
+      planLabel: "Free",
+      status: "active",
+      limits: {
+        dailyModelCalls: 1,
+        dailyToolCalls: 1,
+        dailyTokens: 1,
+        runModelCalls: 1,
+        runToolCalls: 1,
+        runTokens: 1,
+        concurrentOperations: 1,
+      },
+      features: [],
+      seats: 1,
+      provider: "manual",
+      subscribed: false,
+    },
+    subscription: null,
+  },
+  billingPlans: { ok: true, defaultPlanId: "free", plans: [] },
+  billingLink: { ok: true, url: "https://billing.example/session" },
+  billingUsage: { ok: true, from: "2026-01-01", to: "2026-01-02", days: [], reports: [] },
+  billingUsageReport: {
+    ok: true,
+    report: {
+      id: "r1",
+      day: "2026-01-01",
+      status: "skipped",
+      provider: "manual",
+      reportedAt: null,
+    },
+  },
 } satisfies Record<keyof typeof responseSchemas, unknown>;
 
 describe("workbench response schemas", () => {

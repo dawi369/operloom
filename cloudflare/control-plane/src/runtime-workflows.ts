@@ -37,6 +37,7 @@ import { authorizeWorkflowTools } from "./workflow-tool-policy";
 import { createBrokeredConnectionPort } from "./connection-broker";
 import { createDurableActionPort } from "./action-authority";
 import { createNotificationPort } from "./notification-port";
+import { resolveEntitlements } from "./billing-plans";
 import { createTaskPort } from "./delegation-tasks";
 import { ensureDeclaredTrigger } from "./triggers";
 import {
@@ -80,6 +81,14 @@ const toolResult = (value: unknown): RuntimeResult => {
       code: "runtime_result_invalid",
     }),
   );
+};
+
+const runtimeEntitlements = async (env: Env, workspaceId: string) => {
+  const { planId, planLabel, features, seats, subscribed } = await resolveEntitlements(
+    env,
+    workspaceId,
+  );
+  return { planId, planLabel, features, seats, subscribed };
 };
 
 export const listRuntimeWorkflows = async (env: Env, identity: AgentIdentity) => {
@@ -469,6 +478,9 @@ export const executeRuntimeWorkflowRequest = async (
       ? {
           notifications: createNotificationPort(env, identity, { id: pack.id }, started.runId),
         }
+      : {}),
+    ...(runtime.controlPlane.requirements.capabilities.includes("entitlements.read")
+      ? { entitlements: await runtimeEntitlements(env, identity.scope.workspaceId) }
       : {}),
     ...(runtime.controlPlane.requirements.capabilities.includes("tasks.delegate")
       ? {

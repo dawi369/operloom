@@ -6,6 +6,11 @@ export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL(".", import.meta.url)) } },
   test: {
     maxWorkers: 2,
-    exclude: [...configDefaults.exclude, "tests/e2e/**", "output/**", "apps/mobile/**"],
+    exclude: [
+      ...configDefaults.exclude,
+      "tests/e2e/**",
+      "output/**",
+      "apps/mobile/node_modules/**",
+    ],
   },
 });

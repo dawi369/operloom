@@ -15,6 +15,7 @@ import {
 import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
 import { resolveAgentBehaviorConfig } from "./agent-records";
 import { selectAgent } from "./authz-store";
+import { EntitlementError, requireEntitlement } from "./billing-plans";
 import { sha256Hex } from "./connection-broker-shared";
 import { isRecord, parseDataJson } from "./http";
 import { executeRuntimeWorkflow } from "./pack-workflow-runtime";
@@ -107,6 +108,10 @@ export const createTaskPort = (
       request.deadlineMs > maxDeadlineMs
     )
       throw fail("delegation_invalid", "Delegation request is invalid.");
+    await requireEntitlement(env, identity.scope.workspaceId, "delegation").catch((error) => {
+      if (error instanceof EntitlementError) throw fail(error.code, error.message);
+      throw error;
+    });
     const target = await selectAgent(env, request.agentId, identity.scope.workspaceId);
     if (!target || target.status !== "active")
       throw fail(

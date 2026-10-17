@@ -1,4 +1,5 @@
 import type { NotificationChannel, NotificationSeverity } from "@operloom/agent-sdk/control-plane";
+import { EntitlementError, requireEntitlement } from "./billing-plans";
 import { resolveCredentialVault } from "./credential-vault";
 import { isRecord, json } from "./http";
 import { signWebhookBody } from "./webhooks";
@@ -248,6 +249,13 @@ export const handleNotificationAddress = async (
       { status: 400 },
     );
   const channel = body.channel;
+  try {
+    await requireEntitlement(env, identity.scope.workspaceId, "notifications.relay");
+  } catch (error) {
+    if (error instanceof EntitlementError)
+      return json({ ok: false, code: error.code, error: error.message }, { status: error.status });
+    throw error;
+  }
   const vault = resolveCredentialVault(env);
   const existing = await env.DB.prepare(
     `SELECT id, vault_object_id, vault_version FROM control_notification_addresses

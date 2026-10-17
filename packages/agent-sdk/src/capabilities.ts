@@ -14,6 +14,7 @@ export const implementedRuntimeCapabilities = [
   "actions.policy_controlled",
   "notifications.emit",
   "tasks.delegate",
+  "entitlements.read",
 ] as const;
 
 export type RuntimeRequirements = {

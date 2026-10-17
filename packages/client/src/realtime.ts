@@ -1,5 +1,6 @@
 import type { WorkbenchSessionEvent } from "./contracts/index.js";
 import { WorkbenchClientError, type WorkbenchClientOptions } from "./client.js";
+import { resolveTargetPath } from "./route-map.js";
 import { isJsonObject } from "./validation.js";
 
 export type SessionSubscriptionInput = {
@@ -42,7 +43,10 @@ const eventData = (block: string) =>
     .join("\n");
 
 export const createWorkbenchRealtimeAdapter = (
-  options: Pick<WorkbenchClientOptions, "baseUrl" | "client" | "fetch" | "getAccessToken">,
+  options: Pick<
+    WorkbenchClientOptions,
+    "baseUrl" | "client" | "fetch" | "getAccessToken" | "target"
+  >,
 ): WorkbenchRealtimeAdapter => ({
   subscribeSession(input = {}) {
     const controller = new AbortController();
@@ -51,7 +55,7 @@ export const createWorkbenchRealtimeAdapter = (
     const fetcher = options.fetch ?? globalThis.fetch;
     const baseUrl = options.baseUrl.trim().replace(/\/$/, "");
     const after = input.after?.trim();
-    const url = `${baseUrl}/api/workbench/chat-session/stream${after ? `?after=${encodeURIComponent(after)}` : ""}`;
+    const url = `${baseUrl}${resolveTargetPath(options.target ?? "console", "/api/workbench/chat-session/stream")}${after ? `?after=${encodeURIComponent(after)}` : ""}`;
 
     return {
       close() {

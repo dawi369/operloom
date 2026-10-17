@@ -1,5 +1,6 @@
 import { json, parseJson } from "./http";
 import { selectAgent, selectMembership, selectUser, selectWorkspace } from "./authz-store";
+import { resolveEntitlements } from "./billing-plans";
 import type { AgentIdentity, Env } from "./types";
 
 const authModeHeader = "x-operloom-auth-mode";
@@ -19,16 +20,18 @@ export const handleWorkspaceContext = async (
   env: Env,
   identity: AgentIdentity,
 ) => {
-  const [user, workspace, membership, agent] = await Promise.all([
+  const [user, workspace, membership, agent, entitlements] = await Promise.all([
     selectUser(env, identity.scope.userId),
     selectWorkspace(env, identity.scope.workspaceId),
     selectMembership(env, identity.scope.userId, identity.scope.workspaceId),
     selectAgent(env, identity.agentId, identity.scope.workspaceId),
+    resolveEntitlements(env, identity.scope.workspaceId),
   ]);
 
   return json({
     ok: true,
     context: {
+      entitlements,
       identity: {
         userId: identity.scope.userId,
         workspaceId: identity.scope.workspaceId,

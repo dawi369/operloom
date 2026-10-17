@@ -5,7 +5,6 @@ import { prepareOperatorAlertStatement } from "./operator-alerts";
 import { dispatchWorkbenchSessionEvent } from "./session-coordinator";
 import {
   createId,
-  effectTargetOf,
   toJson,
   type AgentIdentity,
   type ControlActionProposalRow,

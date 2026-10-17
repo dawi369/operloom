@@ -285,6 +285,16 @@ requesting run, so a replay returns the same task and different content
 conflicts. Cancelling the requester cancels its queued tasks; a task not
 started by its deadline expires. The child's state and budget belong to the
 target agent; the requester's history shows the task and the child run.
+Delegation is also a plan feature: a workspace whose plan lacks `delegation`
+gets `entitlement_required`.
+
+### Entitlements
+
+A pack that declares `entitlements.read` receives `context.entitlements`
+(`planId`, `planLabel`, `features`, `seats`, `subscribed`) and can degrade a
+workflow by plan instead of failing on a gated call. Plans and their budget
+ceilings live in `config/billing.json`; packs never read billing state from
+storage. See [headless runtime](headless-runtime.md#plans-and-entitlements).
 
 ### Renderers
 

@@ -194,6 +194,15 @@ export type RuntimeDelegationTask = {
  * dispatched by the scheduler on a later tick; the requesting run reads the
  * outcome with `result` on a later run of its own. Requires `tasks.delegate`.
  */
+/** Read-only view of the workspace plan; limits are the budget ceiling the platform enforces. */
+export type RuntimeEntitlements = {
+  planId: string;
+  planLabel: string;
+  features: readonly string[];
+  seats: number;
+  subscribed: boolean;
+};
+
 export type RuntimeTaskPort = {
   delegate(input: {
     agentId: string;
@@ -257,6 +266,8 @@ export type AgentExecutionContext = {
   notifications?: RuntimeNotificationPort;
   /** Present when the package requires `tasks.delegate`. */
   tasks?: RuntimeTaskPort;
+  /** Present when the package requires `entitlements.read`: the workspace plan as policy input. */
+  entitlements?: RuntimeEntitlements;
   /** Present only inside the signed runner (`runner.ts` tools). */
   recipes?: import("./recipes.js").RunnerRecipes;
   managedState: {

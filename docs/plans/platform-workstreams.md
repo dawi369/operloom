@@ -9,10 +9,13 @@ from [capabilities](../capabilities.md).
 Decisions already taken:
 
 - W5 uses a first-class task record, not shared state plus polling.
-- W7 (MCP), W8 (billing), W9 (live trading custody) and W10 (mobile) are
-  out of scope for this series. They stay native platform work for later; no
-  work, no stubs. Mobile will be rebuilt from scratch on `@operloom/client`,
-  so `codex/mobile-wip` is reference only.
+- W7 (MCP) and W9 (live trading custody) are out of scope. They stay native
+  platform work for later; no work, no stubs.
+- W8 (billing) and W10 (mobile) were pulled forward as Runs 8 and 9 because
+  Polymancer needs both and they shape `/v1` and `@operloom/client` now.
+  Mobile is rebuilt on `@operloom/client`; the earlier Expo app in git
+  history (`codex/mobile-wip`) is reference only, pure TypeScript modules
+  with tests may be ported.
 - Frontend-agnostic by construction: every capability lands on `/v1` with a
   `@operloom/client` method first; the web console consumes it like any other
   client. Nothing is reachable only through a Next.js route, a React hook or
@@ -265,3 +268,103 @@ scrapes a fixture page through the browser recipe under simulation; the pack
 still runs with the runner stopped and the tool reports unavailable.
 
 Non-goals: GPU, long-lived sessions, recipe marketplace.
+
+## Run 8 — W8 Billing and entitlements
+
+Goal: plans and entitlements are policy inputs the platform already enforces;
+usage records feed invoices; the provider is a module behind one interface.
+
+Plan catalog: `config/billing.json`, imported by the Worker like
+`config/product.json`. A plan has `id`, `label`, `limits` (the budget ceiling,
+same shape as `RuntimeBudgetLimits`), `features` (string set: `delegation`,
+`notifications.relay`, `runner`), `seats`, and optional provider price ids.
+Every fork edits this file; the default catalog has `free` and `team`, and
+`free` is the plan of any workspace without a subscription row.
+
+Storage (migration `0005_billing_subscriptions.sql`, schema parity):
+`control_workspace_subscriptions` (workspace_id PK, plan_id, status
+`active|past_due|cancelled`, provider `manual|stripe`, provider_customer_id,
+provider_subscription_id, current_period_end, seats, updated_at,
+updated_by_user_id) and `control_billing_usage_reports` (workspace_id, day,
+provider, model_calls, tool_calls, tokens, status `pending|reported|skipped`,
+reported_at; unique workspace_id+day).
+
+Enforcement: `resolveEntitlements(env, workspaceId)` returns plan, limits,
+features. `PUT /workbench/budgets` rejects limits above the plan ceiling
+(`budget_exceeds_plan`); the first-use bootstrap writes
+`min(default, plan)`; a plan change clamps the stored policy down in the same
+batch so SQL admission stays unchanged. `requireEntitlement(feature)` gates
+delegation dispatch (W5) and relay notification channels (W3); the default
+catalog grants both to every plan so nothing regresses.
+
+Provider interface (`billing-provider.ts`): `createCheckout`, `createPortal`,
+`verifyWebhook(request) → BillingEvent | null`, `reportUsage(report)`.
+`manual` ships first: no checkout, admins assign a plan with
+`PUT /workbench/billing/plan`. `stripe` ships as the one external module,
+raw `fetch` against `api.stripe.com` (form encoded), `Stripe-Signature`
+verified with HMAC-SHA256 over `t.body` and a 5 minute tolerance; events
+`checkout.session.completed`, `customer.subscription.updated|deleted` map to
+the subscription row by `client_reference_id = workspaceId`. Unverified
+against a live account; flagged in the CHANGELOG.
+
+Routes (all `/v1`, `public-billing-contracts.ts`, `client.billing.*`):
+`GET /workbench/billing`, `GET /workbench/billing/plans`,
+`PUT /workbench/billing/plan` (admin, manual provider),
+`POST /workbench/billing/checkout` and `POST /workbench/billing/portal`
+(admin, stripe), `GET /workbench/billing/usage?from&to` (daily aggregates
+from `control_resource_reservations`), `POST /workbench/billing/usage/report`
+(admin, idempotent per day). Webhook ingress: Worker
+`POST /billing-ingress/{provider}` before identity resolution, Next.js
+`app/api/billing-webhooks/[provider]/route.ts` forwards like external
+signals. Env: `OPERLOOM_BILLING_PROVIDER`, `STRIPE_SECRET_KEY`,
+`STRIPE_WEBHOOK_SECRET`. `workspace-context` carries `entitlements`.
+
+Acceptance: unit tests for entitlement clamping, webhook verification and
+event mapping with fixed vectors, usage aggregation; agent-system conformance
+asserts a budget above the plan ceiling is rejected and a manual plan change
+clamps it. SDK capability `entitlements.read` exposes plan features to packs.
+
+Non-goals: invoices rendered by Operloom, taxes, per-seat enforcement, trials.
+
+## Run 9 — W10 Mobile shell on `@operloom/client`
+
+Goal: a native shell that talks only to the Worker `/v1/me` through
+`@operloom/client`, so console and mobile share one contract.
+
+Client delta: `createWorkbenchClient({ target: "control-plane" })` maps every
+console path (`/api/workbench/...`) to its `/v1/me` operation through one
+table in `packages/client/src/route-map.ts`; a unit test proves each entry is
+in the `public-api.ts` allowlist and every client path has an entry. Realtime
+uses the Worker SSE route the same way.
+
+App: `apps/mobile` (Expo, `expo-router`, added to `pnpm-workspace.yaml`,
+excluded from the root typecheck, its own `tsconfig` and `pnpm --filter`
+check). Dependencies limited to Expo core, router, auth-session,
+secure-store, web-browser, crypto, safe-area and screens. Sign-in is WorkOS
+AuthKit PKCE; `auth-flow.ts` and `chat-messages.ts` are ported from history
+with their tests and re-pointed at `@operloom/client`. Screens: sign-in,
+workspace and agent context, chat thread, approvals inbox. Renderers follow
+the data-only W6 contract with a generic fallback.
+
+Acceptance: `pnpm --filter @operloom/mobile check` (tsc) and the ported unit
+tests pass under vitest; the route-map test is part of `verify:fast`; the
+Worker-direct client is exercised in the agent-system e2e against
+`http://127.0.0.1:8788/v1/me` for session, history and approvals.
+
+Non-goals: push notifications, offline cache, store builds, Android specific
+work, assistant-ui native components.
+
+## Run 10 — Cleanup
+
+Goal: remove what the series made dead, settle docs, prune branches.
+
+Dead code: run `knip` once through `pnpm dlx` (no dependency added), review
+the report by hand, delete only exports and files with no reference and no
+documented purpose. `docs/archive` stays. Docs: `docs/README.md` map lists
+every doc, `docs/capabilities.md` statuses match what shipped, CHANGELOG has
+one entry per run. Branches: delete local branches already gone on origin
+and those fully merged into `main`; keep `codex/mobile-wip` until Run 9 is
+merged and the ported modules are verified.
+
+Acceptance: all gates green; `git branch -vv` shows only `main` and
+`codex/mobile-wip`.

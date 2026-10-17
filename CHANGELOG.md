@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- Cleanup: removed orphaned modules the runtime v2 and series work made dead
+  (the pre-Durable-Object `cloudflare-chat-runtime`, the console tool registry,
+  the mobile access-token shim, two unused workbench components and two
+  unreferenced smoke scripts), fixed lint warnings, pruned merged local
+  branches and stale worktrees, and refreshed the docs map.
+- Mobile shell: `@operloom/client` gains `target: "control-plane"`, mapping
+  every console operation onto the Worker's `/v1/me` routes through one table
+  (`route-map.ts`, proven against the public API allowlist and exercised in
+  the agent-system e2e). `apps/mobile` is a lean Expo app on that client:
+  WorkOS AuthKit PKCE sign-in with secure session storage, chat over
+  `createFetchChatTransport`, an approvals inbox and workspace/agent switching.
+  No push, offline cache or store configuration yet.
+- Billing and entitlements: `config/billing.json` declares plans as a budget
+  ceiling plus a feature set; `PUT /workbench/budgets` rejects limits above the
+  plan (`budget_exceeds_plan`), bootstrap clamps to it and a plan change clamps
+  the stored policy in the same batch. Delegation and relay notification
+  channels require their plan feature. `/workbench/billing/*` exposes the plan,
+  catalog, manual assignment, Stripe checkout and portal links, daily usage and
+  idempotent usage reports (`client.billing.*`); `/workspace-context` and
+  packs declaring `entitlements.read` see the resolved entitlements. The Stripe
+  module uses raw `fetch` and verifies `Stripe-Signature`; it is unit-tested
+  against fixed vectors and not yet exercised against a live account
+  (migration 0005).
 - Runner recipes: `runner.ts` tools receive `context.recipes` with bounded
   `process`, `browser`, `repository`, `document` and `artifact.upload` building
   blocks plus `usage()`. Every recipe clamps its timeout and byte cap to

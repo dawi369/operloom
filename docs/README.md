@@ -17,7 +17,8 @@ history. Start here, then open the reference you need.
 ## Clients
 
 - [Headless runtime](headless-runtime.md): the `/v1` API, `@operloom/client`, state,
-  budgets, durable submission and webhook notifications.
+  budgets, plans and entitlements, durable submission and webhook notifications.
+- [Mobile shell](../apps/mobile/README.md): the Expo app on `@operloom/client`.
 
 ## Operate
 

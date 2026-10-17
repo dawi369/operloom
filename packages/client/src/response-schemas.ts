@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { actionProposalSummarySchema } from "./public-action-contracts.js";
+import { publicBillingContracts } from "./public-billing-contracts.js";
 
 const id = z.string().min(1);
 const timestamp = z.string().refine((value) => !Number.isNaN(Date.parse(value)));
@@ -350,6 +351,12 @@ export const responseSchemas = {
         .optional(),
     })
     .passthrough(),
+  billing: publicBillingContracts["GET /workbench/billing"].response.passthrough(),
+  billingPlans: publicBillingContracts["GET /workbench/billing/plans"].response.passthrough(),
+  billingLink: publicBillingContracts["POST /workbench/billing/checkout"].response.passthrough(),
+  billingUsage: publicBillingContracts["GET /workbench/billing/usage"].response.passthrough(),
+  billingUsageReport:
+    publicBillingContracts["POST /workbench/billing/usage/report"].response.passthrough(),
 } as const;
 
 export type ResponseSchemaName = keyof typeof responseSchemas;

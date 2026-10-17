@@ -153,6 +153,12 @@ export const exportCollections: readonly ExportCollection[] = [
   ),
   tenantCollection("control_notification_digest_items"),
   tenantCollection("control_delegation_tasks"),
+  tenantCollection("control_billing_usage_reports"),
+  tenantCollection(
+    "control_workspace_subscriptions",
+    "workspace_id, plan_id, status, provider, current_period_end, seats, updated_at",
+    "workspace_id",
+  ),
   tenantCollection(
     "control_notification_deliveries",
     `id, user_id, workspace_id, channel, device_id, event_type, target_type, target_id, route,

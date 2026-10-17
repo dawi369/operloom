@@ -65,7 +65,13 @@ export const publicBudgetContracts = {
   },
   "GET /workbench/budgets": {
     status: 200,
-    response: z.object({ ok: z.literal(true), policy: policy.nullable(), day: z.string(), usage }),
+    response: z.object({
+      ok: z.literal(true),
+      policy: policy.nullable(),
+      day: z.string(),
+      usage,
+      plan: z.object({ id: z.string(), label: z.string(), limits: runtimeBudgetLimitsSchema }),
+    }),
   },
   "PUT /workbench/budgets": {
     status: 200,

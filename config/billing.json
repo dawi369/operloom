@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "defaultPlanId": "free",
+  "plans": [
+    {
+      "id": "free",
+      "label": "Free",
+      "seats": 1,
+      "limits": {
+        "dailyModelCalls": 500,
+        "dailyToolCalls": 2000,
+        "dailyTokens": 2000000,
+        "runModelCalls": 50,
+        "runToolCalls": 200,
+        "runTokens": 400000,
+        "concurrentOperations": 20
+      },
+      "features": ["delegation", "notifications.relay", "runner"]
+    },
+    {
+      "id": "team",
+      "label": "Team",
+      "seats": 10,
+      "limits": {
+        "dailyModelCalls": 5000,
+        "dailyToolCalls": 20000,
+        "dailyTokens": 50000000,
+        "runModelCalls": 200,
+        "runToolCalls": 1000,
+        "runTokens": 2000000,
+        "concurrentOperations": 50
+      },
+      "features": ["delegation", "notifications.relay", "runner"],
+      "providerPrices": {
+        "stripe": ""
+      }
+    }
+  ]
+}

@@ -153,6 +153,17 @@ Convenience methods cover common reads and export submission. Existing role
 requirements and feature gates still apply. Export download is a binary HTTP
 response and should be fetched with the authenticated URL directly.
 
+### Console client against the Worker
+
+`createWorkbenchClient` and `createWorkbenchRealtimeAdapter` default to the
+console target, where paths are Next.js routes under `/api/workbench`. With
+`target: "control-plane"` and `baseUrl: "https://your-worker.example/v1/me"`
+the same methods map onto the Worker's `/v1/me` operations through
+`packages/client/src/route-map.ts`; a unit test proves every method lands on an
+allowlisted route. Operations that exist only in the console (WorkOS account
+listing) reject with `console_only_operation`. The Expo shell in `apps/mobile`
+uses this target together with `createRuntimeClient` for chat threads.
+
 ### State and delivery operations
 
 When typed state is enabled, active members can inspect the agent package's records
@@ -344,6 +355,43 @@ deterministic fixture; elsewhere a missing key fails with
 `search_provider_unconfigured`.
 See model/budget semantics and the
 [document-review example](../examples/document-review/README.md) for complete setup.
+
+## Plans and entitlements
+
+A workspace's plan is a policy input, not a payment flow. `config/billing.json`
+declares every plan with a budget ceiling (`limits`, the same shape as the
+budget policy), a feature set (`delegation`, `notifications.relay`, `runner`)
+and seats; `defaultPlanId` is the plan of any workspace without a subscription.
+`client.budgets.update` refuses limits above the ceiling (`budget_exceeds_plan`),
+first-use bootstrap writes `min(default, plan)`, and a plan change clamps the
+stored policy down in the same batch, so admission SQL is unchanged.
+`client.billing.get()` returns the provider, the resolved entitlements and the
+subscription; `/workspace-context` carries `entitlements` too. Packs that declare
+`entitlements.read` see `context.entitlements` and can degrade a workflow by
+plan instead of failing.
+
+```ts
+const { entitlements } = await client.billing.get();
+await client.billing.assignPlan({ planId: "team", seats: 5 }); // manual provider
+const { url } = await client.billing.checkout({
+  planId: "team",
+  successUrl: "https://app.example/billing?ok",
+  cancelUrl: "https://app.example/billing",
+}); // stripe provider
+const { days } = await client.billing.usage({ from: "2026-01-01", to: "2026-01-31" });
+await client.billing.reportUsage({ day: "2026-01-31" });
+```
+
+`OPERLOOM_BILLING_PROVIDER` selects the module: `manual` (default) lets an
+owner/admin assign plans directly; `stripe` uses `STRIPE_SECRET_KEY` for hosted
+checkout and the billing portal, matches plans by `providerPrices.stripe`, and
+verifies `Stripe-Signature` on `POST /billing-ingress/stripe` (forwarded by the
+console at `/api/billing-webhooks/stripe`) with `STRIPE_WEBHOOK_SECRET`.
+`checkout.session.completed`, `customer.subscription.updated` and
+`customer.subscription.deleted` update the subscription row; every other event
+is acknowledged and ignored. Daily usage reports aggregate settled reservations
+and are idempotent per workspace and day; the Stripe module posts them as meter
+events, the manual module records them as `skipped`.
 
 ## Experimental durable submission
 

@@ -7,6 +7,10 @@ import {
   publicBudgetOpenApiQueryParameters,
 } from "./public-budget-contracts.js";
 import {
+  publicBillingOpenApiOperation,
+  publicBillingOpenApiQueryParameters,
+} from "./public-billing-contracts.js";
+import {
   publicUpgradeOpenApiOperation,
   publicUpgradeOpenApiQueryParameters,
 } from "./public-upgrade-contracts.js";
@@ -125,6 +129,13 @@ export const publicApiRoutes = [
   ["DELETE", "/workbench/devices/{id}"],
   ["GET", "/workbench/notification-preferences"],
   ["PUT", "/workbench/notification-preferences"],
+  ["GET", "/workbench/billing"],
+  ["GET", "/workbench/billing/plans"],
+  ["PUT", "/workbench/billing/plan"],
+  ["POST", "/workbench/billing/checkout"],
+  ["POST", "/workbench/billing/portal"],
+  ["GET", "/workbench/billing/usage"],
+  ["POST", "/workbench/billing/usage/report"],
   ["GET", "/workbench/notifications/preferences"],
   ["PUT", "/workbench/notifications/preferences"],
   ["PUT", "/workbench/notifications/address"],
@@ -168,6 +179,7 @@ const publicApiOperation = (method: string, path: string, scopeParameters: reado
     publicStateOpenApiQueryParameters(method, path),
     publicUpgradeOpenApiQueryParameters(method, path),
     publicBudgetOpenApiQueryParameters(method, path),
+    publicBillingOpenApiQueryParameters(method, path),
     publicContextOpenApiQueryParameters(method, path),
     publicActionOpenApiQueryParameters(method, path),
   ].flat(),
@@ -180,6 +192,7 @@ const publicApiOperation = (method: string, path: string, scopeParameters: reado
   ...publicUpgradeOpenApiOperation(method, path),
   ...publicContextOpenApiOperation(method, path),
   ...publicBudgetOpenApiOperation(method, path),
+  ...publicBillingOpenApiOperation(method, path),
   ...publicActionOpenApiOperation(method, path),
 });
 

@@ -101,7 +101,7 @@ export const runProcess = (
       env: {
         PATH: process.env.PATH ?? "",
         HOME: tmpdir(),
-        ...(input.env ?? {}),
+        ...input.env,
       } as unknown as NodeJS.ProcessEnv,
       stdio: ["ignore", "pipe", "pipe"] as const,
     });
@@ -405,7 +405,7 @@ const repository = async (
     bytes,
   });
   try {
-    if (/^https:\/\//.test(input.source)) {
+    if (input.source.startsWith("https://")) {
       const url = new URL(input.source);
       const policy = options.networkPolicy;
       if (

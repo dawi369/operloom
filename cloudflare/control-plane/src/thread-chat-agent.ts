@@ -31,7 +31,6 @@ import {
   createUIMessageStreamResponse,
   stepCountIs,
   streamText,
-  type ToolSet,
   type UIMessage,
 } from "ai";
 import type { Connection, ConnectionContext } from "agents";

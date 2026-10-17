@@ -3,7 +3,7 @@
   "runtimeSchemas": [
     {
       "path": "client/src/response-schemas.ts",
-      "sha256": "3aaa9ddc1e307caad7088b22d5ce51135a6833ade7699d59cf3a44fdfefc4a76"
+      "sha256": "cfdca114fe15273e7e4d77b4cb18d08bd2b3a44c4f2e6a6a3855d7522282b696"
     },
     {
       "path": "client/src/validation.ts",
@@ -19,7 +19,7 @@
     },
     {
       "path": "client/src/public-budget-contracts.ts",
-      "sha256": "54ff7807cdb0b242afafd10913537c7950cae5040b89fa01439d11b9edfa7221"
+      "sha256": "6522bec9c93245af6008c205be96fff6481e4c1377364d438dbe2029f6d280bf"
     },
     {
       "path": "client/src/public-state-contracts.ts",
@@ -49,7 +49,7 @@
         },
         {
           "path": "client/dist/client.d.ts",
-          "sha256": "b7067d75d148e21bbf176052a88e2e6aaeaf97d712007c2019b82e4c4ceccbc3"
+          "sha256": "b8498d2aea39d563d4a7aba179c044db68b28e8033ef523baade10a833c0ab52"
         },
         {
           "path": "client/dist/contracts/agents-chat.d.ts",
@@ -85,7 +85,7 @@
         },
         {
           "path": "client/dist/index.d.ts",
-          "sha256": "07a7ecf7e2b94ec07df8f091b097c9ccc8ea3ec1528353b326514ad127cae29f"
+          "sha256": "8a21f7bc4d8c79757875c5b1a6907a0ef763199194809d13692e46e175e69f85"
         },
         {
           "path": "client/dist/messages.d.ts",
@@ -97,11 +97,15 @@
         },
         {
           "path": "client/dist/public-api.d.ts",
-          "sha256": "4f0557a66d7a4efb1536e6c95331c251d3d7f8265abe5e1f540f70fa747d60c5"
+          "sha256": "fc1642c4c8e70a3db66753f3bafc0f7af65a3d31967afc033019507656a2b737"
+        },
+        {
+          "path": "client/dist/public-billing-contracts.d.ts",
+          "sha256": "f97d80f371233a7eece24cb76bc779468546e9579683145b2b2d4e46c537dda2"
         },
         {
           "path": "client/dist/public-budget-contracts.d.ts",
-          "sha256": "0a0b5fb94d7508d13b908134f1b2a62e943bed5e3e128774e6c4bdb1316ec85a"
+          "sha256": "09b1cc8ee7c1cb3d03143a3afdae8a0c4bae4322e2c28ae37c5254c5e858ea12"
         },
         {
           "path": "client/dist/public-chat-contracts.d.ts",
@@ -121,15 +125,19 @@
         },
         {
           "path": "client/dist/realtime.d.ts",
-          "sha256": "33c0f30b9f9c99f25baa4329a000667169404ce10fd1410f60e6960f23163de2"
+          "sha256": "ecdb0da7cc27d5f9bd20161a051eefa3d3a5e716dbd99ac773b013dec40c4893"
         },
         {
           "path": "client/dist/response-schemas.d.ts",
-          "sha256": "e92caf4ae43aaf6d4a2ec1f10029c12f68eeb5f2039f9b3fe9e007f96f65b7fa"
+          "sha256": "55fc0a757514ee8d52eef7106c57438cbf976c628e79e1b4c80620d9e5be6aed"
+        },
+        {
+          "path": "client/dist/route-map.d.ts",
+          "sha256": "c971e732b8593cbb2075b27c0ee7c1db07c2f933a9fe53b59db4adc544356936"
         },
         {
           "path": "client/dist/runtime-client.d.ts",
-          "sha256": "da3564973398a7b27f1c501f3f3e8a52af2e123322bc3e21e1add8aa1d198f24"
+          "sha256": "4a80fc85f2b0b3465e9243dc015a6fa4979c913bb38de0fceb8cc2d40eb2a772"
         },
         {
           "path": "client/dist/validation.d.ts",
@@ -143,7 +151,7 @@
       "files": [
         {
           "path": "react/dist/index.d.ts",
-          "sha256": "061e8b99c071bdc839f047e21c0014238530f9fabdc289f86f228c53b3a76cdb"
+          "sha256": "101cd7461a6f1cc628e810f634740a714a417513080f880144d160c237c0a798"
         }
       ]
     }

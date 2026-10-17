@@ -2,6 +2,7 @@ packages:
   - "packages/*"
   - "agent-packs/*"
   - "examples/*"
+  - "apps/*"
 
 # pnpm v11 reads project settings here, not from the package.json pnpm field.
 minimumReleaseAgeExclude:

@@ -4,7 +4,7 @@
   "files": [
     {
       "path": "dist/capabilities.d.ts",
-      "sha256": "2ca83c554de9801bc63bd06da2fe8a701c9b47e6f9ff1c2c8dbddcaeb95b8840"
+      "sha256": "d6f1925ef58f3b1d17b152654cf21a44bf4ec994fa30ffc301c99d11196500c0"
     },
     {
       "path": "dist/compatibility.d.ts",
@@ -60,7 +60,7 @@
     },
     {
       "path": "dist/runtime.d.ts",
-      "sha256": "37b407c18101e99f6be86f002cdda1f1ce76232680624d85f8e51694fdeae8a9"
+      "sha256": "0a7ee49d760ebe31960486d32028a1925df3946974e6ab1f5be7c7cc2fa0359f"
     },
     {
       "path": "dist/schema.d.ts",

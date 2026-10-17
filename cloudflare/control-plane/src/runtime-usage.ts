@@ -10,6 +10,7 @@ import {
 } from "../../../packages/client/src/public-budget-contracts";
 import { sha256Hex } from "../../../lib/workbench/control-plane-signing";
 import { runtimeStateCanonicalJson } from "./runtime-state";
+import { clampLimitsToPlan, limitsExceedPlan, resolveEntitlements } from "./billing-plans";
 import { json } from "./http";
 import type { AgentIdentity, Env } from "./types";
 
@@ -189,7 +190,12 @@ export const reserveRuntimeUsage = async (
     )
       .bind(
         identity.scope.workspaceId,
-        JSON.stringify(defaultRuntimeBudgetLimits),
+        JSON.stringify(
+          clampLimitsToPlan(
+            defaultRuntimeBudgetLimits,
+            await resolveEntitlements(env, identity.scope.workspaceId),
+          ),
+        ),
         new Date().toISOString(),
       )
       .run();
@@ -430,11 +436,17 @@ export const handleRuntimeBudgets = async (request: Request, env: Env, identity:
       const usage = await env.DB.prepare(`${selectTotals} WHERE workspace_id = ? AND day = ?`)
         .bind(identity.scope.workspaceId, day)
         .first();
+      const entitlements = await resolveEntitlements(env, identity.scope.workspaceId);
       return json({
         ok: true,
         policy: row ? { version: row.version, limits: JSON.parse(row.limits_json) } : null,
         day,
         usage,
+        plan: {
+          id: entitlements.planId,
+          label: entitlements.planLabel,
+          limits: entitlements.limits,
+        },
       });
     }
     const parsed = publicBudgetContracts["PUT /workbench/budgets"].request.safeParse(
@@ -447,6 +459,18 @@ export const handleRuntimeBudgets = async (request: Request, env: Env, identity:
       );
     const input = parsed.data,
       requestHash = await hash(input);
+    const entitlements = await resolveEntitlements(env, identity.scope.workspaceId);
+    const overCeiling = limitsExceedPlan(input.limits, entitlements);
+    if (overCeiling.length > 0)
+      return json(
+        {
+          ok: false,
+          code: "budget_exceeds_plan",
+          error: `The ${entitlements.planLabel} plan caps ${overCeiling.join(", ")}`,
+          plan: { id: entitlements.planId, limits: entitlements.limits },
+        },
+        { status: 409 },
+      );
     const id = `budget-${await hash([...actor(identity), input.idempotencyKey])}`;
     const read = () =>
       env.DB.prepare(

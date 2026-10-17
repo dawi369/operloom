@@ -1,7 +1,8 @@
 import { expect, test } from "./fixtures";
 
+import { createWorkbenchClient } from "../../packages/client/src/client";
 import { controlPlane as complexOperatorRuntime } from "../../examples/complex-operator/control-plane";
-import { workerApi } from "./worker-api";
+import { e2eOwner, workerApi, workerOrigin } from "./worker-api";
 
 const releaseMode = process.env.E2E_RELEASE_MODE;
 
@@ -305,6 +306,70 @@ test.describe.serial("Agent-system executable conformance", () => {
         }),
       ],
     });
+
+    // A native shell uses @operloom/client straight against /v1 (here the explicit agent scope,
+    // /v1/me in the app); the route map keeps it on the operations the console reaches via Next.js.
+    const direct = createWorkbenchClient({
+      baseUrl: `${workerOrigin}/v1/workspaces/${encodeURIComponent(worker.workspaceId)}/agents/${encodeURIComponent(worker.agentId)}`,
+      target: "control-plane",
+      client: { platform: "ios", version: "e2e" },
+      getAccessToken: async () => "e2e-control-plane-token",
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          headers: {
+            ...Object.fromEntries(new Headers(init?.headers).entries()),
+            "x-operloom-local-user": e2eOwner,
+          },
+        }),
+    });
+    const directSession = await direct.session.get();
+    expect(directSession.ok).toBe(true);
+    const directRuns = await direct.history.listRuns({ limit: 50 });
+    expect(directRuns.runs?.some((run) => run.id === receipt.run!.id)).toBe(true);
+    const directApprovals = await direct.approvals.list();
+    expect(directApprovals.ok).toBe(true);
+    await expect(direct.workspaces.listAccounts()).rejects.toMatchObject({
+      code: "console_only_operation",
+    });
+
+    // Plans are a budget ceiling: an admin cannot raise limits past the plan, and a manual
+    // plan change moves the ceiling.
+    const billing = await worker.get("/workbench/billing");
+    expect(billing.status(), await billing.text()).toBe(200);
+    expect(await billing.json()).toMatchObject({
+      provider: "manual",
+      entitlements: { planId: "free", subscribed: false },
+    });
+    const budgets = await worker.get("/workbench/budgets");
+    expect(budgets.status(), await budgets.text()).toBe(200);
+    const budgetBody = (await budgets.json()) as {
+      policy: { version: number } | null;
+      plan: { id: string; limits: Record<string, number> };
+    };
+    expect(budgetBody.plan.id).toBe("free");
+    const overCeiling = await worker.put("/workbench/budgets", {
+      data: {
+        expectedVersion: budgetBody.policy?.version ?? 0,
+        idempotencyKey: "e2e-over-ceiling",
+        limits: {
+          ...budgetBody.plan.limits,
+          dailyModelCalls: budgetBody.plan.limits.dailyModelCalls + 1,
+        },
+      },
+    });
+    expect(overCeiling.status(), await overCeiling.text()).toBe(409);
+    expect(await overCeiling.json()).toMatchObject({ code: "budget_exceeds_plan" });
+    const upgraded = await worker.put("/workbench/billing/plan", { data: { planId: "team" } });
+    expect(upgraded.status(), await upgraded.text()).toBe(200);
+    expect(await upgraded.json()).toMatchObject({
+      entitlements: { planId: "team", subscribed: true },
+    });
+    const context = await worker.get("/workspace-context");
+    expect(context.status(), await context.text()).toBe(200);
+    expect(await context.json()).toMatchObject({ context: { entitlements: { planId: "team" } } });
+    const downgraded = await worker.put("/workbench/billing/plan", { data: { planId: "free" } });
+    expect(downgraded.status(), await downgraded.text()).toBe(200);
 
     // The runner's browser recipe scrapes a fixture page served by the runner itself,
     // staying inside the tool's allowed hosts while blocking the third-party script.

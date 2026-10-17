@@ -29,11 +29,21 @@ import {
   WorkbenchResponseValidationError,
 } from "./validation.js";
 import { responseSchemas, type ResponseSchemaName } from "./response-schemas.js";
+import {
+  ConsoleOnlyOperationError,
+  resolveTargetPath,
+  type WorkbenchClientTarget,
+} from "./route-map.js";
+import type { z } from "zod";
+import type { publicBillingContracts } from "./public-billing-contracts.js";
 
 export type WorkbenchClientPlatform = "web" | "ios" | "android";
 
 export type WorkbenchClientOptions = {
+  /** Console: a Next.js origin (or "" for same-origin). Control plane: the Worker's `/v1/me` URL. */
   baseUrl: string;
+  /** Defaults to `console`; `control-plane` maps every operation to its `/v1/me` path. */
+  target?: WorkbenchClientTarget;
   getAccessToken?: (input?: { minValidityMs?: number }) => Promise<string | null>;
   fetch?: typeof globalThis.fetch;
   client: { platform: WorkbenchClientPlatform; version: string };
@@ -103,6 +113,7 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
   const fetcher = options.fetch ?? globalThis.fetch;
   if (typeof fetcher !== "function") throw new TypeError("A fetch implementation is required");
   const baseUrl = normalizedBaseUrl(options.baseUrl);
+  const target = options.target ?? "console";
   const defaultTimeoutMs = options.timeoutMs ?? 15_000;
 
   const request = async <T>(
@@ -121,6 +132,14 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
 
     let upstreamRequestId: string | undefined;
     try {
+      let targetPath: string;
+      try {
+        targetPath = resolveTargetPath(target, path);
+      } catch (error) {
+        if (error instanceof ConsoleOnlyOperationError)
+          throw new WorkbenchClientError({ status: 0, code: error.code, message: error.message });
+        throw error;
+      }
       const token = await options.getAccessToken?.({ minValidityMs: 60_000 });
       const headers = new Headers(requestOptions.headers);
       headers.set("accept", "application/json");
@@ -132,7 +151,7 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
         headers.set("idempotency-key", requestOptions.idempotencyKey);
       }
 
-      const response = await fetcher(requestUrl(baseUrl, path), {
+      const response = await fetcher(requestUrl(baseUrl, targetPath), {
         method: requestOptions.method ?? "GET",
         headers,
         body: requestOptions.body === undefined ? undefined : JSON.stringify(requestOptions.body),
@@ -445,6 +464,53 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
           { method: "DELETE" },
         ),
     },
+    billing: {
+      get: (options: WorkbenchReadOptions = {}) =>
+        request<BillingResponse<"GET /workbench/billing">>(
+          "billing",
+          "/api/workbench/billing",
+          options,
+        ),
+      plans: (options: WorkbenchReadOptions = {}) =>
+        request<BillingResponse<"GET /workbench/billing/plans">>(
+          "billingPlans",
+          "/api/workbench/billing/plans",
+          options,
+        ),
+      assignPlan: (input: BillingRequest<"PUT /workbench/billing/plan">) =>
+        request<BillingResponse<"PUT /workbench/billing/plan">>(
+          "billing",
+          "/api/workbench/billing/plan",
+          {
+            method: "PUT",
+            body: input,
+          },
+        ),
+      checkout: (input: BillingRequest<"POST /workbench/billing/checkout">) =>
+        request<BillingResponse<"POST /workbench/billing/checkout">>(
+          "billingLink",
+          "/api/workbench/billing/checkout",
+          { method: "POST", body: input },
+        ),
+      portal: (input: BillingRequest<"POST /workbench/billing/portal">) =>
+        request<BillingResponse<"POST /workbench/billing/portal">>(
+          "billingLink",
+          "/api/workbench/billing/portal",
+          { method: "POST", body: input },
+        ),
+      usage: (input: { from: string; to: string }, options: WorkbenchReadOptions = {}) =>
+        request<BillingResponse<"GET /workbench/billing/usage">>(
+          "billingUsage",
+          `/api/workbench/billing/usage${queryString(input)}`,
+          options,
+        ),
+      reportUsage: (input: BillingRequest<"POST /workbench/billing/usage/report">) =>
+        request<BillingResponse<"POST /workbench/billing/usage/report">>(
+          "billingUsageReport",
+          "/api/workbench/billing/usage/report",
+          { method: "POST", body: input },
+        ),
+    },
     notificationPreferences: {
       get: (options: WorkbenchReadOptions = {}) =>
         request<CloudflareNotificationPreferencesResponse>(
@@ -463,3 +529,13 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
 };
 
 export type WorkbenchClient = ReturnType<typeof createWorkbenchClient>;
+
+type BillingContracts = typeof publicBillingContracts;
+type BillingResponse<K extends keyof BillingContracts> = z.infer<BillingContracts[K]["response"]>;
+type BillingRequest<K extends keyof BillingContracts> = BillingContracts[K] extends {
+  request: infer R;
+}
+  ? R extends z.ZodType
+    ? z.infer<R>
+    : never
+  : never;

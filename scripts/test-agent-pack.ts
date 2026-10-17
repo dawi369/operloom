@@ -26,6 +26,7 @@ const runtimePortCapabilities = new Set([
   "actions.policy_controlled",
   "notifications.emit",
   "tasks.delegate",
+  "entitlements.read",
 ]);
 
 const readArg = (name: string) => {
