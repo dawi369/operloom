@@ -1,4 +1,7 @@
-import { parseDataJson } from "./http";
+import { publicAdminContracts } from "../../../packages/client/src/public-admin-contracts";
+import { selectMembership, selectWorkspaceMemberships } from "./authz-store";
+import { json, parseDataJson } from "./http";
+import { requireAdminMembership } from "./membership-policy";
 import { createId, toJson, type AgentIdentity, type ControlPlaneEventRow, type Env } from "./types";
 import { enqueueNotificationEvent } from "./notification-delivery";
 
@@ -171,6 +174,90 @@ export const toControlPlaneEventSnapshot = (row: ControlPlaneEventRow) => ({
   data: parseDataJson(row.data_json),
   createdAt: row.created_at,
 });
+
+/** Owners and admins read every member's events in the workspace, newest first, with cursor paging. */
+export const handleAdminControlPlaneEvents = async (
+  env: Env,
+  identity: AgentIdentity,
+  url: URL,
+) => {
+  const membership = await selectMembership(env, identity.scope.userId, identity.scope.workspaceId);
+  const adminError = requireAdminMembership(membership);
+  if (adminError) return adminError;
+  const parsed = publicAdminContracts["GET /admin/events"].query.safeParse(
+    Object.fromEntries(url.searchParams),
+  );
+  if (!parsed.success)
+    return json(
+      { ok: false, code: "invalid_request", error: "Invalid event filter" },
+      { status: 400 },
+    );
+  const clauses = ["workspace_id = ?"];
+  const values: unknown[] = [identity.scope.workspaceId];
+  if (parsed.data.type) {
+    if (parsed.data.type.endsWith(".")) {
+      clauses.push("type LIKE ?");
+      values.push(`${parsed.data.type}%`);
+    } else {
+      clauses.push("type = ?");
+      values.push(parsed.data.type);
+    }
+  }
+  if (parsed.data.userId) {
+    clauses.push("user_id = ?");
+    values.push(parsed.data.userId);
+  }
+  if (parsed.data.q) {
+    clauses.push("(lower(summary) LIKE ? OR lower(COALESCE(target_id, '')) LIKE ?)");
+    const like = `%${parsed.data.q.toLowerCase()}%`;
+    values.push(like, like);
+  }
+  if (parsed.data.before) {
+    clauses.push(
+      "rowid < (SELECT rowid FROM control_plane_events WHERE id = ? AND workspace_id = ?)",
+    );
+    values.push(parsed.data.before, identity.scope.workspaceId);
+  }
+  const limit = Math.min(Math.max(parsed.data.limit ?? 50, 1), 200);
+  values.push(limit + 1);
+  const rows = await env.DB.prepare(
+    `SELECT id, user_id, workspace_id, agent_id, type, summary, target_type, target_id, data_json, created_at
+     FROM control_plane_events WHERE ${clauses.join(" AND ")} ORDER BY rowid DESC LIMIT ?`,
+  )
+    .bind(...values)
+    .all<ControlPlaneEventRow>();
+  const page = (rows.results ?? []).slice(0, limit);
+  const hasMore = (rows.results ?? []).length > limit;
+  const members = (await selectWorkspaceMemberships(env, identity.scope.workspaceId)).results ?? [];
+  const labels = new Map(
+    members.map((member) => [
+      member.user_id,
+      member.display_name || member.email || member.user_id,
+    ]),
+  );
+  const types = await env.DB.prepare(
+    "SELECT DISTINCT type FROM control_plane_events WHERE workspace_id = ? ORDER BY type",
+  )
+    .bind(identity.scope.workspaceId)
+    .all<{ type: string }>();
+  return json({
+    ok: true,
+    events: page.map((row) => ({
+      id: row.id,
+      type: row.type,
+      summary: row.summary,
+      actorUserId: row.user_id,
+      actorLabel: labels.get(row.user_id) ?? row.user_id,
+      agentId: row.agent_id,
+      targetType: row.target_type ?? null,
+      targetId: row.target_id ?? null,
+      data: parseDataJson(row.data_json),
+      createdAt: row.created_at,
+    })),
+    types: (types.results ?? []).map((row) => row.type),
+    nextBefore: hasMore ? (page[page.length - 1]?.id ?? null) : null,
+  });
+};
 
 export const handleLatestControlPlaneEvents = async (
   env: Env,

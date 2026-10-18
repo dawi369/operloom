@@ -13,5 +13,6 @@ export * from "./public-context-contracts.js";
 export * from "./public-budget-contracts.js";
 export * from "./public-billing-contracts.js";
 export * from "./public-memory-contracts.js";
+export * from "./public-admin-contracts.js";
 export * from "./route-map.js";
 export * from "./public-action-contracts.js";

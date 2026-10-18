@@ -51,6 +51,7 @@ import {
 } from "./chat-session";
 import { handleGetChatThread, handleListChatThreads } from "./chat-threads";
 import {
+  handleAdminControlPlaneEvents,
   handleControlPlaneEvents,
   handleControlPlaneEventStream,
   handleLatestControlPlaneEvents,
@@ -351,6 +352,8 @@ const handleRequest = async (
 
   if (url.pathname === "/admin/memory" || url.pathname.startsWith("/admin/memory/"))
     return handleAdminMemory(request, env, identity);
+  if (request.method === "GET" && url.pathname === "/admin/events")
+    return handleAdminControlPlaneEvents(env, identity, url);
   if (request.method === "GET" && url.pathname === "/admin/operator-alerts") {
     return handleListOperatorAlerts(env, identity, url);
   }

@@ -294,6 +294,27 @@ export const useUpdateAdminMemory = (workspaceId?: string | null) =>
     invalidations: () => [workbenchQueryKeys.memory(workspaceId)],
   });
 
+export const useBulkArchiveAdminMemory = (workspaceId?: string | null) =>
+  useTenantMutation<
+    Parameters<WorkbenchClient["admin"]["memory"]["bulkArchive"]>[0],
+    Awaited<ReturnType<WorkbenchClient["admin"]["memory"]["bulkArchive"]>>
+  >({
+    mutationFn: (client, filter) => client.admin.memory.bulkArchive(filter),
+    invalidations: () => [workbenchQueryKeys.memory(workspaceId)],
+  });
+
+export const useAdminEvents = (
+  input: TenantInput & { type?: string; userId?: string; q?: string; before?: string } = {},
+) => {
+  const client = useWorkbenchClient();
+  const { workspaceId, enabled: isEnabled, ...filter } = input;
+  return useQuery({
+    queryKey: [...workbenchQueryKeys.tenant(workspaceId), "admin-events", filter] as const,
+    queryFn: ({ signal }) => client.admin.events.list({ ...filter, limit: 100 }, { signal }),
+    enabled: enabled({ workspaceId, enabled: isEnabled }),
+  });
+};
+
 export const useForgetMemory = (workspaceId?: string | null) =>
   useTenantMutation<string, Awaited<ReturnType<WorkbenchClient["memory"]["forget"]>>>({
     mutationFn: (client, id) => client.memory.forget(id),

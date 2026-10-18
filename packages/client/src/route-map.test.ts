@@ -79,6 +79,8 @@ const operations: Array<() => Promise<unknown>> = [
   () => client.memory.forget("m1"),
   () => client.admin.memory.list({ status: "all" }),
   () => client.admin.memory.update("m1", { status: "archived" }),
+  () => client.admin.memory.bulkArchive({ status: "proposed", olderThanDays: 30 }),
+  () => client.admin.events.list({ type: "memory." }),
   () => client.notificationPreferences.get(),
   () => client.notificationPreferences.update({ approvalRequired: true, terminalOutcomes: true }),
 ];

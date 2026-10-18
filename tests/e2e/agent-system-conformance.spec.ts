@@ -405,6 +405,18 @@ test.describe.serial("Agent-system executable conformance", () => {
       records: unknown[];
     };
     expect(otherAdminMemory.records).toEqual([]);
+    const audit = await direct.admin.events.list({ type: "memory." });
+    expect(audit.events.map((event) => event.type)).toEqual(
+      expect.arrayContaining(["memory.admin_edited", "memory.proposed"]),
+    );
+    expect(audit.events.every((event) => event.actorLabel.length > 0)).toBe(true);
+    const bulk = await direct.admin.memory.bulkArchive({
+      target: { type: "subject", id: "service-boundary" },
+    });
+    expect(bulk.archived).toBe(2);
+    expect(
+      (await direct.memory.list({ targetType: "subject", targetId: "service-boundary" })).records,
+    ).toEqual([]);
     const forgotten = await worker.delete(
       `/workbench/memory/${encodeURIComponent(memory.records.find((record) => record.kind === "goal")!.id)}`,
     );

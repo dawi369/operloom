@@ -3,7 +3,7 @@
   "runtimeSchemas": [
     {
       "path": "client/src/response-schemas.ts",
-      "sha256": "4cfe30d41d7027bffbcc12fdf91ca7dcb5c1affa0ccf8f278e47be07ff35d7b0"
+      "sha256": "e7ad0e815c1aeef391227da9896c136e778af6f0df48bb2af51cbe3f65d8cefe"
     },
     {
       "path": "client/src/validation.ts",
@@ -49,7 +49,7 @@
         },
         {
           "path": "client/dist/client.d.ts",
-          "sha256": "b9ef00fdfd1fa39b7400da40a4aa40ba3de042adc37d100bf2eee43d5799f0db"
+          "sha256": "935b4d1864df25f475714747da73a2fc509b1052791b4ad6438237b7dc620dcc"
         },
         {
           "path": "client/dist/contracts/agents-chat.d.ts",
@@ -85,7 +85,7 @@
         },
         {
           "path": "client/dist/index.d.ts",
-          "sha256": "35a912e66e96c71402d8e1454a3104b2a1c61f65946b5041d67244e3b13b0e24"
+          "sha256": "5dd4b05a3df73971317e4f7520f1732cd7aad202d92d29a2df4f7cb540c714c6"
         },
         {
           "path": "client/dist/messages.d.ts",
@@ -96,8 +96,12 @@
           "sha256": "d2299390bad74bb88bdd37029b53f4cd63652f21ca41f2fdb99e01acbf42b58f"
         },
         {
+          "path": "client/dist/public-admin-contracts.d.ts",
+          "sha256": "e3bb5565d51f31a328810e9b29089832788cc7f54710e5a6d5092aa630746dea"
+        },
+        {
           "path": "client/dist/public-api.d.ts",
-          "sha256": "15b243f531f11628aff12ad496d339c2d34394c004f88fb40c5fd925a62efc85"
+          "sha256": "c4399994e9d6781a214b42da9d9c99297a8a3ec57961189f6cc0f7e4297615ab"
         },
         {
           "path": "client/dist/public-billing-contracts.d.ts",
@@ -117,7 +121,7 @@
         },
         {
           "path": "client/dist/public-memory-contracts.d.ts",
-          "sha256": "f9fb15191e8ea6a8a4d6bba88b6fbd778d7c937cc34ae1a655e08b75be4374c7"
+          "sha256": "15054a715d24986c7a18247a16c7be1d2d706919938be3b58596e6236c0488a7"
         },
         {
           "path": "client/dist/public-state-contracts.d.ts",
@@ -133,7 +137,7 @@
         },
         {
           "path": "client/dist/response-schemas.d.ts",
-          "sha256": "586fe4c952f54e3903d747eb648deb976c4358cef9af22b3fb260499209fa06d"
+          "sha256": "b4e34cc5a303f4294c55818cec8f3858bd8f8b7690709d1e59ab981a8e5c89f0"
         },
         {
           "path": "client/dist/route-map.d.ts",
@@ -155,7 +159,7 @@
       "files": [
         {
           "path": "react/dist/index.d.ts",
-          "sha256": "385698ce0d9dba6a7acde4575e420fe401f1b6d0129a80f16ab83e794b8a3351"
+          "sha256": "bf693a98776b8543c0014dea1455913c7868f2a4209b96bb5057eb8b6580bf6d"
         }
       ]
     }

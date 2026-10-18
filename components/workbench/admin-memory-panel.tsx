@@ -1,6 +1,6 @@
 "use client";
 
-import { useAdminMemory, useUpdateAdminMemory } from "@operloom/react";
+import { useAdminMemory, useBulkArchiveAdminMemory, useUpdateAdminMemory } from "@operloom/react";
 import type { AdminMemoryRecord, MemoryKind } from "@operloom/client";
 import { useState } from "react";
 
@@ -13,8 +13,17 @@ type StatusFilter = (typeof statuses)[number];
 const inputClass =
   "border-input bg-background h-8 rounded-md border px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
+const kib = (bytes: number) => `${Math.max(1, Math.round(bytes / 1024))} KiB`;
+
 /** Every record in the workspace, who it belongs to, and inline edits; proposals float to the top. */
-export function AdminMemoryPanel({ open }: { open: boolean }) {
+export function AdminMemoryPanel({
+  open,
+  onMembersLoaded,
+}: {
+  open: boolean;
+  /** Lets the parent reuse the member list for other admin tabs. */
+  onMembersLoaded?: (members: { userId: string; label: string }[]) => void;
+}) {
   const [status, setStatus] = useState<StatusFilter>("all");
   const [kind, setKind] = useState<MemoryKind | "">("");
   const [userId, setUserId] = useState("");
@@ -27,10 +36,26 @@ export function AdminMemoryPanel({ open }: { open: boolean }) {
     q: q.trim() || undefined,
   });
   const update = useUpdateAdminMemory();
+  const bulk = useBulkArchiveAdminMemory();
   const [editing, setEditing] = useState<string | null>(null);
+  const [staleDays, setStaleDays] = useState("30");
+  const [bulkTarget, setBulkTarget] = useState({ type: "", id: "" });
+  const [lastBulk, setLastBulk] = useState<string | null>(null);
   const records = memory.data?.records ?? [];
   const proposed = records.filter((record) => record.status === "proposed").length;
   const policy = memory.data?.policy;
+  const [reportedMembers, setReportedMembers] = useState(memory.data?.members);
+  if (memory.data?.members && memory.data.members !== reportedMembers) {
+    setReportedMembers(memory.data.members);
+    onMembersLoaded?.(memory.data.members);
+  }
+  const usage = (memory.data?.usage ?? []).filter((row) => !userId || row.userId === userId);
+  const limits = memory.data?.limits;
+  const runBulk = (filter: Parameters<typeof bulk.mutate>[0]) =>
+    bulk.mutate(filter, {
+      onSuccess: (result) =>
+        setLastBulk(`Archived ${result.archived} record${result.archived === 1 ? "" : "s"}.`),
+    });
 
   return (
     <div className="space-y-5">
@@ -95,6 +120,18 @@ export function AdminMemoryPanel({ open }: { open: boolean }) {
             onChange={(event) => setQ(event.target.value)}
           />
         </div>
+        {limits && usage.length ? (
+          <p className="text-muted-foreground border-border border-t px-4 py-2 text-xs">
+            {usage
+              .map((row) => {
+                const label =
+                  memory.data?.members.find((member) => member.userId === row.userId)?.label ??
+                  row.userId;
+                return `${label}: ${row.activeRecords} / ${limits.activeRecords} records, ${kib(row.totalBytes)} / ${kib(limits.totalBytes)}`;
+              })
+              .join(" · ")}
+          </p>
+        ) : null}
         {policy ? (
           <p className="text-muted-foreground border-border border-t px-4 py-2 text-xs">
             Active agent policy: activates{" "}
@@ -108,6 +145,65 @@ export function AdminMemoryPanel({ open }: { open: boolean }) {
           </p>
         ) : null}
       </section>
+
+      <details className="group border-border bg-background rounded-lg border">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold marker:hidden">
+          Bulk actions
+        </summary>
+        <div className="border-border grid gap-3 border-t px-4 py-3 text-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <span>Archive proposals not touched in</span>
+            <input
+              aria-label="Days"
+              type="number"
+              min={0}
+              className={`${inputClass} w-20`}
+              value={staleDays}
+              onChange={(event) => setStaleDays(event.target.value)}
+            />
+            <span>days</span>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={bulk.isPending || staleDays === ""}
+              onClick={() =>
+                runBulk({ status: "proposed", olderThanDays: Math.max(0, Number(staleDays)) })
+              }
+            >
+              Archive
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span>Forget everything about</span>
+            <input
+              aria-label="Target type"
+              className={`${inputClass} w-28`}
+              placeholder="market"
+              value={bulkTarget.type}
+              onChange={(event) => setBulkTarget({ ...bulkTarget, type: event.target.value })}
+            />
+            <input
+              aria-label="Target id"
+              className={`${inputClass} w-44`}
+              placeholder="id"
+              value={bulkTarget.id}
+              onChange={(event) => setBulkTarget({ ...bulkTarget, id: event.target.value })}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={bulk.isPending || !bulkTarget.type.trim() || !bulkTarget.id.trim()}
+              onClick={() =>
+                runBulk({ target: { type: bulkTarget.type.trim(), id: bulkTarget.id.trim() } })
+              }
+            >
+              Archive
+            </Button>
+          </div>
+          {lastBulk ? <p className="text-muted-foreground text-xs">{lastBulk}</p> : null}
+          {bulk.error ? <p className="text-destructive text-xs">{String(bulk.error)}</p> : null}
+        </div>
+      </details>
 
       {memory.error ? <p className="text-destructive text-xs">{String(memory.error)}</p> : null}
       {update.error ? <p className="text-destructive text-xs">{String(update.error)}</p> : null}

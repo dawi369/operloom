@@ -536,7 +536,21 @@ agent's effective policy, and edit any record with
 `client.admin.memory.update(id, { title?, content?, kind?, status?, target?, expiresAt? })`
 (`PATCH /v1/me/admin/memory/{id}`). Admin edits pass the same content guard and
 append a `memory.admin_edited` control-plane event naming the record's owner.
-The console exposes this as the Memory tab of the admin panel.
+`client.admin.memory.bulkArchive({ status?, kind?, userId?, target?, olderThanDays? })`
+archives every matching non-archived record in one call (at least one filter is
+required) and records `memory.admin_bulk_archived`; the list response includes
+per-member `usage` against the limits. The console exposes all of this as the
+Memory tab of the admin panel.
+
+### Audit feed
+
+`client.admin.events.list({ type?, userId?, q?, before?, limit? })`
+(`GET /v1/me/admin/events`) returns every control-plane event in the workspace
+for owners and admins, newest first, with the actor's label. `type` is an exact
+type or a prefix ending in `.` (`memory.`); `before` is the id of the last event
+seen, for paging; the response carries the distinct `types` seen in the
+workspace and `nextBefore` when more remain. The console shows this as the
+Audit tab of the admin panel.
 
 ### Provider action inspection and recovery
 

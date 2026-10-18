@@ -149,7 +149,7 @@ test("keyboard, focus, responsive, and accessibility contracts cover workbench s
   await expect(page.getByRole("dialog", { name: "Admin" })).toBeFocused();
   await expectDialogFocusTrap(page, "Admin");
   await auditPage(page, testInfo, "admin");
-  await page.getByRole("tab", { name: "Controls" }).click();
+  await page.getByRole("tab", { name: "Approvals" }).click();
   await page.getByRole("button", { name: "Approve", exact: true }).first().click();
   const reviewDialog = page.getByRole("dialog", { name: "Approve request", exact: true });
   await expect(reviewDialog.getByLabel("Workflow review content")).toContainText(

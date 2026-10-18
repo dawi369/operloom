@@ -55,10 +55,13 @@ export function WorkbenchWorkspacePanel({
   open,
   onOpenChange,
   onCloseAutoFocus,
+  initialSection,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCloseAutoFocus?: (event: Event) => void;
+  /** Opens straight into settings on this tab, for deep links from the admin panel. */
+  initialSection?: "members";
 }) {
   const { switchToOrganization } = useAuth();
   // Enabled regardless of `open` so the shell's preload fills the cache before the first click.
@@ -145,9 +148,9 @@ export function WorkbenchWorkspacePanel({
 
   useEffect(() => {
     if (!open) return;
-    setView("switcher");
+    setView(initialSection ? "settings" : "switcher");
     void loadPanel();
-  }, [loadPanel, open]);
+  }, [initialSection, loadPanel, open]);
 
   useEffect(() => {
     if (!open || !dataJob || !["queued", "running"].includes(dataJob.status)) return;
@@ -408,7 +411,7 @@ export function WorkbenchWorkspacePanel({
               onManage={() => setView("settings")}
             />
           ) : (
-            <Tabs defaultValue="general" className="min-h-full">
+            <Tabs defaultValue={initialSection ?? "general"} className="min-h-full">
               <div className="border-border sticky top-0 z-10 overflow-x-auto border-b bg-background px-4 py-2">
                 <TabsList>
                   <TabsTrigger value="general">General</TabsTrigger>

@@ -774,15 +774,76 @@ export const handleAdminMemory = async (request: Request, env: Env, identity: Ag
         .bind(...values)
         .all<MemoryRow>();
       const policy = await memoryPolicyForAgent(env, identity);
+      const usage = await env.DB.prepare(
+        `SELECT user_id, COUNT(*) count, COALESCE(SUM(LENGTH(content_json)),0) bytes FROM control_memory_records
+         WHERE workspace_id = ? AND status <> 'archived' GROUP BY user_id`,
+      )
+        .bind(identity.scope.workspaceId)
+        .all<{ user_id: string; count: number; bytes: number }>();
       return json({
         ok: true,
         records: (rows.results ?? []).map((row) => withOwner(toView(row), row.user_id)),
+        usage: (usage.results ?? []).map((row) => ({
+          userId: row.user_id,
+          activeRecords: row.count,
+          totalBytes: row.bytes,
+        })),
         members: members
           .filter((member) => member.status === "active")
           .map((member) => ({ userId: member.user_id, label: memberLabel(member) })),
         policy: { autoActivate: [...policy.autoActivate], ttlDays: policy.ttlDays },
         limits: memoryLimits,
       });
+    }
+    if (request.method === "POST" && path === "/bulk-archive") {
+      const body = parseJson(await request.text());
+      const parsed =
+        publicMemoryContracts["POST /admin/memory/bulk-archive"].request.safeParse(body);
+      if (!parsed.success || !isRecord(body))
+        return json(
+          { ok: false, code: "invalid_request", error: "Invalid bulk filter" },
+          { status: 400 },
+        );
+      const filter = parsed.data;
+      const clauses = ["workspace_id = ?", "status <> 'archived'"];
+      const values: unknown[] = [identity.scope.workspaceId];
+      if (filter.status) {
+        clauses.push("status = ?");
+        values.push(filter.status);
+      }
+      if (filter.kind) {
+        clauses.push("kind = ?");
+        values.push(filter.kind);
+      }
+      if (filter.userId) {
+        clauses.push("user_id = ?");
+        values.push(filter.userId);
+      }
+      if (filter.target) {
+        clauses.push("target_type = ? AND target_id = ?");
+        values.push(filter.target.type, filter.target.id);
+      }
+      const now = new Date();
+      if (filter.olderThanDays !== undefined) {
+        clauses.push("updated_at <= ?");
+        values.push(new Date(now.getTime() - filter.olderThanDays * 86_400_000).toISOString());
+      }
+      const result = (await env.DB.prepare(
+        `UPDATE control_memory_records SET status = 'archived', version = version + 1, updated_at = ?
+         WHERE ${clauses.join(" AND ")}`,
+      )
+        .bind(now.toISOString(), ...values)
+        .run()) as { meta?: { changes?: number } };
+      const archived = result.meta?.changes ?? 0;
+      if (archived)
+        await appendControlPlaneEvent(env, identity, {
+          type: "memory.admin_bulk_archived",
+          summary: `Archived ${archived} memory record${archived === 1 ? "" : "s"}`,
+          targetType: filter.target?.type ?? "memory",
+          targetId: filter.target?.id ?? "bulk",
+          data: { filter, archived },
+        });
+      return json({ ok: true, archived });
     }
     const edit = path.match(/^\/([^/]+)$/);
     if (request.method === "PATCH" && edit) {

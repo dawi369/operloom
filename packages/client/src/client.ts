@@ -42,6 +42,7 @@ import type {
   MemoryPolicyView,
   MemoryRecord,
 } from "./public-memory-contracts.js";
+import type { AdminEvent } from "./public-admin-contracts.js";
 
 export type WorkbenchClientPlatform = "web" | "ios" | "android";
 
@@ -584,8 +585,21 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
             records: AdminMemoryRecord[];
             members: { userId: string; label: string }[];
             policy: MemoryPolicyView;
+            usage: { userId: string; activeRecords: number; totalBytes: number }[];
             limits: { recordBytes: number; activeRecords: number; totalBytes: number };
           }>("adminMemoryList", `/api/workbench/admin/memory${queryString(input)}`, options),
+        bulkArchive: (filter: {
+          status?: "active" | "proposed";
+          kind?: MemoryKind;
+          userId?: string;
+          target?: { type: string; id: string };
+          olderThanDays?: number;
+        }) =>
+          request<{ ok: true; archived: number }>(
+            "adminMemoryBulk",
+            "/api/workbench/admin/memory/bulk-archive",
+            { method: "POST", body: filter },
+          ),
         update: (
           id: Id,
           patch: {
@@ -602,6 +616,24 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
             `/api/workbench/admin/memory/${encodeURIComponent(id)}`,
             { method: "PATCH", body: patch },
           ),
+      },
+      events: {
+        list: (
+          input: {
+            type?: string;
+            userId?: string;
+            q?: string;
+            before?: string;
+            limit?: number;
+          } = {},
+          options: WorkbenchReadOptions = {},
+        ) =>
+          request<{
+            ok: true;
+            events: AdminEvent[];
+            types: string[];
+            nextBefore: string | null;
+          }>("adminEvents", `/api/workbench/admin/events${queryString(input)}`, options),
       },
     },
     notificationPreferences: {

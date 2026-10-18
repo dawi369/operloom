@@ -159,6 +159,7 @@ function WorkbenchShellContent({
   const [memoryInitialKind, setMemoryInitialKind] = useState<"watchlist" | undefined>();
   const rememberMemory = useRememberMemory();
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [workspaceSection, setWorkspaceSection] = useState<"members" | undefined>();
   const [historyFocus, setHistoryFocus] = useState<HistoryFocusRequest | null>(null);
   const [adminAccess, setAdminAccess] = useState<{ isAdmin: boolean } | null>(null);
   const [adminNotice, setAdminNotice] = useState<string | null>(null);
@@ -595,9 +596,13 @@ function WorkbenchShellContent({
           {!demoMode ? (
             <WorkbenchWorkspacePanel
               open={workspaceOpen}
+              initialSection={workspaceSection}
               onOpenChange={(nextOpen) => {
                 setWorkspaceOpen(nextOpen);
-                if (!nextOpen) focusComposerAfterOverlayClose();
+                if (!nextOpen) {
+                  setWorkspaceSection(undefined);
+                  focusComposerAfterOverlayClose();
+                }
               }}
               onCloseAutoFocus={handlePanelCloseAutoFocus}
             />
@@ -633,6 +638,11 @@ function WorkbenchShellContent({
             open={adminOpen}
             onOpenChange={handleAdminOpenChange}
             onCloseAutoFocus={handlePanelCloseAutoFocus}
+            onOpenMembers={() => {
+              setAdminOpen(false);
+              setWorkspaceSection("members");
+              setWorkspaceOpen(true);
+            }}
             onOpenHistory={(runId) => {
               setAdminOpen(false);
               if (runId) {

@@ -15,6 +15,10 @@ import {
   publicMemoryOpenApiQueryParameters,
 } from "./public-memory-contracts.js";
 import {
+  publicAdminOpenApiOperation,
+  publicAdminOpenApiQueryParameters,
+} from "./public-admin-contracts.js";
+import {
   publicUpgradeOpenApiOperation,
   publicUpgradeOpenApiQueryParameters,
 } from "./public-upgrade-contracts.js";
@@ -139,6 +143,8 @@ export const publicApiRoutes = [
   ["DELETE", "/workbench/memory/{id}"],
   ["GET", "/admin/memory"],
   ["PATCH", "/admin/memory/{id}"],
+  ["POST", "/admin/memory/bulk-archive"],
+  ["GET", "/admin/events"],
   ["GET", "/workbench/billing"],
   ["GET", "/workbench/billing/plans"],
   ["PUT", "/workbench/billing/plan"],
@@ -194,6 +200,7 @@ const publicApiOperation = (method: string, path: string, scopeParameters: reado
     publicBudgetOpenApiQueryParameters(method, path),
     publicBillingOpenApiQueryParameters(method, path),
     publicMemoryOpenApiQueryParameters(method, path),
+    publicAdminOpenApiQueryParameters(method, path),
     publicContextOpenApiQueryParameters(method, path),
     publicActionOpenApiQueryParameters(method, path),
   ].flat(),
@@ -208,6 +215,7 @@ const publicApiOperation = (method: string, path: string, scopeParameters: reado
   ...publicBudgetOpenApiOperation(method, path),
   ...publicBillingOpenApiOperation(method, path),
   ...publicMemoryOpenApiOperation(method, path),
+  ...publicAdminOpenApiOperation(method, path),
   ...publicActionOpenApiOperation(method, path),
 });
 

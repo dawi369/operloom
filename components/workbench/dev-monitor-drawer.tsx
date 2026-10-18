@@ -5,6 +5,8 @@ import {
   AlertCircleIcon,
   BotIcon,
   BrainIcon,
+  ScrollTextIcon,
+  UsersIcon,
   CheckIcon,
   FlaskConicalIcon,
   Loader2Icon,
@@ -14,10 +16,12 @@ import {
 } from "lucide-react";
 
 import { AdminAgentsPanel } from "@/components/workbench/admin-agents-panel";
+import { AdminAuditPanel } from "@/components/workbench/admin-audit-panel";
 import { AdminMemoryPanel } from "@/components/workbench/admin-memory-panel";
 import { WorkflowReviewDetails } from "@/components/workbench/workflow-review-details";
 import {
-  AdminControlsPanel,
+  AdminApprovalsPanel,
+  AdminToolPolicyPanel,
   type AdminApprovalDecision,
 } from "@/components/workbench/admin-controls-panel";
 import { AdminSystemPanel } from "@/components/workbench/admin-system-panel";
@@ -62,12 +66,16 @@ export function AdminPanel({
   onOpenChange,
   onCloseAutoFocus,
   onOpenHistory,
+  onOpenMembers,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCloseAutoFocus?: (event: Event) => void;
   onOpenHistory: (runId?: string) => void;
+  /** Member management lives in the workspace panel; the admin panel links to it. */
+  onOpenMembers: () => void;
 }) {
+  const [members, setMembers] = useState<{ userId: string; label: string }[]>([]);
   const {
     connection,
     error: sessionError,
@@ -336,17 +344,21 @@ export function AdminPanel({
             </div>
           ) : null}
 
-          <Tabs defaultValue="controls" className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)]">
-            <div className="border-border overflow-x-auto border-b px-4 py-2">
+          <Tabs defaultValue="approvals" className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)]">
+            <div className="border-border flex items-center justify-between gap-3 overflow-x-auto border-b px-4 py-2">
               <TabsList>
-                <TabsTrigger value="controls">
-                  <SlidersHorizontalIcon />
-                  Controls
+                <TabsTrigger value="approvals">
+                  <ShieldCheckIcon />
+                  Approvals
                   {pendingApprovals.length ? (
                     <span className="bg-amber-500/15 text-amber-700 dark:text-amber-300 rounded-full px-1.5 text-[10px] font-semibold tabular-nums">
                       {pendingApprovals.length}
                     </span>
                   ) : null}
+                </TabsTrigger>
+                <TabsTrigger value="tools">
+                  <SlidersHorizontalIcon />
+                  Tools
                 </TabsTrigger>
                 <TabsTrigger value="agents">
                   <BotIcon />
@@ -358,11 +370,23 @@ export function AdminPanel({
                     Memory
                   </TabsTrigger>
                 ) : null}
+                {canManageAutomations ? (
+                  <TabsTrigger value="audit">
+                    <ScrollTextIcon />
+                    Audit
+                  </TabsTrigger>
+                ) : null}
                 <TabsTrigger value="system">
                   <FlaskConicalIcon />
                   Diagnostics
                 </TabsTrigger>
               </TabsList>
+              {canManageAutomations ? (
+                <Button type="button" variant="ghost" size="sm" onClick={onOpenMembers}>
+                  <UsersIcon />
+                  Members
+                </Button>
+              ) : null}
             </div>
 
             <TabsContent value="agents" className="overflow-y-auto p-5">
@@ -380,19 +404,30 @@ export function AdminPanel({
               />
             </TabsContent>
 
-            <TabsContent value="controls" className="overflow-y-auto p-5">
-              <AdminControlsPanel
+            <TabsContent value="approvals" className="overflow-y-auto p-5">
+              <AdminApprovalsPanel
                 approvals={pendingApprovals}
+                onDecideApproval={setApprovalDialog}
+              />
+            </TabsContent>
+
+            <TabsContent value="tools" className="overflow-y-auto p-5">
+              <AdminToolPolicyPanel
                 tools={summary?.tools ?? []}
                 busyTool={busyTool}
-                onDecideApproval={setApprovalDialog}
                 onUpdateToolPolicy={updateToolPolicy}
               />
             </TabsContent>
 
             {canManageAutomations ? (
               <TabsContent value="memory" className="overflow-y-auto p-5">
-                <AdminMemoryPanel open={open} />
+                <AdminMemoryPanel open={open} onMembersLoaded={setMembers} />
+              </TabsContent>
+            ) : null}
+
+            {canManageAutomations ? (
+              <TabsContent value="audit" className="overflow-y-auto p-5">
+                <AdminAuditPanel open={open} members={members} />
               </TabsContent>
             ) : null}
 

@@ -21,6 +21,7 @@ import {
   type MemoryPolicy,
   type MemoryRecordView,
 } from "./memory";
+import { handleAdminControlPlaneEvents } from "./control-plane-events";
 import { createPackTestRuntime } from "./pack-test-runtime";
 
 const record = (overrides: Partial<MemoryRecordView>): MemoryRecordView => ({
@@ -467,6 +468,82 @@ describe("memory records", () => {
       "SELECT type FROM control_plane_events WHERE type = 'memory.admin_edited'",
     ).all<{ type: string }>();
     expect(events.results).toHaveLength(1);
+
+    // Usage per member and bulk archive by target or age.
+    await rememberMemory(runtime.env, owner, {
+      kind: "note",
+      key: "n1",
+      title: "Owner note",
+      content: { text: "x" },
+      target: { type: "customer", id: "c-1" },
+      source: "user",
+      scope: "user",
+      policy,
+    });
+    const usage = (await (await call(owner, "GET", "")).json()) as {
+      usage: Array<{ userId: string; activeRecords: number }>;
+    };
+    expect(usage.usage.map((row) => [row.userId, row.activeRecords]).sort()).toEqual([
+      ["crew", 1],
+      ["owner", 1],
+    ]);
+    expect((await call(owner, "POST", "/bulk-archive", {})).status).toBe(400);
+    expect(
+      await (
+        await call(owner, "POST", "/bulk-archive", { status: "proposed", olderThanDays: 30 })
+      ).json(),
+    ).toEqual({ ok: true, archived: 0 });
+    expect(
+      await (
+        await call(owner, "POST", "/bulk-archive", { target: { type: "customer", id: "c-1" } })
+      ).json(),
+    ).toEqual({ ok: true, archived: 1 });
+    const remaining = (await (await call(owner, "GET", "?status=archived")).json()) as {
+      records: Array<{ key: string }>;
+    };
+    expect(remaining.records.map((record) => record.key)).toEqual(["n1"]);
+    const bulkEvents = await runtime.env.DB.prepare(
+      "SELECT target_id FROM control_plane_events WHERE type = 'memory.admin_bulk_archived'",
+    ).all<{ target_id: string }>();
+    expect(bulkEvents.results).toEqual([{ target_id: "c-1" }]);
+
+    // The audit feed shows every member's events to admins only, filterable by type prefix and actor.
+    const feed = (identity: typeof owner, query: string) =>
+      handleAdminControlPlaneEvents(
+        runtime.env,
+        identity,
+        new URL(`https://runtime.test/admin/events${query}`),
+      );
+    expect((await feed(crew, "")).status).toBe(403);
+    const all = (await (await feed(owner, "?type=memory.")).json()) as {
+      events: Array<{ type: string; actorUserId: string; actorLabel: string }>;
+      types: string[];
+      nextBefore: string | null;
+    };
+    expect(all.events.map((event) => event.type)).toEqual([
+      "memory.admin_bulk_archived",
+      "memory.admin_edited",
+      "memory.proposed",
+    ]);
+    expect(all.events[2]).toMatchObject({ actorUserId: "crew", actorLabel: "crew@example.test" });
+    expect(all.types).toEqual(expect.arrayContaining(["memory.proposed", "memory.admin_edited"]));
+    const paged = (await (await feed(owner, "?type=memory.&limit=1")).json()) as {
+      events: Array<{ id: string }>;
+      nextBefore: string | null;
+    };
+    expect(paged.events).toHaveLength(1);
+    expect(paged.nextBefore).toBe(paged.events[0]!.id);
+    const next = (await (
+      await feed(owner, `?type=memory.&limit=5&before=${paged.nextBefore}`)
+    ).json()) as { events: Array<{ type: string }>; nextBefore: string | null };
+    expect(next.events.map((event) => event.type)).toEqual([
+      "memory.admin_edited",
+      "memory.proposed",
+    ]);
+    expect(next.nextBefore).toBeNull();
+    expect(
+      ((await (await feed(owner, "?userId=crew&q=crew")).json()) as { events: unknown[] }).events,
+    ).toHaveLength(1);
   });
 
   it("exposes a workflow port whose writes are workflow-sourced and agent-scoped by default", async () => {

@@ -86,7 +86,28 @@ const validFixtures = {
       autoActivate: ["note"],
       ttlDays: { goal: null, preference: null, watchlist: 30, conclusion: 7, note: 14 },
     },
+    usage: [{ userId: "u1", activeRecords: 3, totalBytes: 120 }],
     limits: { recordBytes: 1, activeRecords: 1, totalBytes: 1 },
+  },
+  adminMemoryBulk: { ok: true, archived: 2 },
+  adminEvents: {
+    ok: true,
+    events: [
+      {
+        id: "e1",
+        type: "memory.admin_edited",
+        summary: "Edited",
+        actorUserId: "u1",
+        actorLabel: "a@b.co",
+        agentId: "agent",
+        targetType: "memory",
+        targetId: "m1",
+        data: {},
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ],
+    types: ["memory.admin_edited"],
+    nextBefore: null,
   },
   adminMemoryRecord: {
     ok: true,

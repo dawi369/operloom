@@ -21,3 +21,10 @@ export const updateCloudflareAdminMemory = (id: string, body: unknown) =>
     method: "PATCH",
     body: JSON.stringify(body),
   });
+export const bulkArchiveCloudflareAdminMemory = (body: unknown) =>
+  requestControlPlane<unknown>("/admin/memory/bulk-archive", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+export const listCloudflareAdminEvents = (query: string) =>
+  requestControlPlane<unknown>(`/admin/events${query}`);

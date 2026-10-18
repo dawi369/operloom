@@ -305,12 +305,23 @@ test("trusted local session is immediately usable and exposes release controls",
   await expect(page.getByRole("dialog", { name: "Admin" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Overview" })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "Agents" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Controls" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Approvals" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Tools" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Memory" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Audit" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Diagnostics" })).toBeVisible();
 
-  await page.getByRole("tab", { name: "Controls" }).click();
   await expect(page.getByRole("heading", { name: "Approvals" })).toBeVisible();
+  await page.getByRole("tab", { name: "Tools" }).click();
   await expect(page.getByText("Tool permissions", { exact: true })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Memory" }).click();
+  await expect(page.getByRole("heading", { name: "Memory" })).toBeVisible();
+  await expect(page.getByText("Bulk actions", { exact: true })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Audit" }).click();
+  await expect(page.getByRole("heading", { name: "Audit" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Event type" })).toBeVisible();
 
   await page.getByRole("tab", { name: "Diagnostics" }).click();
   await expect(page.getByRole("heading", { name: "Recent runtime" })).toBeVisible();

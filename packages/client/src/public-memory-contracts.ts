@@ -100,6 +100,10 @@ export const publicMemoryContracts = {
       members: z.array(z.object({ userId: z.string(), label: z.string() })),
       /** The active agent's effective policy, so admins see why a record waited. */
       policy: memoryPolicySchema,
+      /** Non-archived records and bytes per member, against `limits`. */
+      usage: z.array(
+        z.object({ userId: z.string(), activeRecords: z.number(), totalBytes: z.number() }),
+      ),
       limits: z.object({
         recordBytes: z.number(),
         activeRecords: z.number(),
@@ -121,6 +125,21 @@ export const publicMemoryContracts = {
       })
       .strict(),
     response: z.object({ ok: z.literal(true), record: adminMemoryRecordSchema }),
+  },
+  "POST /admin/memory/bulk-archive": {
+    status: 200,
+    request: z
+      .object({
+        status: z.enum(["active", "proposed"]).optional(),
+        kind: memoryKindSchema.optional(),
+        userId: z.string().optional(),
+        target: memoryTargetSchema.optional(),
+        /** Only records not updated within this many days. */
+        olderThanDays: z.number().int().min(0).max(3650).optional(),
+      })
+      .strict()
+      .refine((filter) => Object.keys(filter).length > 0, "At least one filter is required."),
+    response: z.object({ ok: z.literal(true), archived: z.number() }),
   },
 } as const;
 

@@ -20,6 +20,14 @@
   effective policy, inline edit of title, content, kind and expiry, and
   confirm, archive or restore. Edits are guarded and audited as
   `memory.admin_edited`.
+- Admin panel: tabs are now Approvals (with the pending badge), Tools, Agents,
+  Memory, Audit and Diagnostics, plus a Members shortcut into the workspace
+  panel. The Audit tab (`GET /v1/me/admin/events`, `client.admin.events.list`)
+  is a workspace-wide feed of control-plane events with actor, type-prefix and
+  text filters and cursor paging. The Memory tab shows per-member usage against
+  quotas and offers two bulk actions, archive stale proposals and forget
+  everything about a target, over `POST /v1/me/admin/memory/bulk-archive`
+  (audited as `memory.admin_bulk_archived`).
 - Memory and context (W12): durable per-user memory records (`goal`,
   `preference`, `watchlist`, `conclusion`, `note`) scoped user-wide or to one
   agent, with `proposed`/`active`/`archived` status. Users write through
