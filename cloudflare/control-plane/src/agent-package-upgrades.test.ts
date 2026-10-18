@@ -190,14 +190,14 @@ describe("explicit package upgrades", () => {
 
   it("fails closed on concurrent different keys", async () => {
     const { env, db } = fixture();
-    const results = await Promise.all([
-      upgrade(env),
-      upgrade(env, { ...input, idempotencyKey: "other" }),
-    ]);
+    const attempts = [input, { ...input, idempotencyKey: "other" }];
+    const results = await Promise.all(attempts.map((attempt) => upgrade(env, attempt)));
     expect(results.map((result) => result.status).sort()).toEqual([200, 409]);
     expect(counts(db).control_agent_upgrades).toBe(1);
+    // Either key may win the race; the winner's receipt replays even after the agent moves on.
+    const winner = attempts[results.findIndex((result) => result.status === 200)]!;
     db.exec("UPDATE agents SET runtime_revision = 2");
-    expect(await (await upgrade(env)).json()).toMatchObject({
+    expect(await (await upgrade(env, winner)).json()).toMatchObject({
       upgrade: { fromRevision: 0, toRevision: 1 },
     });
   });

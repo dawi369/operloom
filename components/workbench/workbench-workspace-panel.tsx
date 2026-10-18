@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useActivateWorkspace,
   useWorkbenchAccounts,
@@ -146,11 +146,17 @@ export function WorkbenchWorkspacePanel({
     }
   }, [accountsQuery.data, refetchAccounts, refetchWorkspaces, workspacesQuery.data]);
 
+  // Reset the view only when the panel opens. `loadPanel` changes identity whenever the
+  // workspace queries revalidate, and re-running this on that would bounce an open settings view.
+  const loadPanelRef = useRef(loadPanel);
+  useEffect(() => {
+    loadPanelRef.current = loadPanel;
+  }, [loadPanel]);
   useEffect(() => {
     if (!open) return;
     setView(initialSection ? "settings" : "switcher");
-    void loadPanel();
-  }, [initialSection, loadPanel, open]);
+    void loadPanelRef.current();
+  }, [initialSection, open]);
 
   useEffect(() => {
     if (!open || !dataJob || !["queued", "running"].includes(dataJob.status)) return;

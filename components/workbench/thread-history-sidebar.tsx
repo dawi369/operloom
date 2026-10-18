@@ -65,6 +65,7 @@ export function ThreadHistorySidebar({
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<ChatThreadSummary | null>(null);
   const deleteTriggerRef = useRef<HTMLElement | null>(null);
+  const cancelDeleteRef = useRef<HTMLButtonElement | null>(null);
   const renameTriggerRef = useRef<HTMLElement | null>(null);
   const [renameCandidate, setRenameCandidate] = useState<ChatThreadSummary | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
@@ -384,7 +385,14 @@ export function ThreadHistorySidebar({
             if (!open) closeDeleteDialog();
           }}
         >
-          <DialogContent className="gap-4 p-5 sm:max-w-[22rem]" showCloseButton={false}>
+          <DialogContent
+            className="gap-4 p-5 sm:max-w-[22rem]"
+            showCloseButton={false}
+            onOpenAutoFocus={(event) => {
+              event.preventDefault();
+              cancelDeleteRef.current?.focus();
+            }}
+          >
             <DialogHeader className="gap-2 text-left">
               <div className="flex items-center gap-2.5">
                 <div className="bg-destructive/10 text-destructive flex size-8 shrink-0 items-center justify-center rounded-md">
@@ -398,7 +406,12 @@ export function ThreadHistorySidebar({
             </DialogHeader>
 
             <DialogFooter className="grid grid-cols-2 sm:grid-cols-2">
-              <Button type="button" variant="outline" onClick={closeDeleteDialog}>
+              <Button
+                ref={cancelDeleteRef}
+                type="button"
+                variant="outline"
+                onClick={closeDeleteDialog}
+              >
                 Cancel
               </Button>
               <Button type="button" variant="destructive" onClick={() => void confirmDelete()}>

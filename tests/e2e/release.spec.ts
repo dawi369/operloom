@@ -95,6 +95,8 @@ test("signed-out refresh stays on the deliberate access screen", async ({ page, 
 
 test("chat deletion uses an accessible in-app confirmation", async ({ page }) => {
   test.skip(releaseMode !== "local-session");
+  // The first reload after a dev-server compile can take most of the default 30 s budget.
+  test.setTimeout(120_000);
 
   await page.goto("/");
   const created = await page.request.post("/api/workbench/chat-session/threads", {
@@ -198,6 +200,12 @@ test("trusted local session is immediately usable and exposes release controls",
     if (request.url().includes("/api/workbench/admin-summary")) adminSummaryRequests += 1;
   });
 
+  // Earlier specs may leave another agent active; this journey asserts the default pack.
+  const defaultAgent = await page.request.post("/api/workbench/chat-session/agent-switch", {
+    data: { agentId: "agent-workspace:local-api:e2e-owner:default", target: "new_thread" },
+  });
+  expect(defaultAgent.ok(), await defaultAgent.text()).toBe(true);
+
   await page.goto("/");
   await expect(page).toHaveTitle(product.webTitle);
   await expect(page.getByText("agent workbench", { exact: true })).toBeVisible();
@@ -211,6 +219,8 @@ test("trusted local session is immediately usable and exposes release controls",
     })
     .toBe(true);
 
+  // A warmup stage may still be in flight from page load; the provider reuses it instead of
+  // issuing a second request, so wait for whichever stage response arrives after the click.
   await page.route("**/api/workbench/chat-session/stage-thread**", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 1_500));
     await route.continue();
@@ -218,6 +228,7 @@ test("trusted local session is immediately usable and exposes release controls",
   const stageResponsePromise = page.waitForResponse(
     (response) =>
       response.url().includes("/api/workbench/chat-session/stage-thread") && response.ok(),
+    { timeout: 20_000 },
   );
   const newChatStartedAt = Date.now();
   await page.getByRole("button", { name: "New chat" }).click();

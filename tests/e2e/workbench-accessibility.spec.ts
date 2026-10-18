@@ -103,7 +103,7 @@ test("keyboard, focus, responsive, and accessibility contracts cover workbench s
 
   // Earlier specs may switch agents; the seeded approval belongs to the default agent.
   const defaultAgent = await page.request.post("/api/workbench/chat-session/agent-switch", {
-    data: { agentId: "agent-workspace:local-api:e2e-owner:default" },
+    data: { agentId: "agent-workspace:local-api:e2e-owner:default", target: "new_thread" },
   });
   expect(defaultAgent.ok(), await defaultAgent.text()).toBe(true);
 
