@@ -59,14 +59,14 @@ deferred.
 
 ### Agents and conversation
 
-| Id  | Capability                                                                       | Status  | P   | R   | Notes                                                                           |
-| --- | -------------------------------------------------------------------------------- | ------- | --- | --- | ------------------------------------------------------------------------------- |
-| C5  | Chat on per-thread Durable Objects, assistant-ui console                         | Done    | x   | x   |                                                                                 |
-| C6  | Several pack-backed agents per workspace, immutable snapshots, explicit upgrades | Done    | x   | x   | `workspace.maxAgents` caps; one default pack.                                   |
-| C7  | User-driven agent switching with handoff summary                                 | Done    |     | x   | `session-agent-handoff.ts`; the user changes agent, context carries over.       |
-| C8  | Agent-to-agent delegation (a run hands bounded work to another agent)            | Missing | x   | x   | Today agents coordinate only through shared managed state and triggers. See W5. |
-| C9  | Inline tool-result renderers in chat (pack-owned cards)                          | Missing | x   | x   | Pack `web.ts` registers artifact renderers, not chat parts. See W6.             |
-| C10 | Artifact renderers                                                               | Partial | x   | x   | `json` renderer; rich renderers arrive with W6.                                 |
+| Id  | Capability                                                                       | Status | P   | R   | Notes                                                                        |
+| --- | -------------------------------------------------------------------------------- | ------ | --- | --- | ---------------------------------------------------------------------------- |
+| C5  | Chat on per-thread Durable Objects, assistant-ui console                         | Done   | x   | x   |                                                                              |
+| C6  | Several pack-backed agents per workspace, immutable snapshots, explicit upgrades | Done   | x   | x   | `workspace.maxAgents` caps; one default pack.                                |
+| C7  | User-driven agent switching with handoff summary                                 | Done   |     | x   | `session-agent-handoff.ts`; the user changes agent, context carries over.    |
+| C8  | Agent-to-agent delegation (a run hands bounded work to another agent)            | Done   | x   | x   | `tasks.delegate` port, `delegable` workflows, `context.run.delegation` (W5). |
+| C9  | Inline tool-result renderers in chat (pack-owned cards)                          | Done   | x   | x   | `toolResultRenderers` in `web.ts`; sanitized, size-bounded props (W6).       |
+| C10 | Artifact renderers                                                               | Done   | x   | x   | `json` renderer plus pack-owned rich renderers (W6).                         |
 
 ### Autonomy
 
@@ -90,21 +90,21 @@ deferred.
 
 ### External action
 
-| Id  | Capability                                                                                                                  | Status  | P   | R   | Notes                                                                                                                             |
-| --- | --------------------------------------------------------------------------------------------------------------------------- | ------- | --- | --- | --------------------------------------------------------------------------------------------------------------------------------- |
-| C20 | Action proposals, immutable review content, re-validation at approval and dispatch, kill switches                           | Done    | x   | x   |                                                                                                                                   |
-| C21 | `policy_controlled` approvals: per action type, auto-execute within declared limits, otherwise human; post-hoc review queue | Missing | x   | x   | Declared in the SDK (`approval: "required" \| "policy_controlled"`); the runtime treats every proposal as human-approved. See W2. |
-| C22 | Provider operations with receipts, reconciliation, simulation target                                                        | Partial | x   | x   | Registry is a closed build-time list (`capacity.allocate`). See W1.                                                               |
-| C23 | Bundled effect providers: transactional email send, calendar write, CRM/record write                                        | Missing |     | x   | Email send also carries P alerts. See W3/W4.                                                                                      |
-| C24 | Financial custody: session keys, API-key signing, per-trade approval, runner signing                                        | Later   | x   |     | Needs the legal read first. See W9.                                                                                               |
+| Id  | Capability                                                                                                                  | Status  | P   | R   | Notes                                                                                            |
+| --- | --------------------------------------------------------------------------------------------------------------------------- | ------- | --- | --- | ------------------------------------------------------------------------------------------------ |
+| C20 | Action proposals, immutable review content, re-validation at approval and dispatch, kill switches                           | Done    | x   | x   |                                                                                                  |
+| C21 | `policy_controlled` approvals: per action type, auto-execute within declared limits, otherwise human; post-hoc review queue | Done    | x   | x   | Per action type, auto-execute within declared limits, post-hoc review queue (W2).                |
+| C22 | Provider operations with receipts, reconciliation, simulation target                                                        | Done    | x   | x   | Trusted Runtime Modules register provider operations; receipts, reconciliation, simulation (W1). |
+| C23 | Bundled effect providers: transactional email send, calendar write, CRM/record write                                        | Missing |     | x   | Email send also carries P alerts. See W3/W4.                                                     |
+| C24 | Financial custody: session keys, API-key signing, per-trade approval, runner signing                                        | Later   | x   |     | Needs the legal read first. See W9.                                                              |
 
 ### Outbound communication
 
-| Id  | Capability                                                             | Status  | P   | R   | Notes                                                                        |
-| --- | ---------------------------------------------------------------------- | ------- | --- | --- | ---------------------------------------------------------------------------- |
-| C25 | Outbound webhooks on control-plane events, signed, retried             | Done    | x   | x   |                                                                              |
-| C26 | Mobile push delivery (Expo), vaulted tokens, delivery ledger           | Partial | x   | x   | Behind `OPERLOOM_PUSH_ENABLED`; devices registered by the WIP native client. |
-| C27 | Email and SMS delivery to users, preferences, digests, delivery ledger | Missing | x   | x   | Same channel abstraction as C26. See W3.                                     |
+| Id  | Capability                                                             | Status  | P   | R   | Notes                                                                                                       |
+| --- | ---------------------------------------------------------------------- | ------- | --- | --- | ----------------------------------------------------------------------------------------------------------- |
+| C25 | Outbound webhooks on control-plane events, signed, retried             | Done    | x   | x   |                                                                                                             |
+| C26 | Mobile push delivery (Expo), vaulted tokens, delivery ledger           | Partial | x   | x   | Behind `OPERLOOM_PUSH_ENABLED`; `apps/mobile` registers devices and routes taps (W10).                      |
+| C27 | Email and SMS delivery to users, preferences, digests, delivery ledger | Partial | x   | x   | Channels, preferences, digests and delivery ledger exist; email and SMS transports are recorded stubs (W3). |
 
 ### Clients and business
 
@@ -116,7 +116,7 @@ deferred.
 | C31 | MCP adapter (OAuth, allowlist, MCP Apps widgets) for ChatGPT and Claude apps                                      | Done    | x   |     | `/v1/me/mcp` Streamable HTTP server: workflows and queries as tools, WorkOS bearer plus client allowlist, renderer kind in `_meta` (W7).                                 |
 | C32 | Billing and entitlements                                                                                          | Done    | x   | x   | Plans as budget ceilings and feature sets; manual and Stripe modules (W8).                                                                                               |
 | C33 | Signed heavy-tool runner (Fly transport), `runner.ts` in every package                                            | Done    | x   | x   | Same schemas, policy, budgets and receipts as inline tools; optional per pack.                                                                                           |
-| C34 | Runner recipes: headless browser, container or binary execution, document and repository processing, local parity | Missing | x   | x   | Packs write these from scratch today; `repo.snapshot` is the only example. See W11.                                                                                      |
+| C34 | Runner recipes: headless browser, container or binary execution, document and repository processing, local parity | Done    | x   | x   | SDK `recipes.ts`, runner recipes with local parity, `repo.snapshot` and `operator.page.read` (W11).                                                                      |
 
 ## Platform build order
 
@@ -124,20 +124,20 @@ Workstreams are generic. Each is inert for a fork that does not declare or
 enable it. Order follows how many products each unlocks and how much later
 work depends on it.
 
-| #   | Workstream                                                             | Unlocks            | Depends on         |
-| --- | ---------------------------------------------------------------------- | ------------------ | ------------------ |
-| W1  | Open provider operations to trusted Runtime Modules                    | C22, then C23, C24 |                    |
-| W2  | `policy_controlled` approvals and review queue                         | C21                | W1 for effects     |
-| W3  | Notification channels: email and SMS beside push; preferences; digests | C27, C26           | W1                 |
-| W4  | Bundled connection providers and brokered read/effect tools            | C18, C23           | W1                 |
-| W5  | Agent delegation                                                       | C8                 |                    |
-| W6  | Pack chat renderers and rich artifact renderers                        | C9, C10            |                    |
-| W7  | MCP adapter                                                            | C31                | W6 for widgets     |
-| W8  | Billing and entitlements                                               | C32                |                    |
-| W9  | Financial custody and signing                                          | C24                | W1, W2, legal read |
-| W10 | Mobile shell, rebuilt on `@operloom/client`                            | C30, C26           | W3, W6             |
-| W11 | Runner recipes and local runner parity                                 | C34                |                    |
-| W12 | Memory and context budget                                              | C35, C16           |                    |
+| #   | Workstream                                                             | Unlocks            | Depends on         | Status  |
+| --- | ---------------------------------------------------------------------- | ------------------ | ------------------ | ------- |
+| W1  | Open provider operations to trusted Runtime Modules                    | C22, then C23, C24 |                    | Done    |
+| W2  | `policy_controlled` approvals and review queue                         | C21                | W1 for effects     | Done    |
+| W3  | Notification channels: email and SMS beside push; preferences; digests | C27, C26           | W1                 | Partial |
+| W4  | Bundled connection providers and brokered read/effect tools            | C18, C23           | W1                 | Missing |
+| W5  | Agent delegation                                                       | C8                 |                    | Done    |
+| W6  | Pack chat renderers and rich artifact renderers                        | C9, C10            |                    | Done    |
+| W7  | MCP adapter                                                            | C31                | W6 for widgets     | Done    |
+| W8  | Billing and entitlements                                               | C32                |                    | Done    |
+| W9  | Financial custody and signing                                          | C24                | W1, W2, legal read | Later   |
+| W10 | Mobile shell, rebuilt on `@operloom/client`                            | C30, C26           | W3, W6             | Partial |
+| W11 | Runner recipes and local runner parity                                 | C34                |                    | Done    |
+| W12 | Memory and context budget                                              | C35, C16           |                    | Done    |
 
 ### W1 Open provider operations
 
