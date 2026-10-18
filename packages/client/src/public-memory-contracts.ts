@@ -136,10 +136,16 @@ export const publicMemoryContracts = {
         target: memoryTargetSchema.optional(),
         /** Only records not updated within this many days. */
         olderThanDays: z.number().int().min(0).max(3650).optional(),
+        /** Count the matches without archiving them. */
+        preview: z.boolean().optional(),
       })
       .strict()
-      .refine((filter) => Object.keys(filter).length > 0, "At least one filter is required."),
-    response: z.object({ ok: z.literal(true), archived: z.number() }),
+      .refine(
+        (filter) => Object.keys(filter).filter((key) => key !== "preview").length > 0,
+        "At least one filter is required.",
+      ),
+    /** `archived` is the count that would be archived when `preview` is set. */
+    response: z.object({ ok: z.literal(true), archived: z.number(), preview: z.boolean() }),
   },
 } as const;
 

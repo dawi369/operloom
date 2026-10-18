@@ -89,7 +89,7 @@ const validFixtures = {
     usage: [{ userId: "u1", activeRecords: 3, totalBytes: 120 }],
     limits: { recordBytes: 1, activeRecords: 1, totalBytes: 1 },
   },
-  adminMemoryBulk: { ok: true, archived: 2 },
+  adminMemoryBulk: { ok: true, archived: 2, preview: false },
   adminEvents: {
     ok: true,
     events: [

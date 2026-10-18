@@ -52,6 +52,11 @@ export default function ApprovalsScreen() {
             {item.input?.url ? (
               <Text style={{ color: colors.muted, fontSize: 12 }}>{item.input.url}</Text>
             ) : null}
+            {item.memoryUsed?.length ? (
+              <Text style={{ color: colors.muted, fontSize: 12 }}>
+                Based on: {item.memoryUsed.map((record) => record.title).join(" · ")}
+              </Text>
+            ) : null}
             <View style={{ flexDirection: "row", gap: 8 }}>
               <Pressable
                 accessibilityRole="button"

@@ -538,7 +538,10 @@ agent's effective policy, and edit any record with
 append a `memory.admin_edited` control-plane event naming the record's owner.
 `client.admin.memory.bulkArchive({ status?, kind?, userId?, target?, olderThanDays? })`
 archives every matching non-archived record in one call (at least one filter is
-required) and records `memory.admin_bulk_archived`; the list response includes
+required) and records `memory.admin_bulk_archived`; pass `preview: true` to get
+the count without archiving. Pending approval requests carry `memoryUsed`, the
+records that were in the prompt when the request was raised, read back through
+the run's pinned context snapshot; the list response includes
 per-member `usage` against the limits. The console exposes all of this as the
 Memory tab of the admin panel.
 

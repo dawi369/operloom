@@ -13,6 +13,7 @@ import {
   listMemory,
   memoryContextSourceId,
   memoryLimits,
+  memoryUsedForRun,
   platformMemoryDefaults,
   rememberMemory,
   renderContextEvidence,
@@ -492,12 +493,21 @@ describe("memory records", () => {
       await (
         await call(owner, "POST", "/bulk-archive", { status: "proposed", olderThanDays: 30 })
       ).json(),
-    ).toEqual({ ok: true, archived: 0 });
+    ).toEqual({ ok: true, archived: 0, preview: false });
+    expect(
+      await (
+        await call(owner, "POST", "/bulk-archive", {
+          target: { type: "customer", id: "c-1" },
+          preview: true,
+        })
+      ).json(),
+    ).toEqual({ ok: true, archived: 1, preview: true });
+    expect((await call(owner, "POST", "/bulk-archive", { preview: true })).status).toBe(400);
     expect(
       await (
         await call(owner, "POST", "/bulk-archive", { target: { type: "customer", id: "c-1" } })
       ).json(),
-    ).toEqual({ ok: true, archived: 1 });
+    ).toEqual({ ok: true, archived: 1, preview: false });
     const remaining = (await (await call(owner, "GET", "?status=archived")).json()) as {
       records: Array<{ key: string }>;
     };
@@ -544,6 +554,76 @@ describe("memory records", () => {
     expect(
       ((await (await feed(owner, "?userId=crew&q=crew")).json()) as { events: unknown[] }).events,
     ).toHaveLength(1);
+  });
+
+  it("reads back the records a run relied on through its pinned context snapshot", async () => {
+    const runtime = createPackTestRuntime({ packId: "operloom" });
+    const identity = runtime.identity();
+    const goal = await rememberMemory(runtime.env, identity, {
+      kind: "goal",
+      key: "g",
+      title: "Goal",
+      content: {},
+      source: "user",
+      scope: "user",
+      policy,
+    });
+    const claim = await rememberMemory(runtime.env, identity, {
+      kind: "conclusion",
+      key: "c",
+      title: "Claim",
+      content: {},
+      source: "model",
+      scope: "agent",
+      policy,
+    });
+    expect(await memoryUsedForRun(runtime.env, identity, "run-without-snapshot")).toEqual([]);
+    const now = new Date().toISOString();
+    runtime.db
+      .prepare(
+        `INSERT INTO control_runs (id,user_id,workspace_id,agent_id,workflow_intent_id,status,execution_json,data_json,created_at,updated_at)
+         VALUES ('run-1',?,?,?,'intent-1','completed','{}',?,?,?)`,
+      )
+      .run(
+        identity.scope.userId,
+        identity.scope.workspaceId,
+        identity.agentId,
+        JSON.stringify({ contextSnapshotId: "snap-1" }),
+        now,
+        now,
+      );
+    runtime.db
+      .prepare(
+        `INSERT INTO control_context_snapshots (id,user_id,workspace_id,agent_id,run_id,run_kind,agent_revision,pack_id,request_hash,snapshot_json,status,created_at,preconditions_met)
+         VALUES ('snap-1',?,?,?,'run-1','workflow',0,'operloom','h',?,'ready',?,1)`,
+      )
+      .run(
+        identity.scope.userId,
+        identity.scope.workspaceId,
+        identity.agentId,
+        JSON.stringify({
+          capturedAt: now,
+          status: "ready",
+          sources: [
+            {
+              id: memoryContextSourceId,
+              binding: memoryContextSourceId,
+              version: "1",
+              trust: "trusted",
+              required: false,
+              status: "fresh",
+              data: { recordIds: [goal.id, claim.id, "memory-missing"] },
+            },
+          ],
+        }),
+        now,
+      );
+    const used = await memoryUsedForRun(runtime.env, identity, "run-1");
+    expect(used.map((record) => [record.id, record.kind, record.source])).toEqual([
+      [goal.id, "goal", "user"],
+      [claim.id, "conclusion", "model"],
+    ]);
+    expect(await memoryUsedForRun(runtime.env, runtime.identity("other"), "run-1")).toEqual([]);
   });
 
   it("exposes a workflow port whose writes are workflow-sourced and agent-scoped by default", async () => {

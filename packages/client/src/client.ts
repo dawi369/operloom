@@ -594,8 +594,9 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
           userId?: string;
           target?: { type: string; id: string };
           olderThanDays?: number;
+          preview?: boolean;
         }) =>
-          request<{ ok: true; archived: number }>(
+          request<{ ok: true; archived: number; preview: boolean }>(
             "adminMemoryBulk",
             "/api/workbench/admin/memory/bulk-archive",
             { method: "POST", body: filter },

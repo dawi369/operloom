@@ -17,6 +17,7 @@ import {
 
 import { AdminAgentsPanel } from "@/components/workbench/admin-agents-panel";
 import { AdminAuditPanel } from "@/components/workbench/admin-audit-panel";
+import { ApprovalMemoryUsed } from "@/components/workbench/approval-memory-used";
 import { AdminMemoryPanel } from "@/components/workbench/admin-memory-panel";
 import { WorkflowReviewDetails } from "@/components/workbench/workflow-review-details";
 import {
@@ -528,6 +529,9 @@ export function AdminPanel({
           </DialogHeader>
           {approvalDialog?.approval.review ? (
             <WorkflowReviewDetails review={approvalDialog.approval.review} />
+          ) : null}
+          {approvalDialog?.approval.memoryUsed?.length ? (
+            <ApprovalMemoryUsed records={approvalDialog.approval.memoryUsed} />
           ) : null}
           {approvalDialog?.action === "deny" ? (
             <label className="text-sm font-medium">

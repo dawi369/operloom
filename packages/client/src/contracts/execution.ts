@@ -332,6 +332,17 @@ export type ToolApprovalRequestSummary = {
   status?: string;
   reason?: string;
   review?: WorkflowReviewDescriptor;
+  /** Memory records in the prompt when this request was raised; present on pending requests. */
+  memoryUsed?: {
+    id: Id;
+    kind: string;
+    title: string;
+    source: string;
+    status: string;
+    updatedAt: string;
+    expiresAt: string | null;
+    target: { type: string; id: string } | null;
+  }[];
   input?: {
     url?: string;
   };

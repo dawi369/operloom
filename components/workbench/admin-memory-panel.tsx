@@ -51,11 +51,28 @@ export function AdminMemoryPanel({
   }
   const usage = (memory.data?.usage ?? []).filter((row) => !userId || row.userId === userId);
   const limits = memory.data?.limits;
-  const runBulk = (filter: Parameters<typeof bulk.mutate>[0]) =>
-    bulk.mutate(filter, {
-      onSuccess: (result) =>
-        setLastBulk(`Archived ${result.archived} record${result.archived === 1 ? "" : "s"}.`),
-    });
+  // Two taps: the first previews how many records match, the second archives them.
+  const [armed, setArmed] = useState<{ key: string; count: number } | null>(null);
+  const runBulk = (key: string, filter: Parameters<typeof bulk.mutate>[0]) => {
+    if (armed?.key === key) {
+      setArmed(null);
+      bulk.mutate(filter, {
+        onSuccess: (result) =>
+          setLastBulk(`Archived ${result.archived} record${result.archived === 1 ? "" : "s"}.`),
+      });
+      return;
+    }
+    bulk.mutate(
+      { ...filter, preview: true },
+      { onSuccess: (result) => setArmed({ key, count: result.archived }) },
+    );
+  };
+  const bulkLabel = (key: string) =>
+    armed?.key === key
+      ? armed.count === 0
+        ? "Nothing to archive"
+        : `Archive ${armed.count} record${armed.count === 1 ? "" : "s"}`
+      : "Preview";
 
   return (
     <div className="space-y-5">
@@ -159,18 +176,24 @@ export function AdminMemoryPanel({
               min={0}
               className={`${inputClass} w-20`}
               value={staleDays}
-              onChange={(event) => setStaleDays(event.target.value)}
+              onChange={(event) => {
+                setStaleDays(event.target.value);
+                setArmed(null);
+              }}
             />
             <span>days</span>
             <Button
               size="sm"
-              variant="outline"
-              disabled={bulk.isPending || staleDays === ""}
+              variant={armed?.key === "stale" ? "default" : "outline"}
+              disabled={bulk.isPending || staleDays === "" || armed?.count === 0}
               onClick={() =>
-                runBulk({ status: "proposed", olderThanDays: Math.max(0, Number(staleDays)) })
+                runBulk("stale", {
+                  status: "proposed",
+                  olderThanDays: Math.max(0, Number(staleDays)),
+                })
               }
             >
-              Archive
+              {bulkLabel("stale")}
             </Button>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -180,24 +203,37 @@ export function AdminMemoryPanel({
               className={`${inputClass} w-28`}
               placeholder="market"
               value={bulkTarget.type}
-              onChange={(event) => setBulkTarget({ ...bulkTarget, type: event.target.value })}
+              onChange={(event) => {
+                setBulkTarget({ ...bulkTarget, type: event.target.value });
+                setArmed(null);
+              }}
             />
             <input
               aria-label="Target id"
               className={`${inputClass} w-44`}
               placeholder="id"
               value={bulkTarget.id}
-              onChange={(event) => setBulkTarget({ ...bulkTarget, id: event.target.value })}
+              onChange={(event) => {
+                setBulkTarget({ ...bulkTarget, id: event.target.value });
+                setArmed(null);
+              }}
             />
             <Button
               size="sm"
-              variant="outline"
-              disabled={bulk.isPending || !bulkTarget.type.trim() || !bulkTarget.id.trim()}
+              variant={armed?.key === "target" ? "default" : "outline"}
+              disabled={
+                bulk.isPending ||
+                !bulkTarget.type.trim() ||
+                !bulkTarget.id.trim() ||
+                (armed?.key === "target" && armed.count === 0)
+              }
               onClick={() =>
-                runBulk({ target: { type: bulkTarget.type.trim(), id: bulkTarget.id.trim() } })
+                runBulk("target", {
+                  target: { type: bulkTarget.type.trim(), id: bulkTarget.id.trim() },
+                })
               }
             >
-              Archive
+              {bulkLabel("target")}
             </Button>
           </div>
           {lastBulk ? <p className="text-muted-foreground text-xs">{lastBulk}</p> : null}

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Approvals show the memory the agent relied on: pending requests carry
+  `memoryUsed` (resolved from the run's pinned context snapshot), the approve
+  and deny dialog lists those records with a Forget action, and the mobile
+  approvals tab shows the same titles. Bulk archive gained `preview: true`;
+  the admin Memory tab now previews the count before archiving.
 - Memory policy (W12.1): the manifest `memory` block lets a pack choose which
   model and workflow writes activate without a tap (`autoActivate`), how long
   agent claims live (`ttlDays`) and what shape their content must have

@@ -653,6 +653,62 @@ export const buildMemoryEvidence = async (env: Env, identity: AgentIdentity) => 
 
 export const memoryContextSourceId = "platform.memory";
 
+export type MemoryUsedSummary = Pick<
+  MemoryRecordView,
+  "id" | "kind" | "title" | "source" | "status" | "updatedAt" | "expiresAt" | "target"
+>;
+
+/** The records a run recalled, read back through its pinned context snapshot; empty when none. */
+export const memoryUsedForRun = async (
+  env: Env,
+  identity: AgentIdentity,
+  runId: string,
+): Promise<MemoryUsedSummary[]> => {
+  const run = await env.DB.prepare(
+    `SELECT json_extract(metadata_json, '$.contextSnapshotId') snapshot_id FROM chat_runs WHERE id = ? AND user_id = ? AND workspace_id = ?
+     UNION ALL
+     SELECT json_extract(data_json, '$.contextSnapshotId') FROM control_runs WHERE id = ? AND user_id = ? AND workspace_id = ?`,
+  )
+    .bind(runId, ...scopeOf(identity), runId, ...scopeOf(identity))
+    .first<{ snapshot_id: string | null }>();
+  if (!run?.snapshot_id) return [];
+  const snapshot = await env.DB.prepare(
+    "SELECT snapshot_json FROM control_context_snapshots WHERE id = ? AND user_id = ? AND workspace_id = ?",
+  )
+    .bind(run.snapshot_id, ...scopeOf(identity))
+    .first<{ snapshot_json: string }>();
+  if (!snapshot) return [];
+  const parsed = parseJson(snapshot.snapshot_json) as RuntimeContextEvidence | null;
+  const pin = parsed?.sources.find((source) => source.id === memoryContextSourceId);
+  const ids = Array.isArray(pin?.data?.recordIds)
+    ? (pin.data.recordIds as unknown[]).filter((id): id is string => typeof id === "string")
+    : [];
+  if (!ids.length) return [];
+  const rows = await env.DB.prepare(
+    `SELECT * FROM control_memory_records WHERE workspace_id = ? AND id IN (${ids.map(() => "?").join(",")})`,
+  )
+    .bind(identity.scope.workspaceId, ...ids)
+    .all<MemoryRow>();
+  const byId = new Map((rows.results ?? []).map((row) => [row.id, toView(row)]));
+  return ids.flatMap((id) => {
+    const view = byId.get(id);
+    return view
+      ? [
+          {
+            id: view.id,
+            kind: view.kind,
+            title: view.title,
+            source: view.source,
+            status: view.status,
+            updatedAt: view.updatedAt,
+            expiresAt: view.expiresAt,
+            target: view.target,
+          },
+        ]
+      : [];
+  });
+};
+
 const trustOrder: Record<RuntimeContextSourceResult["trust"], number> = {
   trusted: 0,
   retrieved: 1,
@@ -804,7 +860,7 @@ export const handleAdminMemory = async (request: Request, env: Env, identity: Ag
           { ok: false, code: "invalid_request", error: "Invalid bulk filter" },
           { status: 400 },
         );
-      const filter = parsed.data;
+      const { preview = false, ...filter } = parsed.data;
       const clauses = ["workspace_id = ?", "status <> 'archived'"];
       const values: unknown[] = [identity.scope.workspaceId];
       if (filter.status) {
@@ -828,6 +884,14 @@ export const handleAdminMemory = async (request: Request, env: Env, identity: Ag
         clauses.push("updated_at <= ?");
         values.push(new Date(now.getTime() - filter.olderThanDays * 86_400_000).toISOString());
       }
+      if (preview) {
+        const count = await env.DB.prepare(
+          `SELECT COUNT(*) count FROM control_memory_records WHERE ${clauses.join(" AND ")}`,
+        )
+          .bind(...values)
+          .first<{ count: number }>();
+        return json({ ok: true, archived: count?.count ?? 0, preview: true });
+      }
       const result = (await env.DB.prepare(
         `UPDATE control_memory_records SET status = 'archived', version = version + 1, updated_at = ?
          WHERE ${clauses.join(" AND ")}`,
@@ -843,7 +907,7 @@ export const handleAdminMemory = async (request: Request, env: Env, identity: Ag
           targetId: filter.target?.id ?? "bulk",
           data: { filter, archived },
         });
-      return json({ ok: true, archived });
+      return json({ ok: true, archived, preview: false });
     }
     const edit = path.match(/^\/([^/]+)$/);
     if (request.method === "PATCH" && edit) {

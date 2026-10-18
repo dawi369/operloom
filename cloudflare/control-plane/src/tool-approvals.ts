@@ -5,6 +5,7 @@ import { workflowReviewDescriptor } from "./human-interventions";
 import { selectAgent, selectMembership } from "./authz-store";
 import { isRecord, json, parseDataJson, parseJson } from "./http";
 import { isAdminMembership } from "./membership-policy";
+import { memoryUsedForRun } from "./memory";
 import { buildControlRunRelation } from "./run-relations";
 import { executeResolvedRuntimeAdminTool } from "./runtime-admin-execution";
 import { resolveRuntimeToolForAgent } from "./runtime-tool-catalog";
@@ -493,7 +494,16 @@ export const handleListToolApprovals = async (
       limit,
     )
     .all<ControlApprovalRequestRow>();
-  return json({ ok: true, status, approvals: rows.results.map((row) => approvalBody(row)) });
+  // Reviewers see what the agent remembered when it asked; only pending rows pay for the lookup.
+  const approvals = await Promise.all(
+    rows.results.map(async (row) => ({
+      ...approvalBody(row),
+      ...(row.status === "requested"
+        ? { memoryUsed: await memoryUsedForRun(env, identity, row.run_id) }
+        : {}),
+    })),
+  );
+  return json({ ok: true, status, approvals });
 };
 
 export const handleApproveToolApproval = async (
