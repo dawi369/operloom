@@ -23,10 +23,11 @@ export const mobileAuthRedirectUri = AuthSession.makeRedirectUri({
   path: mobileConfig.authCallbackPath,
 });
 
-// WorkOS AuthKit exposes standard OIDC endpoints; the Worker verifies the resulting JWT.
+// Native apps use the User Management PKCE endpoints; `/oauth2/*` on api.workos.com does not exist
+// and the AuthKit-domain variant needs a registered OAuth application.
 const discovery: AuthSession.DiscoveryDocument = {
-  authorizationEndpoint: `${mobileConfig.workosIssuer}/oauth2/authorize`,
-  tokenEndpoint: `${mobileConfig.workosIssuer}/oauth2/token`,
+  authorizationEndpoint: `${mobileConfig.workosIssuer}/user_management/authorize`,
+  tokenEndpoint: `${mobileConfig.workosIssuer}/user_management/authenticate`,
 };
 
 const fromTokenResponse = (
