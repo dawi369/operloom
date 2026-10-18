@@ -334,6 +334,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
           const ok = response.status === expected;
           failed ||= !ok;
           console.log(`${ok ? "ok " : "BAD"} ${method} ${path} → ${response.status}`);
+          if (!ok && path === "/health") {
+            const body = (await response.json().catch(() => null)) as {
+              problems?: Array<{ code: string; variables: string[] }>;
+            } | null;
+            for (const problem of body?.problems ?? [])
+              console.log(`    ${problem.code}: ${problem.variables.join(", ")}`);
+          }
         }
         if (failed) process.exitCode = 1;
       })();

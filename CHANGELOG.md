@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Configuration guard: the Worker lists every enabled feature that is missing
+  a required variable (WorkOS auth, model key, Fly runner, Resend, Stripe,
+  Polar, relay and alert secrets, vault, feature posture). `/health` returns
+  the list as `problems` with a 503, the Worker logs it once per isolate, and
+  `pnpm environment:worker smoke` prints it. A Fly runner missing its URL or
+  secret no longer passes health while silently running tools inline.
 - Mobile artifacts: the Expo app gains an Artifacts tab listing what agents
   produced with a generic key/value view of each payload. Packs can ship an
   optional `native` module (`defineNativeModule` from

@@ -168,7 +168,7 @@ import {
   handleReviewAction,
   handleUpdateKillSwitch,
 } from "./action-authority";
-import { releaseFeatureConfigurationValid } from "./feature-gates";
+import { configurationProblems, reportConfigurationProblemsOnce } from "./configuration-guard";
 import { connectionProviderRegistry } from "./connection-providers";
 import { compiledWorkbenchVersion } from "../../../generated/agent-runtime/platform";
 import {
@@ -224,14 +224,26 @@ const handleRequest = async (
   if (request.method === "GET" && url.pathname === "/health") {
     try {
       const database = await env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
+      const problems = configurationProblems(env);
       if (
         database?.ok !== 1 ||
         !env.ARTIFACTS ||
         !env.ThreadChatAgent ||
         !env.SessionAgent ||
-        !releaseFeatureConfigurationValid(env)
+        problems.length
       ) {
-        return json({ ok: false, service: "operloom-control-plane" }, { status: 503 });
+        return json(
+          {
+            ok: false,
+            service: "operloom-control-plane",
+            problems: problems.map(({ code, feature, variables }) => ({
+              code,
+              feature,
+              variables,
+            })),
+          },
+          { status: 503 },
+        );
       }
       connectionProviderRegistry(env);
       const runtimeChecks = await Promise.all(
@@ -1002,6 +1014,7 @@ export default Sentry.withSentry<Env>(
   },
   {
     async fetch(request: Request, env: Env, ctx: WorkerExecutionContext) {
+      reportConfigurationProblemsOnce(env);
       try {
         return await handleRequest(request, env, ctx);
       } catch (error) {

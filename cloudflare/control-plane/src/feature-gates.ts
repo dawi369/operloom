@@ -1,5 +1,4 @@
 import type { Env } from "./types";
-import { demoConfigurationValid } from "./demo-policy";
 
 const enabled = (value: string | undefined) => value?.trim().toLowerCase() === "true";
 
@@ -14,16 +13,3 @@ export const releaseFeaturePosture = (env: Env) => ({
   mutations: mutationsEnabled(env),
   push: pushEnabled(env),
 });
-
-export const releaseFeatureConfigurationValid = (env: Env) => {
-  if (!demoConfigurationValid(env)) return false;
-  const posture = releaseFeaturePosture(env);
-  if (posture.connections && !posture.retainedData) return false;
-  if (posture.mutations && (!posture.connections || !posture.retainedData)) return false;
-  if (posture.push && (!posture.retainedData || !env.NOTIFICATIONS)) return false;
-  if ((posture.connections || posture.push) && env.OPERLOOM_VAULT_BACKEND === "memory") {
-    return env.OPERLOOM_E2E_MODE === "true";
-  }
-  if ((posture.connections || posture.push) && !env.WORKOS_API_KEY?.trim()) return false;
-  return true;
-};

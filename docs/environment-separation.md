@@ -56,6 +56,21 @@ Worker; `secrets` then sets `RESEND_API_KEY` too. Heavy tools run inline
 `conformanceMode: true` mark it as non-production. Pass `--name <other>` to use
 a second manifest with the same `kind`.
 
+## Configuration guard
+
+The Worker checks that every enabled feature has the variables it needs
+(`cloudflare/control-plane/src/configuration-guard.ts`): WorkOS issuer, JWKS
+and allowed client ids unless the local API is on; `OPENROUTER_API_KEY` outside
+E2E; URL and signing secret when `OPERLOOM_RUNNER_TRANSPORT=fly`; Resend, Stripe
+and Polar secrets when selected; relay and operator-alert secrets when their
+URLs are set; the vault key when connections or push are on; and the posture
+dependencies between retained data, connections, mutations and push. `/health`
+answers 503 with `problems: [{ code, feature, variables }]` (names only, never
+values) while any check fails, the Worker logs the same list once per isolate
+as `configuration.problems`, and `pnpm environment:worker smoke` prints it.
+Feature code still fails closed on its own path; the guard makes a bad deploy
+visible before a user hits it.
+
 ## Required non-secret target variables
 
 Replace `TARGET` with `ACCEPTANCE`, `PRODUCTION`, or `DEMO`. Vercel targets use
