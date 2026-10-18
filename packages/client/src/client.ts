@@ -36,7 +36,12 @@ import {
 } from "./route-map.js";
 import type { z } from "zod";
 import type { publicBillingContracts } from "./public-billing-contracts.js";
-import type { MemoryKind, MemoryRecord } from "./public-memory-contracts.js";
+import type {
+  AdminMemoryRecord,
+  MemoryKind,
+  MemoryPolicyView,
+  MemoryRecord,
+} from "./public-memory-contracts.js";
 
 export type WorkbenchClientPlatform = "web" | "ios" | "android";
 
@@ -561,6 +566,43 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
           `/api/workbench/memory/records/${encodeURIComponent(id)}`,
           { method: "DELETE" },
         ),
+    },
+    admin: {
+      memory: {
+        list: (
+          input: {
+            status?: "active" | "proposed" | "archived" | "all";
+            kind?: MemoryKind;
+            userId?: string;
+            q?: string;
+            limit?: number;
+          } = {},
+          options: WorkbenchReadOptions = {},
+        ) =>
+          request<{
+            ok: true;
+            records: AdminMemoryRecord[];
+            members: { userId: string; label: string }[];
+            policy: MemoryPolicyView;
+            limits: { recordBytes: number; activeRecords: number; totalBytes: number };
+          }>("adminMemoryList", `/api/workbench/admin/memory${queryString(input)}`, options),
+        update: (
+          id: Id,
+          patch: {
+            title?: string;
+            content?: Record<string, unknown>;
+            kind?: MemoryKind;
+            status?: "active" | "proposed" | "archived";
+            target?: { type: string; id: string } | null;
+            expiresAt?: string | null;
+          },
+        ) =>
+          request<{ ok: true; record: AdminMemoryRecord }>(
+            "adminMemoryRecord",
+            `/api/workbench/admin/memory/${encodeURIComponent(id)}`,
+            { method: "PATCH", body: patch },
+          ),
+      },
     },
     notificationPreferences: {
       get: (options: WorkbenchReadOptions = {}) =>

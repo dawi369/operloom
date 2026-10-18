@@ -529,6 +529,15 @@ later review can show exactly what the agent believed when it proposed
 something. Records are tenant-scoped, included in workspace exports and removed
 by workspace purge.
 
+Owners and admins see every member's memory through
+`client.admin.memory.list({ status?, kind?, userId?, q?, limit? })`
+(`GET /v1/me/admin/memory`), which also returns the member list and the active
+agent's effective policy, and edit any record with
+`client.admin.memory.update(id, { title?, content?, kind?, status?, target?, expiresAt? })`
+(`PATCH /v1/me/admin/memory/{id}`). Admin edits pass the same content guard and
+append a `memory.admin_edited` control-plane event naming the record's owner.
+The console exposes this as the Memory tab of the admin panel.
+
 ### Provider action inspection and recovery
 
 `client.admin.actions({ limit: 25 })` retrieves proposal, review binding, ledger,

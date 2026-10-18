@@ -3,7 +3,7 @@
   "runtimeSchemas": [
     {
       "path": "client/src/response-schemas.ts",
-      "sha256": "12a8a5cc73af037f1ec19a26229cac533674023ab4189adb2e4dd7c966581e6b"
+      "sha256": "4cfe30d41d7027bffbcc12fdf91ca7dcb5c1affa0ccf8f278e47be07ff35d7b0"
     },
     {
       "path": "client/src/validation.ts",
@@ -49,7 +49,7 @@
         },
         {
           "path": "client/dist/client.d.ts",
-          "sha256": "12d348df30386329fc506a890a286eef3cfd9a181e0e39364b2bfbbdee1e1c59"
+          "sha256": "b9ef00fdfd1fa39b7400da40a4aa40ba3de042adc37d100bf2eee43d5799f0db"
         },
         {
           "path": "client/dist/contracts/agents-chat.d.ts",
@@ -97,7 +97,7 @@
         },
         {
           "path": "client/dist/public-api.d.ts",
-          "sha256": "f8bbe772e085a61ed4a9641f96393afceadf598e6230e7f65b7a5636a6ce3035"
+          "sha256": "15b243f531f11628aff12ad496d339c2d34394c004f88fb40c5fd925a62efc85"
         },
         {
           "path": "client/dist/public-billing-contracts.d.ts",
@@ -117,7 +117,7 @@
         },
         {
           "path": "client/dist/public-memory-contracts.d.ts",
-          "sha256": "181de2792143a9f63d362f4bc60ce8f5bc9a9b70c0cad884514f7a9d1276f2c6"
+          "sha256": "f9fb15191e8ea6a8a4d6bba88b6fbd778d7c937cc34ae1a655e08b75be4374c7"
         },
         {
           "path": "client/dist/public-state-contracts.d.ts",
@@ -133,7 +133,7 @@
         },
         {
           "path": "client/dist/response-schemas.d.ts",
-          "sha256": "cad51dac004ac536ce7d0be2ac9c0158714d4d96230ecc1b24df6cde4763a51a"
+          "sha256": "586fe4c952f54e3903d747eb648deb976c4358cef9af22b3fb260499209fa06d"
         },
         {
           "path": "client/dist/route-map.d.ts",
@@ -155,7 +155,7 @@
       "files": [
         {
           "path": "react/dist/index.d.ts",
-          "sha256": "daf9d77d5b96cf4a0c5dcdb36d9b1844cc6bf593a134633c2705f6fc4e07c10f"
+          "sha256": "385698ce0d9dba6a7acde4575e420fe401f1b6d0129a80f16ab83e794b8a3351"
         }
       ]
     }

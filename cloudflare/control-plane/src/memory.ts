@@ -10,7 +10,8 @@ import {
 import { agentManifestRegistry } from "../../../generated/agent-runtime/manifests";
 import { publicMemoryContracts } from "../../../packages/client/src/public-memory-contracts";
 import { resolveAgentBehaviorConfig } from "./agent-records";
-import { selectAgent, selectMembership } from "./authz-store";
+import { selectAgent, selectMembership, selectWorkspaceMemberships } from "./authz-store";
+import { requireAdminMembership } from "./membership-policy";
 import { appendControlPlaneEvent } from "./control-plane-events";
 import { isRecord, json, parseJson } from "./http";
 import { enqueueNotificationEvent } from "./notification-delivery";
@@ -714,6 +715,153 @@ export const budgetTranscript = <T extends ChatLike>(
         ? null
         : `Earlier in this thread (${dropped.length} messages not shown), the user said:\n${digestLines.map((line) => `- ${line}`).join("\n")}`,
   };
+};
+
+const memberLabel = (member: {
+  user_id: string;
+  email: string | null;
+  display_name: string | null;
+}) => member.display_name || member.email || member.user_id;
+
+/** Owner and admin view over every record in the workspace, with inline edits and an audit event. */
+export const handleAdminMemory = async (request: Request, env: Env, identity: AgentIdentity) => {
+  const membership = await selectMembership(env, identity.scope.userId, identity.scope.workspaceId);
+  const adminError = requireAdminMembership(membership);
+  if (adminError) return adminError;
+  const url = new URL(request.url);
+  const path = url.pathname.replace(/^.*\/admin\/memory/, "");
+  const members = (await selectWorkspaceMemberships(env, identity.scope.workspaceId)).results ?? [];
+  const labels = new Map(members.map((member) => [member.user_id, memberLabel(member)]));
+  const withOwner = (view: MemoryRecordView, userId: string) => ({
+    ...view,
+    userId,
+    userLabel: labels.get(userId) ?? userId,
+  });
+  try {
+    if (request.method === "GET" && path === "") {
+      const parsed = publicMemoryContracts["GET /admin/memory"].query.safeParse(
+        Object.fromEntries(url.searchParams),
+      );
+      if (!parsed.success)
+        return json(
+          { ok: false, code: "invalid_request", error: "Invalid memory filter" },
+          { status: 400 },
+        );
+      const clauses = ["workspace_id = ?"];
+      const values: unknown[] = [identity.scope.workspaceId];
+      if ((parsed.data.status ?? "all") !== "all") {
+        clauses.push("status = ?");
+        values.push(parsed.data.status);
+      }
+      if (parsed.data.kind) {
+        clauses.push("kind = ?");
+        values.push(parsed.data.kind);
+      }
+      if (parsed.data.userId) {
+        clauses.push("user_id = ?");
+        values.push(parsed.data.userId);
+      }
+      if (parsed.data.q) {
+        clauses.push("(lower(title) LIKE ? OR lower(key) LIKE ? OR lower(content_json) LIKE ?)");
+        const like = `%${parsed.data.q.toLowerCase()}%`;
+        values.push(like, like, like);
+      }
+      values.push(Math.min(Math.max(parsed.data.limit ?? 200, 1), 500));
+      const rows = await env.DB.prepare(
+        `SELECT * FROM control_memory_records WHERE ${clauses.join(" AND ")}
+         ORDER BY CASE status WHEN 'proposed' THEN 0 WHEN 'active' THEN 1 ELSE 2 END, updated_at DESC LIMIT ?`,
+      )
+        .bind(...values)
+        .all<MemoryRow>();
+      const policy = await memoryPolicyForAgent(env, identity);
+      return json({
+        ok: true,
+        records: (rows.results ?? []).map((row) => withOwner(toView(row), row.user_id)),
+        members: members
+          .filter((member) => member.status === "active")
+          .map((member) => ({ userId: member.user_id, label: memberLabel(member) })),
+        policy: { autoActivate: [...policy.autoActivate], ttlDays: policy.ttlDays },
+        limits: memoryLimits,
+      });
+    }
+    const edit = path.match(/^\/([^/]+)$/);
+    if (request.method === "PATCH" && edit) {
+      const body = parseJson(await request.text());
+      const parsed = publicMemoryContracts["PATCH /admin/memory/{id}"].request.safeParse(body);
+      if (!parsed.success || !isRecord(body))
+        return json(
+          { ok: false, code: "invalid_request", error: "Invalid memory patch" },
+          { status: 400 },
+        );
+      const id = decodeURIComponent(edit[1]!);
+      const row = await env.DB.prepare(
+        "SELECT * FROM control_memory_records WHERE id = ? AND workspace_id = ?",
+      )
+        .bind(id, identity.scope.workspaceId)
+        .first<MemoryRow>();
+      if (!row) throw new MemoryError("memory_not_found", "Memory record not found.", 404);
+      const patch = parsed.data;
+      const title = patch.title?.trim().slice(0, 160) ?? row.title;
+      const content =
+        patch.content ?? (parseJson(row.content_json) as RuntimeMemoryRecord["content"]);
+      const contentJson = JSON.stringify(content);
+      if (new TextEncoder().encode(contentJson).byteLength > memoryLimits.recordBytes)
+        throw new MemoryError(
+          "memory_record_too_large",
+          `A record is at most ${memoryLimits.recordBytes} bytes.`,
+          413,
+        );
+      const inspected = inspectMemoryContent(`${title}\n${contentJson}`);
+      if (inspected.refused)
+        throw new MemoryError(
+          "memory_content_refused",
+          inspected.refused === "secret"
+            ? "Memory must not contain secrets or credentials."
+            : "Memory must not contain card numbers.",
+          422,
+        );
+      if (patch.expiresAt && Number.isNaN(Date.parse(patch.expiresAt)))
+        throw new MemoryError("memory_expiry_invalid", "expiresAt must be an ISO timestamp.");
+      const target = patch.target === undefined ? undefined : patch.target;
+      if (target && !(targetPattern.test(target.type) && targetPattern.test(target.id)))
+        throw new MemoryError("memory_target_invalid", "Memory target type and id are short ids.");
+      const now = new Date().toISOString();
+      await env.DB.prepare(
+        `UPDATE control_memory_records SET title = ?, content_json = ?, kind = ?, status = ?,
+           target_type = ?, target_id = ?, expires_at = ?, flags_json = ?, version = version + 1, updated_at = ?
+         WHERE id = ?`,
+      )
+        .bind(
+          title,
+          contentJson,
+          patch.kind ?? row.kind,
+          patch.status ?? row.status,
+          target === undefined ? row.target_type : (target?.type ?? null),
+          target === undefined ? row.target_id : (target?.id ?? null),
+          patch.expiresAt === undefined ? row.expires_at : patch.expiresAt,
+          JSON.stringify(inspected.flags),
+          now,
+          id,
+        )
+        .run();
+      await appendControlPlaneEvent(env, identity, {
+        type: "memory.admin_edited",
+        summary: title,
+        targetType: "memory",
+        targetId: id,
+        data: { ownerUserId: row.user_id, fields: Object.keys(patch) },
+      });
+      const updated = await env.DB.prepare("SELECT * FROM control_memory_records WHERE id = ?")
+        .bind(id)
+        .first<MemoryRow>();
+      return json({ ok: true, record: withOwner(toView(updated!), updated!.user_id) });
+    }
+    return json({ ok: false, code: "not_found", error: "Not found" }, { status: 404 });
+  } catch (error) {
+    if (error instanceof MemoryError)
+      return json({ ok: false, code: error.code, error: error.message }, { status: error.status });
+    throw error;
+  }
 };
 
 export const handleMemory = async (request: Request, env: Env, identity: AgentIdentity) => {

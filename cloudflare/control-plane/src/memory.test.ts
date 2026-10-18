@@ -6,6 +6,7 @@ import {
   createMemoryPort,
   expireMemory,
   forgetMemory,
+  handleAdminMemory,
   handleMemory,
   inspectMemoryContent,
   isStaleMemory,
@@ -390,6 +391,82 @@ describe("memory records", () => {
     expect((await call("DELETE", `/${created.id}`)).status).toBe(200);
     expect((await call("POST", `/${created.id}/confirm`)).status).toBe(200);
     expect((await call("DELETE", "/missing")).status).toBe(404);
+  });
+
+  it("gives owners and admins a workspace-wide view with inline edits, and refuses members", async () => {
+    const runtime = createPackTestRuntime({ packId: "operloom", users: ["owner", "crew"] });
+    const owner = runtime.identity("owner");
+    runtime.db
+      .prepare(
+        `INSERT INTO memberships (id,user_id,workspace_id,role,status,created_at,updated_at)
+         VALUES ('m-crew-in-owner','crew','ws-owner','member','active','now','now')`,
+      )
+      .run();
+    const crew = {
+      ...runtime.identity("crew"),
+      scope: { userId: "crew", workspaceId: "ws-owner" },
+    };
+    await rememberMemory(runtime.env, crew, {
+      kind: "conclusion",
+      key: "c",
+      title: "Crew conclusion",
+      content: { edge: 1 },
+      source: "model",
+      scope: "agent",
+      policy: cautious,
+    });
+    const call = (identity: typeof owner, method: string, path: string, body?: unknown) =>
+      handleAdminMemory(
+        new Request(`https://runtime.test/admin/memory${path}`, {
+          method,
+          headers: { "content-type": "application/json" },
+          body: body === undefined ? undefined : JSON.stringify(body),
+        }),
+        runtime.env,
+        identity,
+      );
+    expect((await call(crew, "GET", "")).status).toBe(403);
+    const list = (await (await call(owner, "GET", "?status=all")).json()) as {
+      records: Array<MemoryRecordView & { userId: string; userLabel: string }>;
+      members: Array<{ userId: string }>;
+      policy: { autoActivate: string[] };
+    };
+    expect(list.records).toMatchObject([{ key: "c", status: "proposed", userId: "crew" }]);
+    expect(list.members.map((member) => member.userId).sort()).toEqual(["crew", "owner"]);
+    expect(list.policy.autoActivate).toContain("note");
+    const search = (await (await call(owner, "GET", "?q=nothing-matches")).json()) as {
+      records: unknown[];
+    };
+    expect(search.records).toEqual([]);
+    const edited = await call(owner, "PATCH", `/${list.records[0]!.id}`, {
+      title: "Reviewed conclusion",
+      status: "active",
+      expiresAt: null,
+      content: { edge: 2, note: "checked" },
+    });
+    expect(edited.status, await edited.clone().text()).toBe(200);
+    expect(await edited.json()).toMatchObject({
+      record: {
+        title: "Reviewed conclusion",
+        status: "active",
+        expiresAt: null,
+        content: { edge: 2 },
+        version: 2,
+        userLabel: "crew@example.test",
+      },
+    });
+    expect(
+      (
+        await call(owner, "PATCH", `/${list.records[0]!.id}`, {
+          content: { token: "ghp_abcdefghijklmnopqrstuvwxyz0123" },
+        })
+      ).status,
+    ).toBe(422);
+    expect((await call(owner, "PATCH", "/missing", { title: "x" })).status).toBe(404);
+    const events = await runtime.env.DB.prepare(
+      "SELECT type FROM control_plane_events WHERE type = 'memory.admin_edited'",
+    ).all<{ type: string }>();
+    expect(events.results).toHaveLength(1);
   });
 
   it("exposes a workflow port whose writes are workflow-sourced and agent-scoped by default", async () => {

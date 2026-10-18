@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   AlertCircleIcon,
   BotIcon,
+  BrainIcon,
   CheckIcon,
   FlaskConicalIcon,
   Loader2Icon,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { AdminAgentsPanel } from "@/components/workbench/admin-agents-panel";
+import { AdminMemoryPanel } from "@/components/workbench/admin-memory-panel";
 import { WorkflowReviewDetails } from "@/components/workbench/workflow-review-details";
 import {
   AdminControlsPanel,
@@ -350,6 +352,12 @@ export function AdminPanel({
                   <BotIcon />
                   Agents
                 </TabsTrigger>
+                {canManageAutomations ? (
+                  <TabsTrigger value="memory">
+                    <BrainIcon />
+                    Memory
+                  </TabsTrigger>
+                ) : null}
                 <TabsTrigger value="system">
                   <FlaskConicalIcon />
                   Diagnostics
@@ -381,6 +389,12 @@ export function AdminPanel({
                 onUpdateToolPolicy={updateToolPolicy}
               />
             </TabsContent>
+
+            {canManageAutomations ? (
+              <TabsContent value="memory" className="overflow-y-auto p-5">
+                <AdminMemoryPanel open={open} />
+              </TabsContent>
+            ) : null}
 
             <TabsContent value="system" className="overflow-y-auto p-5">
               <AdminSystemPanel

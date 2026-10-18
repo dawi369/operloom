@@ -14,6 +14,12 @@
   a proposal pushes a `memory.proposed` notification. Console gains `/watch
 <name>`; mobile gains a Memory tab; `baby-polymancer` steers research from
   the watchlist and remembers dated conclusions. Migration 0008.
+- Admin memory: owners and admins get a Memory tab in the admin panel (and
+  `client.admin.memory.*` over `/v1/me/admin/memory`) listing every member's
+  records with status, kind, member and text filters, the active agent's
+  effective policy, inline edit of title, content, kind and expiry, and
+  confirm, archive or restore. Edits are guarded and audited as
+  `memory.admin_edited`.
 - Memory and context (W12): durable per-user memory records (`goal`,
   `preference`, `watchlist`, `conclusion`, `note`) scoped user-wide or to one
   agent, with `proposed`/`active`/`archived` status. Users write through

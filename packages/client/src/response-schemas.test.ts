@@ -78,6 +78,38 @@ const validFixtures = {
       updatedAt: "2026-01-01T00:00:00.000Z",
     },
   },
+  adminMemoryList: {
+    ok: true,
+    records: [],
+    members: [{ userId: "u1", label: "a@b.co" }],
+    policy: {
+      autoActivate: ["note"],
+      ttlDays: { goal: null, preference: null, watchlist: 30, conclusion: 7, note: 14 },
+    },
+    limits: { recordBytes: 1, activeRecords: 1, totalBytes: 1 },
+  },
+  adminMemoryRecord: {
+    ok: true,
+    record: {
+      id: "m1",
+      kind: "note",
+      key: "k",
+      title: "t",
+      content: {},
+      source: "user",
+      status: "active",
+      scope: "user",
+      agentId: null,
+      target: null,
+      expiresAt: null,
+      flags: [],
+      version: 1,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      userId: "u1",
+      userLabel: "a@b.co",
+    },
+  },
   billingUsageReport: {
     ok: true,
     report: {

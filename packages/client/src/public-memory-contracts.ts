@@ -32,6 +32,18 @@ export type MemoryRecord = z.infer<typeof memoryRecordSchema>;
 
 const single = z.object({ ok: z.literal(true), record: memoryRecordSchema });
 
+/** Admin view: every record in the workspace, with who it belongs to. */
+export const adminMemoryRecordSchema = memoryRecordSchema.extend({
+  userId: z.string(),
+  userLabel: z.string(),
+});
+export type AdminMemoryRecord = z.infer<typeof adminMemoryRecordSchema>;
+const memoryPolicySchema = z.object({
+  autoActivate: z.array(memoryKindSchema),
+  ttlDays: z.record(memoryKindSchema, z.number().nullable()),
+});
+export type MemoryPolicyView = z.infer<typeof memoryPolicySchema>;
+
 export const publicMemoryContracts = {
   "GET /workbench/memory": {
     status: 200,
@@ -70,6 +82,46 @@ export const publicMemoryContracts = {
   },
   "POST /workbench/memory/{id}/confirm": { status: 200, response: single },
   "DELETE /workbench/memory/{id}": { status: 200, response: single },
+  "GET /admin/memory": {
+    status: 200,
+    query: z
+      .object({
+        status: z.enum(["active", "proposed", "archived", "all"]).optional(),
+        kind: memoryKindSchema.optional(),
+        userId: z.string().optional(),
+        /** Case-insensitive match against title, key and content. */
+        q: z.string().max(120).optional(),
+        limit: z.coerce.number().int().min(1).max(500).optional(),
+      })
+      .strict(),
+    response: z.object({
+      ok: z.literal(true),
+      records: z.array(adminMemoryRecordSchema),
+      members: z.array(z.object({ userId: z.string(), label: z.string() })),
+      /** The active agent's effective policy, so admins see why a record waited. */
+      policy: memoryPolicySchema,
+      limits: z.object({
+        recordBytes: z.number(),
+        activeRecords: z.number(),
+        totalBytes: z.number(),
+      }),
+    }),
+  },
+  "PATCH /admin/memory/{id}": {
+    status: 200,
+    request: z
+      .object({
+        title: z.string().min(1).max(160).optional(),
+        content: content.optional(),
+        kind: memoryKindSchema.optional(),
+        status: memoryStatus.optional(),
+        target: memoryTargetSchema.nullable().optional(),
+        /** ISO timestamp, or null to make the record permanent. */
+        expiresAt: z.string().nullable().optional(),
+      })
+      .strict(),
+    response: z.object({ ok: z.literal(true), record: adminMemoryRecordSchema }),
+  },
 } as const;
 
 export const findPublicMemoryContract = (method: string, path: string) =>

@@ -268,6 +268,32 @@ export const useConfirmMemory = (workspaceId?: string | null) =>
     invalidations: () => [workbenchQueryKeys.memory(workspaceId)],
   });
 
+export const useAdminMemory = (
+  input: TenantInput & {
+    status?: "active" | "proposed" | "archived" | "all";
+    kind?: NonNullable<Parameters<WorkbenchClient["admin"]["memory"]["list"]>[0]>["kind"];
+    userId?: string;
+    q?: string;
+  } = {},
+) => {
+  const client = useWorkbenchClient();
+  const { workspaceId, enabled: isEnabled, ...filter } = input;
+  return useQuery({
+    queryKey: [...workbenchQueryKeys.memory(workspaceId), "admin", filter] as const,
+    queryFn: ({ signal }) => client.admin.memory.list(filter, { signal }),
+    enabled: enabled({ workspaceId, enabled: isEnabled }),
+  });
+};
+
+export const useUpdateAdminMemory = (workspaceId?: string | null) =>
+  useTenantMutation<
+    { id: string; patch: Parameters<WorkbenchClient["admin"]["memory"]["update"]>[1] },
+    Awaited<ReturnType<WorkbenchClient["admin"]["memory"]["update"]>>
+  >({
+    mutationFn: (client, input) => client.admin.memory.update(input.id, input.patch),
+    invalidations: () => [workbenchQueryKeys.memory(workspaceId)],
+  });
+
 export const useForgetMemory = (workspaceId?: string | null) =>
   useTenantMutation<string, Awaited<ReturnType<WorkbenchClient["memory"]["forget"]>>>({
     mutationFn: (client, id) => client.memory.forget(id),

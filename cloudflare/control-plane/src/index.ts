@@ -137,7 +137,7 @@ import {
 import { handleTriggerWebhookIngress } from "./trigger-webhook";
 import { handleBilling, handleBillingWebhookIngress, reportDailyBillingUsage } from "./billing";
 import { mcpProtectedResourceMetadata } from "./mcp";
-import { expireMemory, handleMemory } from "./memory";
+import { expireMemory, handleAdminMemory, handleMemory } from "./memory";
 import {
   handleCreateTrigger,
   handleCreateTriggerDispatch,
@@ -349,6 +349,8 @@ const handleRequest = async (
     return handleAdminWorkspaceSummary(request, env, identity);
   }
 
+  if (url.pathname === "/admin/memory" || url.pathname.startsWith("/admin/memory/"))
+    return handleAdminMemory(request, env, identity);
   if (request.method === "GET" && url.pathname === "/admin/operator-alerts") {
     return handleListOperatorAlerts(env, identity, url);
   }

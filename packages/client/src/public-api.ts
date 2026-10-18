@@ -137,6 +137,8 @@ export const publicApiRoutes = [
   ["PUT", "/workbench/memory/{kind}/{key}"],
   ["POST", "/workbench/memory/{id}/confirm"],
   ["DELETE", "/workbench/memory/{id}"],
+  ["GET", "/admin/memory"],
+  ["PATCH", "/admin/memory/{id}"],
   ["GET", "/workbench/billing"],
   ["GET", "/workbench/billing/plans"],
   ["PUT", "/workbench/billing/plan"],

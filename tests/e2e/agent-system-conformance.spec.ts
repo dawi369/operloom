@@ -390,6 +390,21 @@ test.describe.serial("Agent-system executable conformance", () => {
     ]);
     const directMemory = await direct.memory.list({ status: "all" });
     expect(directMemory.records.map((record) => record.key)).toContain("paper-book");
+    // Owners see and edit every member's memory; edits are audited and tenant-scoped.
+    const adminMemory = await direct.admin.memory.list({ q: "paper" });
+    expect(adminMemory.records.map((record) => [record.key, record.userId])).toEqual([
+      ["paper-book", e2eOwner],
+    ]);
+    expect(adminMemory.policy.autoActivate).toEqual([]);
+    const adminEdit = await direct.admin.memory.update(adminMemory.records[0]!.id, {
+      title: "Grow the paper book to $750",
+      content: { targetUsd: 750 },
+    });
+    expect(adminEdit.record).toMatchObject({ title: "Grow the paper book to $750", version: 2 });
+    const otherAdminMemory = (await (await otherTenant.get("/admin/memory")).json()) as {
+      records: unknown[];
+    };
+    expect(otherAdminMemory.records).toEqual([]);
     const forgotten = await worker.delete(
       `/workbench/memory/${encodeURIComponent(memory.records.find((record) => record.kind === "goal")!.id)}`,
     );

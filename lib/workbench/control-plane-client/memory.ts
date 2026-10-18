@@ -14,3 +14,10 @@ export const confirmCloudflareMemory = (id: string) =>
   });
 export const forgetCloudflareMemory = (id: string) =>
   requestControlPlane<unknown>(`/workbench/memory/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const listCloudflareAdminMemory = (query: string) =>
+  requestControlPlane<unknown>(`/admin/memory${query}`);
+export const updateCloudflareAdminMemory = (id: string, body: unknown) =>
+  requestControlPlane<unknown>(`/admin/memory/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });

@@ -77,6 +77,8 @@ const operations: Array<() => Promise<unknown>> = [
   () => client.memory.remember({ kind: "note", key: "k", title: "t", content: {} }),
   () => client.memory.confirm("m1"),
   () => client.memory.forget("m1"),
+  () => client.admin.memory.list({ status: "all" }),
+  () => client.admin.memory.update("m1", { status: "archived" }),
   () => client.notificationPreferences.get(),
   () => client.notificationPreferences.update({ approvalRequired: true, terminalOutcomes: true }),
 ];
