@@ -43,6 +43,10 @@
       "sha256": "50d1657142a530bacf74b0c72719116c44f0eba143e660f98649bb1a4ab023a8"
     },
     {
+      "path": "dist/native.d.ts",
+      "sha256": "05ce680d93569358c8d03d438cc7828f4812289c9a084498723d1557677919a1"
+    },
+    {
       "path": "dist/providers.d.ts",
       "sha256": "a0ecaa4e7a8290b7f8dbf84a519c74d791be56531150e61df5c28d01575931f5"
     },
@@ -60,7 +64,7 @@
     },
     {
       "path": "dist/runtime.d.ts",
-      "sha256": "82dcae6dcda2c4fbad4d869deabecb322548f71b1295ee39a75383b6b5639b15"
+      "sha256": "d07301882bc3a00b3665406c2ac789fa4e90369867eeeeb17c6766bcc017a0b9"
     },
     {
       "path": "dist/schema.d.ts",

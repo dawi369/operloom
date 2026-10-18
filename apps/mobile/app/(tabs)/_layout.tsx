@@ -10,6 +10,7 @@ export default function TabsLayout() {
     <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: colors.accent }}>
       <Tabs.Screen name="chat" options={{ title: "Chat" }} />
       <Tabs.Screen name="approvals" options={{ title: "Approvals" }} />
+      <Tabs.Screen name="artifacts" options={{ title: "Artifacts" }} />
       <Tabs.Screen name="memory" options={{ title: "Memory" }} />
       <Tabs.Screen name="settings" options={{ title: "Workspace" }} />
     </Tabs>

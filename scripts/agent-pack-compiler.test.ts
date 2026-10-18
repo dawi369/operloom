@@ -423,6 +423,34 @@ describe("agent pack compiler", () => {
     expect(() => validateLoadedModules([incompatible])).toThrow("incompatible");
   });
 
+  it("accepts a native module only for declared artifact kinds", async () => {
+    const modules = await loadAgentModules(process.cwd());
+    const source = modules.find((item) => item.manifest.id === "complex-operator")!;
+    const kind = source.manifest.artifactRenderers[0]!.artifactKind;
+    const native = {
+      apiVersion: 2 as const,
+      kind: "agent_native_module" as const,
+      packId: source.manifest.id,
+      runtimeVersion: source.web.runtimeVersion,
+      compatiblePackVersions: source.web.compatiblePackVersions,
+      artifactRenderers: { [kind]: () => null },
+    };
+    expect(() => validateLoadedModules([{ ...source, native }])).not.toThrow();
+    expect(() =>
+      validateLoadedModules([
+        { ...source, native: { ...native, artifactRenderers: { unknown_kind: () => null } } },
+      ]),
+    ).toThrow("not declared in the manifest");
+    expect(() =>
+      validateLoadedModules([
+        { ...source, native: { ...native, artifactRenderers: { [kind]: { kind: "json" } } } },
+      ]),
+    ).toThrow("must be a component");
+    expect(() =>
+      validateLoadedModules([{ ...source, native: { ...native, runtimeVersion: "0.0.1" } }]),
+    ).toThrow("one consistent runtime version");
+  });
+
   it("requires Fly control-plane and runner contracts to match exactly", async () => {
     const modules = await loadAgentModules(process.cwd());
     const source = modules.find((item) => item.manifest.id === "repo-analyst")!;

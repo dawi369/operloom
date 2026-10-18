@@ -321,6 +321,17 @@ data already in the message, sanitized of credential-like keys and bounded by
 the generic JSON view. Renderers must not fetch. `json`, `markdown` and `table`
 remain the generic artifact kinds for packages without components.
 
+A package may also ship a `native` subpath (`native.ts` for source entries,
+`./native` in `exports` for installed ones) built with
+`defineNativeModule` from `@operloom/agent-sdk/native`. It maps artifact kinds
+to React Native components and is optional: the compiler emits
+`generated/agent-runtime/native.ts` from the packages that have one, each key
+must be a declared `artifactRenderers` kind, and the mobile Artifacts tab uses
+the component when the sanitized payload is within bounds and its generic
+key/value view otherwise. A native module imports `react-native`, so add it as
+a `devDependency` of the package for typechecking; packs without a native
+module render through the generic view on mobile.
+
 ### Notifications
 
 A package declares the user-facing events it may emit:

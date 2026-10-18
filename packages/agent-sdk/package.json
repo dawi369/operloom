@@ -31,6 +31,10 @@
       "types": "./dist/web.d.ts",
       "default": "./dist/web.js"
     },
+    "./native": {
+      "types": "./dist/native.d.ts",
+      "default": "./dist/native.js"
+    },
     "./schemas/agent-pack.json": {
       "default": "./schemas/agent-pack.schema.json"
     },

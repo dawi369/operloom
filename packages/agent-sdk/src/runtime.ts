@@ -525,11 +525,28 @@ export type WebRuntimeModule = {
   toolResultRenderers?: Readonly<Record<string, unknown>>;
 };
 
+/**
+ * Optional React Native counterpart of the web module. Components are keyed by
+ * artifact kind and every key must be an `artifactRenderers` entry in the
+ * manifest; kinds without a native component fall back to the host's generic
+ * JSON view. Native components receive the same sanitized, size-bounded
+ * `ArtifactRendererProps` as web ones and must not fetch.
+ */
+export type NativeRuntimeModule = {
+  apiVersion: 2;
+  kind: "agent_native_module";
+  packId: string;
+  runtimeVersion: string;
+  compatiblePackVersions: string;
+  artifactRenderers: Readonly<Record<string, unknown>>;
+};
+
 export type AgentModulePackage = {
   manifest: LocalAgentPackManifest;
   controlPlane?: ControlPlaneRuntimeModule;
   runner?: RunnerRuntimeModule;
   web?: WebRuntimeModule;
+  native?: NativeRuntimeModule;
 };
 
 export const defineControlPlaneModule = <
@@ -558,6 +575,16 @@ export const defineWebModule = <const T extends Omit<WebRuntimeModule, "apiVersi
   ...value,
   apiVersion: 2,
   kind: "agent_web_module",
+});
+
+export const defineNativeModule = <
+  const T extends Omit<NativeRuntimeModule, "apiVersion" | "kind">,
+>(
+  value: T,
+): T & Pick<NativeRuntimeModule, "apiVersion" | "kind"> => ({
+  ...value,
+  apiVersion: 2,
+  kind: "agent_native_module",
 });
 
 export const defaultConnectionPort = (

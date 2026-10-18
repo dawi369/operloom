@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Mobile artifacts: the Expo app gains an Artifacts tab listing what agents
+  produced with a generic key/value view of each payload. Packs can ship an
+  optional `native` module (`defineNativeModule` from
+  `@operloom/agent-sdk/native`) mapping artifact kinds to React Native
+  components; the compiler validates it against the manifest and emits
+  `generated/agent-runtime/native.ts`, which the tab consults before falling
+  back to the generic view.
 - Console panels use `@operloom/client`: the admin drawer and workspace
   panel no longer call `fetch` directly. The client gained
   `workspaces.{create, members, addMember, updateMember, retentionPolicy,

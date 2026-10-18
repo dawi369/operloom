@@ -7,6 +7,7 @@ import type {
   AgentModuleEntry,
   ControlPlaneRuntimeModule,
   LocalAgentPackManifest,
+  NativeRuntimeModule,
   RunnerRuntimeModule,
   WebRuntimeModule,
   WorkbenchConfig,
@@ -33,6 +34,8 @@ export type LoadedAgentModule = {
   controlPlane: ControlPlaneRuntimeModule;
   runner: RunnerRuntimeModule;
   web: WebRuntimeModule;
+  /** Present only when the package ships a `native` subpath. */
+  native?: NativeRuntimeModule;
   packageMetadata: { name: string; version: string };
 };
 
@@ -106,7 +109,9 @@ export const validateInstalledPackageContract = (root: string, entry: AgentModul
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
     exports?: Record<string, unknown>;
   };
-  for (const subpath of ["manifest", "control-plane", "runner", "web"] as const) {
+  const subpaths = ["manifest", "control-plane", "runner", "web"] as const;
+  const optionalSubpaths = packageJson.exports?.["./native"] ? (["native"] as const) : [];
+  for (const subpath of [...subpaths, ...optionalSubpaths]) {
     const exportValue = packageJson.exports?.[`./${subpath}`];
     const exportMap =
       exportValue && typeof exportValue === "object" && !Array.isArray(exportValue)
@@ -134,6 +139,17 @@ export const validateInstalledPackageContract = (root: string, entry: AgentModul
     if (parseDiagnostics?.length) {
       throw new Error(`${entry.package}/${subpath} declaration file is invalid.`);
     }
+  }
+};
+
+/** A package opts into native renderers by exposing `./native`; source entries by shipping `native.ts`. */
+export const hasNativeModule = (root: string, entry: AgentModuleEntry) => {
+  if (entry.source) return existsSync(resolve(root, entry.source, "native.ts"));
+  try {
+    createRequire(resolve(root, "package.json")).resolve(`${entry.package}/native`);
+    return true;
+  } catch {
+    return false;
   }
 };
 
@@ -183,7 +199,7 @@ export const validateLoadedModules = (
   const workflowTypes = new Map<string, string>();
   const artifactKinds = new Map<string, string>();
   for (const item of modules) {
-    const { manifest, controlPlane, runner, web, entry } = item;
+    const { manifest, controlPlane, runner, web, native, entry } = item;
     if (manifest.apiVersion !== 2 || manifest.kind !== "agent_pack") {
       throw new Error(`${entry.package} must export an Agent Pack manifest (apiVersion 2).`);
     }
@@ -225,7 +241,9 @@ export const validateLoadedModules = (
       );
     }
     requireUnique(packIds, "Pack id", manifest.id, entry.package);
-    for (const runtime of [controlPlane, runner, web]) {
+    for (const runtime of native
+      ? [controlPlane, runner, web, native]
+      : [controlPlane, runner, web]) {
       if (runtime.apiVersion !== 2 || runtime.packId !== manifest.id) {
         throw new Error(`${entry.package} runtime exports must identify pack ${manifest.id}.`);
       }
@@ -658,6 +676,19 @@ export const validateLoadedModules = (
           `${entry.package} artifact renderer ${renderer.artifactKind} maxBytes is out of range.`,
         );
     }
+    if (native) {
+      if (native.kind !== "agent_native_module")
+        throw new Error(`${entry.package}/native must export an agent_native_module.`);
+      const declaredKinds = new Set(manifest.artifactRenderers.map((item) => item.artifactKind));
+      for (const [kind, component] of Object.entries(native.artifactRenderers)) {
+        if (!declaredKinds.has(kind))
+          throw new Error(
+            `${entry.package} native artifact renderer ${kind} is not declared in the manifest.`,
+          );
+        if (typeof component !== "function")
+          throw new Error(`${entry.package} native artifact renderer ${kind} must be a component.`);
+      }
+    }
     const toolResultRenderers = manifest.toolResultRenderers ?? [];
     const webToolRenderers = (web.toolResultRenderers ?? {}) as Record<string, unknown>;
     const declaredToolRenderers = new Set<string>();
@@ -719,6 +750,9 @@ export const loadAgentModules = async (root: string): Promise<LoadedAgentModule[
         ),
         runner: await loadExport<RunnerRuntimeModule>(root, entry, "runner", "runner"),
         web: await loadExport<WebRuntimeModule>(root, entry, "web", "web"),
+        ...(hasNativeModule(root, entry)
+          ? { native: await loadExport<NativeRuntimeModule>(root, entry, "native", "native") }
+          : {}),
       };
     }),
   );
@@ -755,8 +789,8 @@ const renderRegistry = (
   root: string,
   outputFile: string,
   modules: readonly LoadedAgentModule[],
-  subpath: "manifest" | "control-plane" | "runner" | "web",
-  exportName: "manifest" | "controlPlane" | "runner" | "web",
+  subpath: "manifest" | "control-plane" | "runner" | "web" | "native",
+  exportName: "manifest" | "controlPlane" | "runner" | "web" | "native",
   registryName: string,
 ) => {
   const imports = modules
@@ -813,14 +847,16 @@ export const compileAgentPacks = async (
     ["control-plane.ts", "control-plane", "controlPlane", "agentControlPlaneRegistry"],
     ["runner.ts", "runner", "runner", "agentRunnerRegistry"],
     ["web.ts", "web", "web", "agentWebRegistry"],
+    ["native.ts", "native", "native", "agentNativeRegistry"],
   ] as const;
   const files: string[] = [];
   if (!options.check) mkdirSync(outputDirectory, { recursive: true });
   for (const [fileName, subpath, exportName, registryName] of outputs) {
     const outputFile = resolve(outputDirectory, fileName);
+    const included = subpath === "native" ? modules.filter((item) => item.native) : modules;
     const source = await formatGeneratedSource(
       outputFile,
-      renderRegistry(root, outputFile, modules, subpath, exportName, registryName),
+      renderRegistry(root, outputFile, included, subpath, exportName, registryName),
     );
     if (options.check) {
       if (!existsSync(outputFile) || readFileSync(outputFile, "utf8") !== source) {
