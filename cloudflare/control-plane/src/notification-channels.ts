@@ -2,6 +2,7 @@ import type { NotificationChannel, NotificationSeverity } from "@operloom/agent-
 import { EntitlementError, requireEntitlement } from "./billing-plans";
 import { resolveCredentialVault } from "./credential-vault";
 import { isRecord, json } from "./http";
+import { createResendEmailTransport, splitEmailTransport } from "./notification-email-resend";
 import { signWebhookBody } from "./webhooks";
 import { createId, type AgentIdentity, type Env } from "./types";
 
@@ -92,15 +93,33 @@ export const createRelayChannelTransport = (
   },
 });
 
+/**
+ * Email: Resend when `OPERLOOM_EMAIL_PROVIDER=resend` with a key and sender; otherwise the
+ * relay when configured; otherwise recorded. SMS: relay or recorded. E2E always records.
+ */
 export const resolveChannelTransport = (env: Env): ChannelTransport => {
+  if (env.OPERLOOM_E2E_MODE === "true") return createRecordedChannelTransport();
   const url = env.OPERLOOM_NOTIFICATION_RELAY_URL?.trim();
   const secret = env.OPERLOOM_NOTIFICATION_RELAY_SECRET?.trim();
-  if (env.OPERLOOM_E2E_MODE !== "true" && url && secret) {
+  let fallback: ChannelTransport = createRecordedChannelTransport();
+  if (url && secret) {
     const parsed = new URL(url);
     if (parsed.protocol !== "https:") throw new Error("notification_relay_not_https");
-    return createRelayChannelTransport(url, secret);
+    fallback = createRelayChannelTransport(url, secret);
   }
-  return createRecordedChannelTransport();
+  if (env.OPERLOOM_EMAIL_PROVIDER?.trim() === "resend") {
+    const apiKey = env.RESEND_API_KEY?.trim();
+    const from = env.OPERLOOM_EMAIL_FROM?.trim();
+    if (!apiKey || !from) throw new Error("email_provider_resend_misconfigured");
+    return splitEmailTransport(
+      createResendEmailTransport(
+        { apiKey, from, replyTo: env.OPERLOOM_EMAIL_REPLY_TO?.trim() || undefined },
+        { consoleOrigin: env.OPENROUTER_SITE_URL?.trim() || undefined },
+      ),
+      fallback,
+    );
+  }
+  return fallback;
 };
 
 type PreferenceRow = {

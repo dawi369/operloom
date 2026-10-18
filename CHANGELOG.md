@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Email delivery: a direct Resend transport (`OPERLOOM_EMAIL_PROVIDER=resend`,
+  `RESEND_API_KEY`, `OPERLOOM_EMAIL_FROM`) sends notification email from the
+  Worker with text and HTML parts, a route link back to the console and an
+  idempotency key per delivery; SMS keeps the relay or recorded transport.
 - Staging is a tracked worker-only environment: `config/environments/staging.json`
   plus `pnpm environment:worker <check|render|migrate|secrets|deploy|smoke>`
   replace the hand-written config that lived in `output/`. `check` runs in

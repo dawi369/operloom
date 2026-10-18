@@ -30,7 +30,9 @@ export type WorkerEnvironment = {
   vaultBackend: "memory" | "workos";
   billingProvider: "manual" | "stripe" | "polar";
   model: string;
-  secretEnvironmentVariables: { openrouter: string; workosApiKey: string };
+  /** Present when the Worker sends email itself; the key is set through `secrets`. */
+  email?: { provider: "resend"; from: string; replyTo?: string };
+  secretEnvironmentVariables: { openrouter: string; workosApiKey: string; resend?: string };
 };
 
 /** Signing secrets the platform generates itself; nobody needs to know their values. */
@@ -129,8 +131,23 @@ export const parseWorkerEnvironment = (value: unknown): WorkerEnvironment => {
     secretEnvironmentVariables: {
       openrouter: str(secrets, "openrouter", "secretEnvironmentVariables.openrouter"),
       workosApiKey: str(secrets, "workosApiKey", "secretEnvironmentVariables.workosApiKey"),
+      ...(typeof secrets.resend === "string" ? { resend: secrets.resend } : {}),
     },
   };
+  if (isRecord(root.email)) {
+    const email = root.email;
+    if (email.provider !== "resend") failures.push('email.provider must be "resend"');
+    const from = str(email, "from", "email.from");
+    if (!/<[^@\s]+@[^@\s]+>$|^[^@\s]+@[^@\s]+$/.test(from))
+      failures.push("email.from must be an address");
+    parsed.email = {
+      provider: "resend",
+      from,
+      ...(typeof email.replyTo === "string" ? { replyTo: email.replyTo } : {}),
+    };
+    if (!parsed.secretEnvironmentVariables.resend)
+      failures.push("email requires secretEnvironmentVariables.resend");
+  }
   // The issuer carries a path, so it is checked by prefix rather than as a bare origin.
   if (!parsed.workos.issuer.startsWith("https://")) failures.push("workos.issuer must use https");
   if (!parsed.workos.jwksUrl.startsWith("https://")) failures.push("workos.jwksUrl must use https");
@@ -195,6 +212,13 @@ export const renderWorkerEnvironment = (
       OPERLOOM_WORKOS_JWKS_URL: manifest.workos.jwksUrl,
       OPERLOOM_WORKOS_ALLOWED_CLIENT_IDS: manifest.workos.allowedClientIds.join(","),
       OPERLOOM_MCP_ALLOWED_CLIENT_IDS: manifest.mcpAllowedClientIds.join(","),
+      ...(manifest.email
+        ? {
+            OPERLOOM_EMAIL_PROVIDER: manifest.email.provider,
+            OPERLOOM_EMAIL_FROM: manifest.email.from,
+            ...(manifest.email.replyTo ? { OPERLOOM_EMAIL_REPLY_TO: manifest.email.replyTo } : {}),
+          }
+        : {}),
       OPERLOOM_RELEASE_SHA: releaseSha,
       SENTRY_ENVIRONMENT: manifest.name,
       SENTRY_TRACES_SAMPLE_RATE: "0",
@@ -278,6 +302,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       for (const [secret, variable] of [
         ["OPENROUTER_API_KEY", manifest.secretEnvironmentVariables.openrouter],
         ["WORKOS_API_KEY", manifest.secretEnvironmentVariables.workosApiKey],
+        ...(manifest.secretEnvironmentVariables.resend
+          ? ([["RESEND_API_KEY", manifest.secretEnvironmentVariables.resend]] as const)
+          : []),
       ] as const) {
         const value = process.env[variable]?.trim();
         if (!value) {

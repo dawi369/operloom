@@ -48,7 +48,10 @@ pnpm environment:worker smoke               # health 200, authenticated routes 4
 `secrets` generates fresh random values for the four signing secrets every time
 (nothing outside the Worker holds them) and sets `OPENROUTER_API_KEY` and
 `WORKOS_API_KEY` from the variables named under `secretEnvironmentVariables`
-when those are present in the shell. Heavy tools run inline
+when those are present in the shell. Add an `email` block
+(`{ "provider": "resend", "from": "Name <notify@domain>" }`) and
+`secretEnvironmentVariables.resend` to send notification email from the
+Worker; `secrets` then sets `RESEND_API_KEY` too. Heavy tools run inline
 (`OPERLOOM_RUNNER_TRANSPORT=inline`); `vaultBackend: "memory"` and
 `conformanceMode: true` mark it as non-production. Pass `--name <other>` to use
 a second manifest with the same `kind`.

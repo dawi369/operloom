@@ -144,6 +144,11 @@ export type Env = {
   OPERLOOM_PUSH_ENABLED?: string;
   OPERLOOM_NOTIFICATION_RELAY_URL?: string;
   OPERLOOM_NOTIFICATION_RELAY_SECRET?: string;
+  /** `resend` sends email directly from the Worker; unset keeps the relay or recorded transport. */
+  OPERLOOM_EMAIL_PROVIDER?: "resend";
+  RESEND_API_KEY?: string;
+  OPERLOOM_EMAIL_FROM?: string;
+  OPERLOOM_EMAIL_REPLY_TO?: string;
   OPERLOOM_BILLING_PROVIDER?: "manual" | "stripe" | "polar";
   POLAR_ACCESS_TOKEN?: string;
   POLAR_WEBHOOK_SECRET?: string;

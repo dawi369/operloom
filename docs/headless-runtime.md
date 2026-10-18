@@ -279,9 +279,15 @@ const { deliveries } = await runtime.notifications.deliveries({ limit: 20 });
 A preference row for an event type wins over the channel's `*` default. Hours
 are UTC. Email falls back to the signed-in profile address; SMS needs a stored
 number. Deliveries list channel, severity, status, attempts and the next send
-time for a deferred row. Egress uses the platform relay configured by
-`OPERLOOM_NOTIFICATION_RELAY_URL` and `OPERLOOM_NOTIFICATION_RELAY_SECRET`
-(signed like outbound webhooks); without one the delivery is recorded only.
+time for a deferred row. Email leaves the Worker directly when
+`OPERLOOM_EMAIL_PROVIDER=resend` with `RESEND_API_KEY` and `OPERLOOM_EMAIL_FROM`
+(a sender on a domain verified in Resend; `OPERLOOM_EMAIL_REPLY_TO` is
+optional). Each send carries an idempotency key of event type, target and
+address so a retried delivery row never mails twice; 429 and 5xx are retried,
+other 4xx mark the row failed. Otherwise, and for SMS, egress uses the platform
+relay configured by `OPERLOOM_NOTIFICATION_RELAY_URL` and
+`OPERLOOM_NOTIFICATION_RELAY_SECRET` (signed like outbound webhooks); without
+one the delivery is recorded only. E2E mode always records.
 
 ## Webhook notifications
 
