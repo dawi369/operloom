@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Staging is a tracked worker-only environment: `config/environments/staging.json`
+  plus `pnpm environment:worker <check|render|migrate|secrets|deploy|smoke>`
+  replace the hand-written config that lived in `output/`. `check` runs in
+  `verify:environment-config`; `secrets` rotates the signing secrets.
 - Approvals show the memory the agent relied on: pending requests carry
   `memoryUsed` (resolved from the run's pinned context snapshot), the approve
   and deny dialog lists those records with a Forget action, and the mobile

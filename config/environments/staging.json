@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "worker-only",
+  "name": "staging",
+  "description": "Operloom's shared development Worker: the local console and the iOS simulator point at it. Forks replace every identifier here with their own account's.",
+  "cloudflare": {
+    "workerName": "operloom-staging-control-plane",
+    "d1DatabaseName": "operloom_staging",
+    "d1DatabaseId": "d10370eb-e864-44ad-81b0-f5ad49090843",
+    "r2BucketName": "operloom-staging-artifacts",
+    "origin": "https://operloom-staging-control-plane.david-erwin-cz68.workers.dev"
+  },
+  "consoleOrigin": "http://localhost:3000",
+  "workos": {
+    "issuer": "https://api.workos.com/user_management/client_01KT91CSGN8DZZZKM062EY26SX",
+    "jwksUrl": "https://api.workos.com/sso/jwks/client_01KTBGQ6P5F3PC4W8S9K95CJ7D",
+    "allowedClientIds": ["client_01KT91CSGN8DZZZKM062EY26SX", "client_01KTBGQ6P5F3PC4W8S9K95CJ7D"]
+  },
+  "mcpAllowedClientIds": ["client_01KT91CSGN8DZZZKM062EY26SX", "client_01KTBGQ6P5F3PC4W8S9K95CJ7D"],
+  "features": {
+    "retainedData": true,
+    "connections": false,
+    "mutations": false,
+    "push": false
+  },
+  "conformanceMode": true,
+  "vaultBackend": "memory",
+  "billingProvider": "manual",
+  "model": "openai/gpt-6-luna",
+  "secretEnvironmentVariables": {
+    "openrouter": "OPERLOOM_STAGING_OPENROUTER_API_KEY",
+    "workosApiKey": "OPERLOOM_STAGING_WORKOS_API_KEY"
+  }
+}

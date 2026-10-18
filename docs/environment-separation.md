@@ -25,6 +25,34 @@ applications/workspaces, public origins, and every signing-secret reference are
 mechanically distinct. Production validation rejects conformance mode, the
 memory Vault, a dev transport token, or mutation enabled globally.
 
+## Worker-only environments
+
+A worker-only environment is a Cloudflare Worker with no Fly runner and no
+hosted console; the local console (`OPERLOOM_BACKEND_URL`) and native shells
+(`EXPO_PUBLIC_CONTROL_PLANE_ORIGIN`) point at it. The repository ships one,
+`config/environments/staging.json`, for day-to-day development against real
+D1, R2, Workflows and WorkOS. Unlike the full targets it holds no identifier
+placeholders: every value is tracked, so any checkout can render and deploy it
+once the Cloudflare account matches. Forks replace the identifiers with their
+own and keep the shape.
+
+```bash
+pnpm environment:worker check               # manifest valid, no collision with full targets
+pnpm environment:worker render              # output/environments/staging/wrangler.json
+pnpm environment:worker migrate             # wrangler d1 migrations apply --remote
+pnpm environment:worker secrets             # rotate signing secrets; set provider keys if present
+pnpm environment:worker deploy              # wrangler deploy
+pnpm environment:worker smoke               # health 200, authenticated routes 401
+```
+
+`secrets` generates fresh random values for the four signing secrets every time
+(nothing outside the Worker holds them) and sets `OPENROUTER_API_KEY` and
+`WORKOS_API_KEY` from the variables named under `secretEnvironmentVariables`
+when those are present in the shell. Heavy tools run inline
+(`OPERLOOM_RUNNER_TRANSPORT=inline`); `vaultBackend: "memory"` and
+`conformanceMode: true` mark it as non-production. Pass `--name <other>` to use
+a second manifest with the same `kind`.
+
 ## Required non-secret target variables
 
 Replace `TARGET` with `ACCEPTANCE`, `PRODUCTION`, or `DEMO`. Vercel targets use

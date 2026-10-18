@@ -59,7 +59,7 @@
     "environment:render": "tsx scripts/render-environment-config.ts",
     "environment:configure-secrets": "tsx scripts/configure-environment-secrets.ts",
     "environment:provision": "tsx scripts/provision-environment.ts",
-    "verify:environment-config": "tsx scripts/check-environment.ts --target local --configuration-only && tsx scripts/check-environment.ts --target acceptance --configuration-only && tsx scripts/check-environment.ts --target production --configuration-only && tsx scripts/check-environment.ts --target demo --configuration-only",
+    "verify:environment-config": "tsx scripts/check-environment.ts --target local --configuration-only && tsx scripts/check-environment.ts --target acceptance --configuration-only && tsx scripts/check-environment.ts --target production --configuration-only && tsx scripts/check-environment.ts --target demo --configuration-only && tsx scripts/worker-environment.ts check --name staging",
     "acceptance:hosted:public": "tsx scripts/accept-hosted-public.ts",
     "acceptance:hosted:configuration": "tsx scripts/accept-hosted-configuration.ts",
     "acceptance:hosted:observability": "tsx scripts/accept-hosted-observability.ts",
@@ -102,7 +102,8 @@
     "runtime:bundle": "pnpm agent-sdk:build && tsx scripts/bundle-runtime.ts",
     "dev:runtime": "pnpm agent-sdk:build && tsx scripts/runtime-dev.ts",
     "conformance:runtime": "pnpm agent-sdk:build && tsx scripts/run-runtime-conformance.ts",
-    "conformance:provider-operations": "pnpm agent-sdk:build && tsx scripts/run-provider-operation-conformance.ts"
+    "conformance:provider-operations": "pnpm agent-sdk:build && tsx scripts/run-provider-operation-conformance.ts",
+    "environment:worker": "tsx scripts/worker-environment.ts"
   },
   "dependencies": {
     "@assistant-ui/react": "^0.15.22",
