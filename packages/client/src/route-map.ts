@@ -18,6 +18,7 @@ const rules: ReadonlyArray<readonly [consolePath: string, workerPath: string | n
   ["/agents", "/agents"],
   ["/agent-packs", "/agent-packs"],
   ["/tools", "/tools"],
+  ["/agent-behavior-templates", "/agent-behavior-templates"],
 ];
 
 export class ConsoleOnlyOperationError extends Error {

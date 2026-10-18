@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useActivateWorkspace,
   useWorkbenchAccounts,
+  useWorkbenchClient,
   useWorkbenchWorkspaces,
 } from "@operloom/react";
+import { WorkbenchClientError } from "@operloom/client";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import {
   ArrowLeftIcon,
@@ -30,7 +32,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { readJsonResponse } from "@/lib/workbench/read-json-response";
 import type {
   CloudflareDataJobResponse,
   CloudflareRetentionPolicyResponse,
@@ -40,7 +41,6 @@ import type {
   WorkspaceSummary,
 } from "@/lib/workbench/workbench-types";
 
-const workspacesPath = "/api/workbench/workspaces";
 type WorkbenchAccount = NonNullable<WorkbenchAccountContextResponse["accounts"]>[number];
 const retentionFields = [
   ["chatMessageRetentionDays", "Chat messages", 1, 3650],
@@ -65,6 +65,7 @@ export function WorkbenchWorkspacePanel({
 }) {
   const { switchToOrganization } = useAuth();
   // Enabled regardless of `open` so the shell's preload fills the cache before the first click.
+  const client = useWorkbenchClient();
   const accountsQuery = useWorkbenchAccounts(true);
   const workspacesQuery = useWorkbenchWorkspaces(true);
   const { refetch: refetchAccounts } = accountsQuery;
@@ -114,31 +115,25 @@ export function WorkbenchWorkspacePanel({
         return;
       }
 
-      const response = await fetch(
-        `${workspacesPath}/${encodeURIComponent(nextActiveWorkspaceId)}/members`,
-        { cache: "no-store" },
-      );
-      if (response.status === 403) {
-        setMembers([]);
-        setAvailableMembers([]);
-        setCurrentMembership(null);
-        return;
+      // Members are admin-only; a 403 means the panel shows the switcher without management.
+      let memberBody: CloudflareWorkspaceMembersResponse;
+      try {
+        memberBody = await client.workspaces.members(nextActiveWorkspaceId);
+      } catch (membersError) {
+        if (membersError instanceof WorkbenchClientError && membersError.status === 403) {
+          setMembers([]);
+          setAvailableMembers([]);
+          setCurrentMembership(null);
+          return;
+        }
+        throw membersError;
       }
-      const memberBody = await readJsonResponse<CloudflareWorkspaceMembersResponse>(
-        response,
-        "Failed to load workspace members",
-      );
       setMembers(memberBody.members ?? []);
       setAvailableMembers(memberBody.availableMembers ?? []);
       setCurrentMembership(memberBody.currentMembership ?? null);
 
-      const retentionResponse = await fetch("/api/workbench/retention-policy", {
-        cache: "no-store",
-      });
-      if (retentionResponse.ok) {
-        const retentionBody = (await retentionResponse.json()) as CloudflareRetentionPolicyResponse;
-        setRetention(retentionBody.policy);
-      }
+      const retentionBody = await client.workspaces.retentionPolicy().catch(() => null);
+      if (retentionBody?.policy) setRetention(retentionBody.policy);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Failed to load workspace access");
     } finally {
@@ -161,12 +156,8 @@ export function WorkbenchWorkspacePanel({
   useEffect(() => {
     if (!open || !dataJob || !["queued", "running"].includes(dataJob.status)) return;
     const timeout = window.setTimeout(() => {
-      void fetch(`/api/workbench/data-exports/${encodeURIComponent(dataJob.id)}`, {
-        cache: "no-store",
-      })
-        .then((response) =>
-          readJsonResponse<CloudflareDataJobResponse>(response, "Failed to refresh export"),
-        )
+      void client.workspaces
+        .exportJob(dataJob.id)
         .then((body) => setDataJob(body.job))
         .catch((pollError) =>
           setError(pollError instanceof Error ? pollError.message : "Failed to refresh export"),
@@ -218,11 +209,7 @@ export function WorkbenchWorkspacePanel({
     setBusyId("workspace:create");
     setError(null);
     try {
-      await fetch(workspacesPath, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name }),
-      }).then((response) => readJsonResponse(response, "Failed to create workspace"));
+      await client.workspaces.create({ name });
       window.location.reload();
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Failed to create workspace");
@@ -238,17 +225,10 @@ export function WorkbenchWorkspacePanel({
     setBusyId(`member:${member.userId}`);
     setError(null);
     try {
-      await fetch(
-        `${workspacesPath}/${encodeURIComponent(activeWorkspaceId)}/members/${encodeURIComponent(member.userId)}`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            role: input.role ?? member.role,
-            status: input.status ?? member.status,
-          }),
-        },
-      ).then((response) => readJsonResponse(response, "Failed to update member access"));
+      await client.workspaces.updateMember(activeWorkspaceId, member.userId, {
+        role: input.role ?? member.role,
+        status: input.status ?? member.status,
+      });
       await loadPanel();
     } catch (updateError) {
       setError(
@@ -264,11 +244,7 @@ export function WorkbenchWorkspacePanel({
     setBusyId(`member:add:${memberToAdd}`);
     setError(null);
     try {
-      await fetch(`${workspacesPath}/${encodeURIComponent(activeWorkspaceId)}/members`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ userId: memberToAdd, role: "member" }),
-      }).then((response) => readJsonResponse(response, "Failed to add workspace member"));
+      await client.workspaces.addMember(activeWorkspaceId, { userId: memberToAdd, role: "member" });
       setMemberToAdd("");
       await loadPanel();
     } catch (addError) {
@@ -283,23 +259,15 @@ export function WorkbenchWorkspacePanel({
     setBusyId("retention:confirm");
     setError(null);
     try {
-      const response = await fetch("/api/workbench/retention-policy", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          artifactRetentionDays: retention.artifactRetentionDays,
-          operationalEventRetentionDays: retention.operationalEventRetentionDays,
-          runtimeTraceRetentionDays: retention.runtimeTraceRetentionDays,
-          chatMessageRetentionDays: retention.chatMessageRetentionDays,
-          runPayloadRetentionDays: retention.runPayloadRetentionDays,
-          auditActionRetentionDays: retention.auditActionRetentionDays,
-          confirm: true,
-        }),
+      const body = await client.workspaces.updateRetentionPolicy({
+        artifactRetentionDays: retention.artifactRetentionDays,
+        operationalEventRetentionDays: retention.operationalEventRetentionDays,
+        runtimeTraceRetentionDays: retention.runtimeTraceRetentionDays,
+        chatMessageRetentionDays: retention.chatMessageRetentionDays,
+        runPayloadRetentionDays: retention.runPayloadRetentionDays,
+        auditActionRetentionDays: retention.auditActionRetentionDays,
+        confirm: true,
       });
-      const body = await readJsonResponse<CloudflareRetentionPolicyResponse>(
-        response,
-        "Failed to confirm retention",
-      );
       setRetention(body.policy);
     } catch (updateError) {
       setError(updateError instanceof Error ? updateError.message : "Failed to confirm retention");
@@ -312,11 +280,7 @@ export function WorkbenchWorkspacePanel({
     setBusyId("export:create");
     setError(null);
     try {
-      const response = await fetch("/api/workbench/data-exports", { method: "POST" });
-      const body = await readJsonResponse<CloudflareDataJobResponse>(
-        response,
-        "Failed to create export",
-      );
+      const body = await client.workspaces.requestExport();
       setDataJob(body.job);
     } catch (exportError) {
       setError(exportError instanceof Error ? exportError.message : "Failed to create export");
@@ -330,16 +294,7 @@ export function WorkbenchWorkspacePanel({
     setBusyId("workspace:delete");
     setError(null);
     try {
-      await fetch("/api/workbench/workspace-deletion", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ workspaceName: deletionConfirmation }),
-      }).then((response) =>
-        readJsonResponse(
-          response,
-          "Workspace deletion requires a WorkOS sign-in from the last five minutes",
-        ),
-      );
+      await client.workspaces.requestDeletion({ workspaceName: deletionConfirmation });
       window.location.reload();
     } catch (deletionError) {
       setError(

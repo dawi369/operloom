@@ -7,8 +7,14 @@ import type {
   CloudflareAgentsResponse,
   CloudflareArtifactHistoryResponse,
   CloudflareConnectionsResponse,
+  CloudflareAgentBehaviorTemplatesResponse,
   CloudflareClientDevicesResponse,
+  CloudflareDataJobResponse,
   CloudflareNotificationPreferencesResponse,
+  CloudflareRetentionPolicyResponse,
+  CloudflareToolPolicyUpdateResponse,
+  CloudflareWorkspaceDeletionResponse,
+  CloudflareWorkspaceMembersResponse,
   ConnectionAuthorizationResponse,
   CloudflareExecutionHistoryResponse,
   CloudflareExecutionHistoryRunResponse,
@@ -287,10 +293,91 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
           `/api/workbench/workspaces/${encodeURIComponent(workspaceId)}/activate`,
           { method: "POST" },
         ),
+      create: (input: { name: string }) =>
+        request<CloudflareWorkspaceMutationResponse>(
+          "workspaceMutation",
+          "/api/workbench/workspaces",
+          { method: "POST", body: input },
+        ),
+      members: (workspaceId: Id, options: WorkbenchReadOptions = {}) =>
+        request<CloudflareWorkspaceMembersResponse>(
+          "workspaceMembers",
+          `/api/workbench/workspaces/${encodeURIComponent(workspaceId)}/members`,
+          options,
+        ),
+      addMember: (workspaceId: Id, input: { userId: Id; role: string }) =>
+        request<CloudflareWorkspaceMembersResponse>(
+          "workspaceMembers",
+          `/api/workbench/workspaces/${encodeURIComponent(workspaceId)}/members`,
+          { method: "POST", body: input },
+        ),
+      updateMember: (workspaceId: Id, userId: Id, input: { role: string; status: string }) =>
+        request<CloudflareWorkspaceMembersResponse>(
+          "workspaceMembers",
+          `/api/workbench/workspaces/${encodeURIComponent(workspaceId)}/members/${encodeURIComponent(userId)}`,
+          { method: "PATCH", body: input },
+        ),
+      retentionPolicy: (options: WorkbenchReadOptions = {}) =>
+        request<CloudflareRetentionPolicyResponse>(
+          "retentionPolicy",
+          "/api/workbench/retention-policy",
+          options,
+        ),
+      updateRetentionPolicy: (input: Record<string, number | boolean>) =>
+        request<CloudflareRetentionPolicyResponse>(
+          "retentionPolicy",
+          "/api/workbench/retention-policy",
+          { method: "PATCH", body: input },
+        ),
+      requestExport: () =>
+        request<CloudflareDataJobResponse>("dataJob", "/api/workbench/data-exports", {
+          method: "POST",
+        }),
+      exportJob: (jobId: Id, options: WorkbenchReadOptions = {}) =>
+        request<CloudflareDataJobResponse>(
+          "dataJob",
+          `/api/workbench/data-exports/${encodeURIComponent(jobId)}`,
+          options,
+        ),
+      requestDeletion: (input: { workspaceName: string }) =>
+        request<CloudflareWorkspaceDeletionResponse>(
+          "workspaceDeletion",
+          "/api/workbench/workspace-deletion",
+          { method: "POST", body: input },
+        ),
+      deletion: (options: WorkbenchReadOptions = {}) =>
+        request<CloudflareWorkspaceDeletionResponse>(
+          "workspaceDeletion",
+          "/api/workbench/workspace-deletion",
+          options,
+        ),
+      cancelDeletion: () =>
+        request<CloudflareWorkspaceDeletionResponse>(
+          "workspaceDeletion",
+          "/api/workbench/workspace-deletion",
+          { method: "DELETE" },
+        ),
     },
     agents: {
       list: (options: WorkbenchReadOptions = {}) =>
         request<CloudflareAgentsResponse>("agents", "/api/workbench/agents", options),
+      create: (input: {
+        name: string;
+        description?: string;
+        profile: string;
+        behaviorTemplateId: string;
+        activate?: boolean;
+      }) =>
+        request<CloudflareAgentMutationResponse>("agentMutation", "/api/workbench/agents", {
+          method: "POST",
+          body: input,
+        }),
+      behaviorTemplates: (options: WorkbenchReadOptions = {}) =>
+        request<CloudflareAgentBehaviorTemplatesResponse>(
+          "behaviorTemplates",
+          "/api/workbench/agent-behavior-templates",
+          options,
+        ),
       activate: (agentId: Id) =>
         request<CloudflareAgentMutationResponse>(
           "agentMutation",
@@ -358,11 +445,26 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
           { method: "POST" },
         ),
     },
+    tools: {
+      run: (input: { toolName: string; executionMode: "dry_run" | "execute"; input: unknown }) =>
+        request<CloudflareToolRunResponse>("toolRun", "/api/workbench/tools/runs", {
+          method: "POST",
+          body: input,
+        }),
+      updatePolicy: (input: { toolName: string } & Record<string, string | boolean>) =>
+        request<CloudflareToolPolicyUpdateResponse>("toolPolicy", "/api/workbench/tools/policy", {
+          method: "POST",
+          body: input,
+        }),
+    },
     approvals: {
-      list: (options: WorkbenchReadOptions = {}) =>
+      list: (
+        input: { status?: "requested" | "decided" | "all"; limit?: number } = {},
+        options: WorkbenchReadOptions = {},
+      ) =>
         request<CloudflareToolApprovalsResponse>(
           "approvals",
-          "/api/workbench/tools/approvals",
+          `/api/workbench/tools/approvals${queryString(input)}`,
           options,
         ),
       approve: (approvalRequestId: Id) =>

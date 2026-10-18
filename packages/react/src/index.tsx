@@ -192,7 +192,7 @@ export const useWorkbenchApprovals = (input: TenantInput = {}) => {
   const client = useWorkbenchClient();
   return useQuery({
     queryKey: workbenchQueryKeys.approvals(input.workspaceId),
-    queryFn: ({ signal }) => client.approvals.list({ signal }),
+    queryFn: ({ signal }) => client.approvals.list({}, { signal }),
     enabled: enabled(input),
   });
 };

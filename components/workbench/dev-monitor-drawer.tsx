@@ -15,6 +15,8 @@ import {
   SlidersHorizontalIcon,
 } from "lucide-react";
 
+import { useWorkbenchClient } from "@operloom/react";
+
 import { AdminAgentsPanel } from "@/components/workbench/admin-agents-panel";
 import { AdminAuditPanel } from "@/components/workbench/admin-audit-panel";
 import { ApprovalMemoryUsed } from "@/components/workbench/approval-memory-used";
@@ -38,26 +40,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { requestWorkbenchSummaryRefresh } from "@/lib/workbench/admin-summary-events";
 import { deriveRuntimeState } from "@/lib/workbench/chat-runtime-live-state";
-import { readJsonResponse } from "@/lib/workbench/read-json-response";
 import { useAdminSummaryResource } from "@/lib/workbench/use-admin-summary-resource";
 import { useWorkbenchAgentConnection } from "@/lib/workbench/use-agent-connection";
 import type {
   AgentBehaviorTemplate,
-  AgentSummary,
-  CloudflareAgentBehaviorTemplatesResponse,
-  CloudflareToolApprovalActionResponse,
-  CloudflareToolApprovalsResponse,
-  CloudflareToolPolicyUpdateResponse,
-  CloudflareToolRunResponse,
   ToolApprovalRequestSummary,
   ToolSummary,
 } from "@/lib/workbench/workbench-types";
-
-const behaviorTemplatesPath = "/api/workbench/agent-behavior-templates";
-const agentsPath = "/api/workbench/agents";
-const toolRunsPath = "/api/workbench/tools/runs";
-const toolPolicyPath = "/api/workbench/tools/policy";
-const toolApprovalsPath = "/api/workbench/tools/approvals";
 
 const inputClass =
   "border-input bg-background h-9 w-full rounded-md border px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -109,22 +98,13 @@ export function AdminPanel({
   const [customTemplateId, setCustomTemplateId] = useState("assistant-analyst");
   const [urlTarget, setUrlTarget] = useState("");
   const adminDialogRef = useRef<HTMLDivElement>(null);
+  const client = useWorkbenchClient();
 
   const loadSecondaryData = async () => {
     try {
-      const [templateResponse, approvalResponse] = await Promise.all([
-        fetch(behaviorTemplatesPath, { cache: "no-store" }),
-        fetch(`${toolApprovalsPath}?status=all&limit=20`, { cache: "no-store" }),
-      ]);
       const [templateBody, approvalBody] = await Promise.all([
-        readJsonResponse<CloudflareAgentBehaviorTemplatesResponse>(
-          templateResponse,
-          "Failed to load agent packs",
-        ),
-        readJsonResponse<CloudflareToolApprovalsResponse>(
-          approvalResponse,
-          "Failed to load approvals",
-        ),
+        client.agents.behaviorTemplates(),
+        client.approvals.list({ status: "all", limit: 20 }),
       ]);
       setTemplates(templateBody.templates ?? []);
       setApprovals(approvalBody.approvals ?? []);
@@ -175,13 +155,8 @@ export function AdminPanel({
     setBusyPackId(template.pack.id);
     setError(null);
     try {
-      const result = await readJsonResponse<{ agent: AgentSummary }>(
-        await fetch(
-          `/api/workbench/agent-packs/${encodeURIComponent(template.pack.id)}/instantiate`,
-          { method: "POST" },
-        ),
-        "Failed to prepare agent pack",
-      );
+      const result = await client.agents.instantiatePack(template.pack.id);
+      if (!result.agent) throw new Error("Failed to prepare agent pack");
       await switchAgent(result.agent.id, "new_thread");
       requestWorkbenchSummaryRefresh({ source: "event" });
       onOpenChange(false);
@@ -200,14 +175,7 @@ export function AdminPanel({
     setBusyTool(tool.name);
     setError(null);
     try {
-      await readJsonResponse<CloudflareToolPolicyUpdateResponse>(
-        await fetch(toolPolicyPath, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ toolName: tool.name, ...change }),
-        }),
-        `Failed to update ${tool.name}`,
-      );
+      await client.tools.updatePolicy({ toolName: tool.name, ...change });
       await refresh(true);
     } catch (policyError) {
       setError(policyError instanceof Error ? policyError.message : "Failed to update tool policy");
@@ -222,18 +190,8 @@ export function AdminPanel({
     setBusyApprovalId(approval.id);
     setError(null);
     try {
-      const suffix = approvalDialog.action === "approve" ? "approve" : "deny";
-      await readJsonResponse<CloudflareToolApprovalActionResponse>(
-        await fetch(`${toolApprovalsPath}/${encodeURIComponent(approval.id)}/${suffix}`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body:
-            approvalDialog.action === "deny"
-              ? JSON.stringify({ reason: denyReason.trim() || "Denied by an operator." })
-              : undefined,
-        }),
-        `Failed to ${approvalDialog.action} request`,
-      );
+      if (approvalDialog.action === "approve") await client.approvals.approve(approval.id);
+      else await client.approvals.deny(approval.id, denyReason.trim() || "Denied by an operator.");
       setApprovalDialog(null);
       setDenyReason("");
       await refresh(true);
@@ -250,14 +208,7 @@ export function AdminPanel({
     setBusyTool(toolName);
     setError(null);
     try {
-      await readJsonResponse<CloudflareToolRunResponse>(
-        await fetch(toolRunsPath, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ toolName, executionMode: "dry_run", input }),
-        }),
-        `Failed to run ${toolName}`,
-      );
+      await client.tools.run({ toolName, executionMode: "dry_run", input });
       await refresh(true);
     } catch (diagnosticError) {
       setError(
@@ -275,20 +226,13 @@ export function AdminPanel({
     setBusyTool("custom-agent");
     setError(null);
     try {
-      await readJsonResponse(
-        await fetch(agentsPath, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            name: customName.trim(),
-            description: customDescription.trim() || undefined,
-            profile: template.profile,
-            behaviorTemplateId: template.id,
-            activate: false,
-          }),
-        }),
-        "Failed to create custom agent",
-      );
+      await client.agents.create({
+        name: customName.trim(),
+        description: customDescription.trim() || undefined,
+        profile: template.profile,
+        behaviorTemplateId: template.id,
+        activate: false,
+      });
       setCustomAgentOpen(false);
       setCustomName("");
       setCustomDescription("");

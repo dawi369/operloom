@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Console panels use `@operloom/client`: the admin drawer and workspace
+  panel no longer call `fetch` directly. The client gained
+  `workspaces.{create, members, addMember, updateMember, retentionPolicy,
+updateRetentionPolicy, requestExport, exportJob, requestDeletion, deletion,
+cancelDeletion}`, `agents.{create, behaviorTemplates}`,
+  `tools.{run, updatePolicy}`, and `approvals.list(input, options)` with
+  response schemas for each, so forks and native clients get the same typed
+  surface the console uses.
 - Email delivery: a direct Resend transport (`OPERLOOM_EMAIL_PROVIDER=resend`,
   `RESEND_API_KEY`, `OPERLOOM_EMAIL_FROM`) sends notification email from the
   Worker with text and HTML parts, a route link back to the console and an

@@ -78,6 +78,12 @@ const validFixtures = {
       updatedAt: "2026-01-01T00:00:00.000Z",
     },
   },
+  behaviorTemplates: { ok: true, templates: [{ id: "assistant-analyst" }] },
+  toolPolicy: { ok: true },
+  workspaceMembers: { ok: true, members: [{ userId: "u1" }] },
+  retentionPolicy: { ok: true },
+  dataJob: { ok: true },
+  workspaceDeletion: { ok: true },
   adminMemoryList: {
     ok: true,
     records: [],

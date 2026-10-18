@@ -3,7 +3,7 @@
   "runtimeSchemas": [
     {
       "path": "client/src/response-schemas.ts",
-      "sha256": "e7ad0e815c1aeef391227da9896c136e778af6f0df48bb2af51cbe3f65d8cefe"
+      "sha256": "df6ad66bae529179163a704dd8c3e4cd51ece3a127fc84a29b95c4c1c30f1158"
     },
     {
       "path": "client/src/validation.ts",
@@ -49,7 +49,7 @@
         },
         {
           "path": "client/dist/client.d.ts",
-          "sha256": "d33339d2a3efa32039e0a36901d70014c014cd82b4a8a98b39a3ec3ca60e2128"
+          "sha256": "69379dca7bc43cddbc7d16fc4b5dc2b247a521dd77951250817e008867fe8088"
         },
         {
           "path": "client/dist/contracts/agents-chat.d.ts",
@@ -137,7 +137,7 @@
         },
         {
           "path": "client/dist/response-schemas.d.ts",
-          "sha256": "553a4b389e6173b3868938c24bcf7bea965a705f593fa298f9af0897907c6acd"
+          "sha256": "ce08c23f1a2eb5df1c44d9403d7181449534a4e5a67d6748279f3689fcf01554"
         },
         {
           "path": "client/dist/route-map.d.ts",
@@ -159,7 +159,7 @@
       "files": [
         {
           "path": "react/dist/index.d.ts",
-          "sha256": "29ae4348a082cd23449628803d228b4885bae0d19f4d5eda0de520121b8b0dd8"
+          "sha256": "8d5d773468b70940046150f66d5225f077f32f8ada7aa0df583765aa1fefa78b"
         }
       ]
     }

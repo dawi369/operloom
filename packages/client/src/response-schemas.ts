@@ -353,6 +353,16 @@ export const responseSchemas = {
         .optional(),
     })
     .passthrough(),
+  behaviorTemplates: z
+    .object({ ...envelope, templates: z.array(z.object({ id: id }).passthrough()) })
+    .passthrough(),
+  toolPolicy: z.object({ ...envelope }).passthrough(),
+  workspaceMembers: z
+    .object({ ...envelope, members: z.array(z.object({ userId: id }).passthrough()) })
+    .passthrough(),
+  retentionPolicy: z.object({ ...envelope }).passthrough(),
+  dataJob: z.object({ ...envelope }).passthrough(),
+  workspaceDeletion: z.object({ ...envelope }).passthrough(),
   billing: publicBillingContracts["GET /workbench/billing"].response.passthrough(),
   billingPlans: publicBillingContracts["GET /workbench/billing/plans"].response.passthrough(),
   billingLink: publicBillingContracts["POST /workbench/billing/checkout"].response.passthrough(),
