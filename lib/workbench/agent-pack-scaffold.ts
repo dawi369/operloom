@@ -35,6 +35,14 @@ export const renderAgentPackIndex = (input: { id: string; name: string }) => {
   const prompt = renderAgentPackPrompt(name);
   return `import { defineAgentPack } from "@operloom/agent-sdk/manifest";
 
+// Where this pack grows (each seam is documented in docs/agent-packs.md):
+// - tools + control-plane.ts: add a provider-backed tool behind a \`connections\` descriptor.
+// - triggers: the monitor below is off by default; enable it per workspace once the
+//   workflow no-ops when nothing changed (observeMonitor in @operloom/agent-sdk).
+// - memory: autoActivate stays empty until you trust the agent's own notes.
+// - artifactRenderers + web.ts / native.ts: give a report a real view.
+// - notifications: declare the events users can subscribe to.
+
 export const ${exportName}Prompt = ${JSON.stringify(prompt)};
 
 export const ${exportName} = defineAgentPack({
@@ -106,7 +114,18 @@ export const ${exportName} = defineAgentPack({
     },
   ],
   managedState: [],
-  triggers: [],
+  triggers: [
+    {
+      id: "${id}-monitor",
+      kind: "monitor",
+      description: "Re-run the inspection on a schedule once it detects change instead of repeating itself.",
+      workflowType: "${id.replaceAll("-", "_")}.inspect",
+      enabledByDefault: false,
+      intervalSeconds: 300,
+    },
+  ],
+  // Nothing the agent writes activates without a tap; its conclusions expire after two weeks.
+  memory: { autoActivate: [], ttlDays: { conclusion: 14 } },
   artifactRenderers: [],
   healthChecks: [
     {
@@ -179,7 +198,19 @@ export const controlPlane = defineControlPlaneModule({
   packId: ${JSON.stringify(id)},
   runtimeVersion: "1.0.0",
   compatiblePackVersions: "^0.1.0",
-  requirements: { minimumBackendVersion: "2.0.0", capabilities: ["workflow.request"] },
+  requirements: { minimumBackendVersion: "2.0.0", capabilities: ["workflow.request", "memory.recall"] },
+  // Workspace-editable knobs; read them with \`context.settings.values\` inside a tool or workflow.
+  settings: {
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        focus: { type: "string", minLength: 1, maxLength: 200, description: "What the agent pays attention to." },
+      },
+    },
+    defaults: { focus: "general" },
+    editable: ["focus"],
+  },
   // Mutating tools add an action binding. Agents in simulation run \`simulate\`
   // instead of the provider, connection or runner; approvals and receipts match:
   // action: {
@@ -225,7 +256,9 @@ export const controlPlane = defineControlPlaneModule({
     toolIds: [${JSON.stringify(`${id.replaceAll("-", "_")}.inspect`)}],
     cancellation: { adapter: "none", physicalAbort: "unsupported" },
     async execute(_input, context) {
-      return context.tools.invoke(${JSON.stringify(`${id.replaceAll("-", "_")}.inspect`)}, {});
+      // A monitor tick arrives with context.run.trigger set; a user request does not.
+      const result = await context.tools.invoke(${JSON.stringify(`${id.replaceAll("-", "_")}.inspect`)}, {});
+      return context.run.trigger ? { ...result, summary: \`Scheduled: \${result.summary}\` } : result;
     },
   }],
   health: [

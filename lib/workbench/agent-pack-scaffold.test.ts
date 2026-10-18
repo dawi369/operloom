@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  renderAgentPackControlPlane,
   registerAgentPackSource,
   renderAgentPackIndex,
   renderAgentPackPrompt,
@@ -18,6 +19,21 @@ describe("Agent Pack scaffold", () => {
     expect(source).toContain('executionModes: ["dry_run"]');
     expect(source).toContain('minimumWorkbenchVersion: "2.0.0"');
     expect(source).toContain(JSON.stringify(renderAgentPackPrompt("Trade Watcher")));
+  });
+
+  it("ships the monitor, memory and settings seams switched to their safe defaults", () => {
+    const manifest = renderAgentPackIndex({ id: "trade-watcher", name: "Trade Watcher" });
+    expect(manifest).toContain('id: "trade-watcher-monitor"');
+    expect(manifest).toContain("enabledByDefault: false");
+    expect(manifest).toContain("memory: { autoActivate: [], ttlDays: { conclusion: 14 } }");
+    const controlPlane = renderAgentPackControlPlane({
+      id: "trade-watcher",
+      name: "Trade Watcher",
+    });
+    expect(controlPlane).toContain('capabilities: ["workflow.request", "memory.recall"]');
+    expect(controlPlane).toContain('defaults: { focus: "general" }');
+    expect(controlPlane).toContain('editable: ["focus"]');
+    expect(controlPlane).toContain("context.run.trigger");
   });
 
   it("rejects unsafe identifiers and empty names before touching the filesystem", () => {

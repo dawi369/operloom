@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Pack scaffold: `pnpm agent-packs:create` now emits a monitor trigger (off by
+  default) routed to the starter workflow, a `memory` block with safe defaults,
+  one editable setting, the `memory.recall` capability and a header listing
+  where each seam grows, so a new product pack starts from the shape the
+  bundled packs converged on instead of copying one of them.
 - Configuration guard: the Worker lists every enabled feature that is missing
   a required variable (WorkOS auth, model key, Fly runner, Resend, Stripe,
   Polar, relay and alert secrets, vault, feature posture). `/health` returns

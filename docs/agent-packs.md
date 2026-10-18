@@ -513,10 +513,17 @@ The command validates the id/name before writing, refuses to overwrite an
 existing directory or configuration entry, creates the manifest,
 control-plane, runner, web, package metadata, prompt exports, package-local
 README, and characterization test, and adds the single `workbench.config.ts`
-entry. The starter is deliberately
-read-only, secret-free, disabled from model tool use, resource-bounded, and
-equipped with a static eval and health declaration. Replace its placeholder
-purpose and replace the deterministic starter binding with domain behavior.
+entry. The starter is deliberately read-only, secret-free, disabled from model
+tool use, resource-bounded, and already wired through every seam a product
+pack needs: one deterministic read tool and workflow, a monitor trigger (off
+by default, 5 minutes, routed to that workflow, which can tell a tick from a
+user request through `context.run.trigger`), a `memory` block with nothing
+auto-activating and conclusions expiring after two weeks, one workspace
+editable setting, a health check per binding, a static eval and a smoke
+scenario. The header comment in `index.ts` lists where each seam grows
+(connections, renderers, notifications). Replace the placeholder purpose and
+the deterministic binding with domain behavior; keep the safe defaults until
+the behavior behind them earns more.
 Add connection descriptors before introducing a provider-backed tool. A
 credentialed descriptor does not become usable until the platform provider
 module, connection health, retention confirmation, workspace enablement, and
