@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Memory policy (W12.1): the manifest `memory` block lets a pack choose which
+  model and workflow writes activate without a tap (`autoActivate`), how long
+  agent claims live (`ttlDays`) and what shape their content must have
+  (`contentSchema`); packs with `risk.financialData` propose everything by
+  default. Records gain `target`, `expiresAt`, `scope: "workspace"` (owner and
+  admin writes shared with the workspace) and content `flags`; secrets and card
+  numbers are refused on write. The prompt now separates "what the user told
+  you" from dated agent claims and marks stale ones; recalled record ids are
+  pinned into the context snapshot; expired records are archived on the tick;
+  a proposal pushes a `memory.proposed` notification. Console gains `/watch
+<name>`; mobile gains a Memory tab; `baby-polymancer` steers research from
+  the watchlist and remembers dated conclusions. Migration 0008.
 - Memory and context (W12): durable per-user memory records (`goal`,
   `preference`, `watchlist`, `conclusion`, `note`) scoped user-wide or to one
   agent, with `proposed`/`active`/`archived` status. Users write through

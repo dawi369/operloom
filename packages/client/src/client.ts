@@ -517,7 +517,9 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
         input: {
           kind?: MemoryKind;
           status?: "active" | "proposed" | "archived" | "all";
-          scope?: "user" | "agent";
+          scope?: "user" | "agent" | "workspace";
+          targetType?: string;
+          targetId?: string;
         } = {},
         options: WorkbenchReadOptions = {},
       ) =>
@@ -531,14 +533,20 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
         key: string;
         title: string;
         content: Record<string, unknown>;
-        scope?: "user" | "agent";
+        scope?: "user" | "agent" | "workspace";
+        target?: { type: string; id: string };
       }) =>
         request<{ ok: true; record: MemoryRecord }>(
           "memoryRecord",
           `/api/workbench/memory/${input.kind}/${encodeURIComponent(input.key)}`,
           {
             method: "PUT",
-            body: { title: input.title, content: input.content, scope: input.scope },
+            body: {
+              title: input.title,
+              content: input.content,
+              scope: input.scope,
+              target: input.target,
+            },
           },
         ),
       confirm: (id: Id) =>

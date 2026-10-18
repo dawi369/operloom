@@ -15,6 +15,7 @@ import {
   buildMemoryEvidence,
   memoryKinds,
   rememberMemory,
+  resolveMemoryPolicy,
   renderContextEvidence,
   MemoryError,
 } from "./memory";
@@ -884,6 +885,10 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
         AbortSignal.timeout(90000),
         ...(options?.abortSignal ? [options.abortSignal] : []),
       ]);
+      const memoryEnabled = Boolean(agentRow && agentRequiresMemory(agentRow));
+      const memoryEvidence = memoryEnabled
+        ? await buildMemoryEvidence(this.getEnv(), identity)
+        : null;
       const contextEvidence =
         agentRow && agentRequiresRuntimeContext(agentRow)
           ? await captureRuntimeContext(this.getEnv(), identity, {
@@ -892,6 +897,7 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
               input: runtimeChatContextInput(this.messages),
               target: effectTargetOf(identity),
               signal: contextSignal,
+              ...(memoryEvidence ? { memoryRecordIds: memoryEvidence.recordIds } : {}),
             })
           : undefined;
       contextEvidence?.assertReady();
@@ -955,21 +961,19 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
           )
         : undefined;
       contextEvidence?.assertReady();
-      const memoryEnabled = Boolean(agentRow && agentRequiresMemory(agentRow));
-      const memoryEvidence = memoryEnabled
-        ? await buildMemoryEvidence(this.getEnv(), identity)
-        : null;
       if (memoryEnabled) {
         const threadId = claims.threadId;
+        const memoryPolicy = resolveMemoryPolicy(behaviorConfig.pack?.id);
         modelTools.tools["memory.remember"] = tool({
           description:
-            "Remember something durable about the user for future threads: a goal, preference, watchlist, conclusion or note. Use a stable key so updates replace the old record.",
+            "Remember something durable about the user for future threads: a goal, preference, watchlist, conclusion or note. Use a stable key so updates replace the old record; set target to the market, job or customer it is about.",
           inputSchema: jsonSchema<{
             kind: (typeof memoryKinds)[number];
             key: string;
             title: string;
             content: Record<string, unknown>;
             scope?: "user" | "agent";
+            target?: { type: string; id: string };
           }>({
             type: "object",
             required: ["kind", "key", "title", "content"],
@@ -980,14 +984,22 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
               title: { type: "string", minLength: 1, maxLength: 160 },
               content: { type: "object" },
               scope: { type: "string", enum: ["user", "agent"] },
+              target: {
+                type: "object",
+                required: ["type", "id"],
+                additionalProperties: false,
+                properties: { type: { type: "string" }, id: { type: "string" } },
+              },
             },
           }),
           execute: async (input) => {
             try {
               const record = await rememberMemory(this.getEnv(), identity, {
                 ...input,
+                target: input.target ?? null,
                 source: "model",
                 scope: input.scope ?? "user",
+                policy: memoryPolicy,
                 runId,
                 threadId,
               });
@@ -1034,7 +1046,9 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
         ),
         system,
         messages: [
-          ...(memoryEvidence ? [{ role: "user" as const, content: memoryEvidence }] : []),
+          ...(memoryEvidence?.text
+            ? [{ role: "user" as const, content: memoryEvidence.text }]
+            : []),
           ...(contextEvidence
             ? [{ role: "user" as const, content: renderContextEvidence(contextEvidence.snapshot) }]
             : []),

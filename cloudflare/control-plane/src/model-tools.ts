@@ -1,5 +1,6 @@
 import { currentAgentSettings } from "./agent-settings";
 import { bindRuntimeContext } from "./runtime-context";
+import { createMemoryPort } from "./memory";
 import { createNotificationPort } from "./notification-port";
 import { createTaskPort } from "./delegation-tasks";
 import type { RuntimeContextPort } from "@operloom/agent-sdk";
@@ -300,6 +301,11 @@ const buildRuntimeModelTool = (input: {
           { id: input.pack.id },
           started.runId,
         );
+      if (capabilities.includes("memory.recall"))
+        context.memory = createMemoryPort(input.env, input.identity, {
+          runId: started.runId,
+          packId: input.pack.id,
+        });
       if (capabilities.includes("tasks.delegate"))
         context.tasks = createTaskPort(input.env, input.identity, {
           packId: input.pack.id,

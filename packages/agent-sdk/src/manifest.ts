@@ -167,6 +167,21 @@ export type AgentPackNotification = {
   defaultChannels: readonly ("push" | "email" | "sms")[];
 };
 
+export type AgentPackMemoryKind = "goal" | "preference" | "watchlist" | "conclusion" | "note";
+
+/**
+ * How the platform treats memory this package's model and workflows write. Absent fields
+ * take platform defaults; packages with `risk.financialData` default to activating nothing.
+ */
+export type AgentPackMemoryPolicy = {
+  /** Kinds a model or workflow write activates without the user's confirmation. */
+  autoActivate?: readonly AgentPackMemoryKind[];
+  /** Days until a non-user record expires, per kind; omitted kinds use platform defaults. */
+  ttlDays?: Partial<Record<AgentPackMemoryKind, number | null>>;
+  /** JSON schema the platform validates `content` against before a write lands, per kind. */
+  contentSchema?: Partial<Record<AgentPackMemoryKind, Readonly<Record<string, unknown>>>>;
+};
+
 export type LocalAgentPackManifest = {
   apiVersion: 2;
   kind: "agent_pack";
@@ -190,6 +205,7 @@ export type LocalAgentPackManifest = {
   managedState: readonly AgentPackManagedStateDescriptor[];
   triggers: readonly AgentPackTrigger[];
   notifications?: readonly AgentPackNotification[];
+  memory?: AgentPackMemoryPolicy;
   artifactRenderers: readonly AgentPackArtifactRenderer[];
   toolResultRenderers?: readonly AgentPackToolResultRenderer[];
   healthChecks: readonly AgentPackHealthCheck[];

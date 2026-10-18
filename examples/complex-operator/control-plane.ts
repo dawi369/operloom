@@ -379,12 +379,14 @@ const controlPlaneDefinition: Omit<ControlPlaneRuntimeModule, "apiVersion" | "ki
           summary: "Deterministic observation completed.",
           data: report,
         });
-        // The conclusion outlives this run: later chat turns recall it as memory.
+        // The conclusion outlives this run: later chat turns recall it as memory. This pack
+        // handles financial data, so the platform holds it as a proposal until the user confirms.
         await context.memory?.remember({
           kind: "conclusion",
           key: `observation:${subject}`,
           title: `Observed ${subject}: ${String(signal.output.signal)}`,
           content: { subject, signal: signal.output.signal, status: snapshot.output.status },
+          target: { type: "subject", id: subject },
         });
         return {
           ok: true,

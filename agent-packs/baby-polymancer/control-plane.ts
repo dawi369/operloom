@@ -111,7 +111,10 @@ export const controlPlane = defineControlPlaneModule({
   packId: "baby-polymancer",
   runtimeVersion: "1.1.1",
   compatiblePackVersions: "^1.1.0",
-  requirements: { minimumBackendVersion: "2.0.0", capabilities: ["workflow.request"] },
+  requirements: {
+    minimumBackendVersion: "2.0.0",
+    capabilities: ["workflow.request", "memory.recall"],
+  },
   tools: [
     {
       id: "polymarket.market.search",
@@ -205,11 +208,22 @@ export const controlPlane = defineControlPlaneModule({
       smokeCommand: "pnpm smoke:polymarket-readonly",
       normalizeInput: (input) => {
         const query = typeof input.query === "string" ? input.query.trim() : "";
-        return { query: (query || "Bitcoin").slice(0, 80) };
+        return query ? { query: query.slice(0, 80) } : {};
       },
       async execute(input, context) {
+        // An empty query means "research what the user is watching": the newest watchlist
+        // entry steers the run, so a monitor tick follows the user's list rather than a default.
+        let query = String(input.query ?? "").trim();
+        if (!query) {
+          const watching = (await context.memory?.list({ kind: "watchlist" })) ?? [];
+          const first = watching[0];
+          query =
+            (typeof first?.content.query === "string" && first.content.query) ||
+            first?.title ||
+            "Bitcoin";
+        }
         const search = await context.tools.invoke("polymarket.market.search", {
-          query: String(input.query ?? "Bitcoin"),
+          query: query.slice(0, 80),
           limit: 5,
         });
         if (!search.ok) return search;
@@ -239,6 +253,21 @@ export const controlPlane = defineControlPlaneModule({
           orderbook: orderbook?.ok
             ? (orderbook.output as PolymarketOrderbookSnapshotOutput)
             : undefined,
+        });
+        const yesPrice = Number(
+          (snapshot.output as PolymarketMarketSnapshotOutput).market.outcomePrices[0],
+        );
+        await context.memory?.remember({
+          kind: "conclusion",
+          key: `research:${market.slug}`,
+          title: `Research: ${market.question ?? market.slug}`,
+          content: {
+            asOf: new Date().toISOString(),
+            slug: market.slug,
+            ...(Number.isFinite(yesPrice) ? { yesPrice } : {}),
+            summary: report.summary,
+          },
+          target: { type: "market", id: market.slug },
         });
         return {
           ok: true,

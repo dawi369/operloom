@@ -1,6 +1,7 @@
 import type {
   AgentPackConnectionDescriptor,
   AgentPackExecutionMode,
+  AgentPackMemoryKind,
   LocalAgentPackManifest,
 } from "./manifest.js";
 
@@ -197,18 +198,27 @@ export type RuntimeDelegationTask = {
 /** A durable, user-scoped fact the model recalls on every turn. Content is bounded JSON. */
 export type RuntimeMemoryRecord = {
   id: string;
-  kind: "goal" | "preference" | "watchlist" | "conclusion" | "note";
+  kind: AgentPackMemoryKind;
   /** Stable slug; writing the same kind and key again updates the record. */
   key: string;
   title: string;
   content: RuntimeRecord;
+  /** What the record is about (a market, a job, a customer); lets callers list by subject. */
+  target?: { type: string; id: string };
+  /** Absent for user-written records and kinds without a TTL. */
+  expiresAt?: string;
 };
 
 /** Present when the package requires `memory.recall`. Writes land as `workflow` source. */
 export type RuntimeMemoryPort = {
-  list(filter?: { kind?: RuntimeMemoryRecord["kind"] }): Promise<readonly RuntimeMemoryRecord[]>;
+  list(filter?: {
+    kind?: AgentPackMemoryKind;
+    target?: { type: string; id: string };
+  }): Promise<readonly RuntimeMemoryRecord[]>;
   remember(
-    record: Omit<RuntimeMemoryRecord, "id"> & { scope?: "user" | "agent" },
+    record: Omit<RuntimeMemoryRecord, "id" | "expiresAt"> & {
+      scope?: "user" | "agent" | "workspace";
+    },
   ): Promise<RuntimeMemoryRecord>;
   forget(id: string): Promise<void>;
 };

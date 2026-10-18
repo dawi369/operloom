@@ -333,14 +333,26 @@ test.describe.serial("Agent-system executable conformance", () => {
       code: "console_only_operation",
     });
 
-    // Memory: the user writes a goal, the observe workflow remembered a conclusion, both are
-    // recalled over /v1, and the user can confirm proposals and forget anything.
+    // Memory: the user writes a goal about a subject; the observe workflow remembered a
+    // conclusion that, because this pack handles financial data, waits as a proposal with a
+    // TTL until the user confirms it. Both are recalled over /v1 and listable by target.
     const goal = await worker.put("/workbench/memory/goal/paper-book", {
-      data: { title: "Grow the paper book to $500", content: { targetUsd: 500 } },
+      data: {
+        title: "Grow the paper book to $500",
+        content: { targetUsd: 500 },
+        target: { type: "subject", id: "service-boundary" },
+      },
     });
     expect(goal.status(), await goal.text()).toBe(200);
     const memory = (await (await worker.get("/workbench/memory?status=all")).json()) as {
-      records: Array<{ id: string; kind: string; key: string; source: string; status: string }>;
+      records: Array<{
+        id: string;
+        kind: string;
+        key: string;
+        source: string;
+        status: string;
+        expiresAt: string | null;
+      }>;
     };
     expect(memory.records).toEqual(
       expect.arrayContaining([
@@ -349,15 +361,33 @@ test.describe.serial("Agent-system executable conformance", () => {
           key: "paper-book",
           source: "user",
           status: "active",
+          expiresAt: null,
         }),
         expect.objectContaining({
           kind: "conclusion",
           key: "observation:service-boundary",
           source: "workflow",
-          status: "active",
+          status: "proposed",
+          expiresAt: expect.any(String),
         }),
       ]),
     );
+    const proposedConclusion = memory.records.find(
+      (record) => record.key === "observation:service-boundary",
+    )!;
+    const confirmedConclusion = await worker.post(
+      `/workbench/memory/${encodeURIComponent(proposedConclusion.id)}/confirm`,
+    );
+    expect(confirmedConclusion.status(), await confirmedConclusion.text()).toBe(200);
+    expect(await confirmedConclusion.json()).toMatchObject({ record: { status: "active" } });
+    const bySubject = await direct.memory.list({
+      targetType: "subject",
+      targetId: "service-boundary",
+    });
+    expect(bySubject.records.map((record) => record.key).sort()).toEqual([
+      "observation:service-boundary",
+      "paper-book",
+    ]);
     const directMemory = await direct.memory.list({ status: "all" });
     expect(directMemory.records.map((record) => record.key)).toContain("paper-book");
     const forgotten = await worker.delete(

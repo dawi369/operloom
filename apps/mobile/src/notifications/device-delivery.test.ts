@@ -68,6 +68,7 @@ describe("device delivery", () => {
 
   it("maps notification routes onto app screens", () => {
     expect(routeForNotification({ route: "approvals" })).toBe("/(tabs)/approvals");
+    expect(routeForNotification({ route: "memory", recordId: "m" })).toBe("/(tabs)/memory");
     expect(routeForNotification({ route: "history", recordId: "r" })).toBe("/(tabs)/chat");
     expect(routeForNotification({ route: "unknown" })).toBeNull();
     expect(routeForNotification(null)).toBeNull();

@@ -32,7 +32,7 @@
     },
     {
       "path": "dist/manifest.d.ts",
-      "sha256": "3893fa4eed295cc2478e599c0e214b5ea34dc1e519ab9e2b433d7afdec3ee58a"
+      "sha256": "16f39ae059d10faca7c42c3d15d08319eeb5b6cff3033feaf414d65a0c425978"
     },
     {
       "path": "dist/models.d.ts",
@@ -60,7 +60,7 @@
     },
     {
       "path": "dist/runtime.d.ts",
-      "sha256": "7f5567b72d3eeb7e0314ecef746e3642fb1995c694489195fecd3bfa9e70211c"
+      "sha256": "82dcae6dcda2c4fbad4d869deabecb322548f71b1295ee39a75383b6b5639b15"
     },
     {
       "path": "dist/schema.d.ts",

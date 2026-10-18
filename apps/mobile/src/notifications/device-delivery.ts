@@ -68,6 +68,7 @@ export const routeForNotification = (data: unknown): string | null => {
   if (!data || typeof data !== "object") return null;
   const route = "route" in data && typeof data.route === "string" ? data.route : "";
   if (route === "approvals") return "/(tabs)/approvals";
+  if (route === "memory") return "/(tabs)/memory";
   if (route === "history" || route === "actions" || route === "chat") return "/(tabs)/chat";
   return null;
 };

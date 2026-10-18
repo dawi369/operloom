@@ -25,16 +25,29 @@ export function WorkbenchMemoryPanel({
   open,
   onOpenChange,
   onCloseAutoFocus,
+  initialKind,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCloseAutoFocus?: (event: Event) => void;
+  /** Preselects the kind of a new record, for entry points such as `/watch`. */
+  initialKind?: MemoryKind;
 }) {
   const memory = useWorkbenchMemory({ enabled: open, status: "all" });
   const confirm = useConfirmMemory();
   const forget = useForgetMemory();
   const remember = useRememberMemory();
-  const [draft, setDraft] = useState({ kind: "note" as MemoryKind, title: "", text: "" });
+  const [draft, setDraft] = useState({
+    kind: (initialKind ?? "note") as MemoryKind,
+    title: "",
+    text: "",
+    shared: false,
+  });
+  const [lastInitialKind, setLastInitialKind] = useState(initialKind);
+  if (initialKind !== lastInitialKind) {
+    setLastInitialKind(initialKind);
+    if (initialKind) setDraft((current) => ({ ...current, kind: initialKind }));
+  }
   const records = (memory.data?.records ?? []).filter((record) => record.status !== "archived");
   const submitDraft = () =>
     remember.mutate(
@@ -48,8 +61,12 @@ export function WorkbenchMemoryPanel({
             .slice(0, 60) || "note",
         title: draft.title.trim(),
         content: { text: draft.text.trim() },
+        scope: draft.shared ? "workspace" : "user",
       },
-      { onSuccess: () => setDraft({ kind: "note", title: "", text: "" }) },
+      {
+        onSuccess: () =>
+          setDraft((current) => ({ ...current, title: "", text: "", shared: false })),
+      },
     );
   const grouped = kinds
     .map((kind) => ({ kind, items: records.filter((record) => record.kind === kind) }))
@@ -99,13 +116,23 @@ export function WorkbenchMemoryPanel({
               Remember
             </Button>
           </div>
-          <input
-            aria-label="Details"
-            className="bg-background rounded-md border px-2 py-1 text-sm"
-            placeholder="Details (optional)"
-            value={draft.text}
-            onChange={(event) => setDraft({ ...draft, text: event.target.value })}
-          />
+          <div className="flex items-center gap-2">
+            <input
+              aria-label="Details"
+              className="bg-background flex-1 rounded-md border px-2 py-1 text-sm"
+              placeholder="Details (optional)"
+              value={draft.text}
+              onChange={(event) => setDraft({ ...draft, text: event.target.value })}
+            />
+            <label className="text-muted-foreground flex items-center gap-1 text-xs">
+              <input
+                type="checkbox"
+                checked={draft.shared}
+                onChange={(event) => setDraft({ ...draft, shared: event.target.checked })}
+              />
+              Share with workspace
+            </label>
+          </div>
           {remember.error ? (
             <p className="text-destructive text-xs">{String(remember.error)}</p>
           ) : null}
@@ -159,10 +186,27 @@ const MemoryRow = ({
             </span>
           ) : null}
           {record.source !== "user" ? (
-            <span className="text-muted-foreground text-[11px]">by {record.source}</span>
+            <span className="text-muted-foreground text-[11px]">
+              by {record.source} · {record.updatedAt.slice(0, 10)}
+            </span>
           ) : null}
-          {record.agentId ? (
+          {record.scope === "workspace" ? (
+            <span className="text-muted-foreground text-[11px]">shared</span>
+          ) : record.scope === "agent" ? (
             <span className="text-muted-foreground text-[11px]">this agent</span>
+          ) : null}
+          {record.target ? (
+            <span className="text-muted-foreground text-[11px]">
+              {record.target.type}: {record.target.id}
+            </span>
+          ) : null}
+          {record.expiresAt ? (
+            <span className="text-muted-foreground text-[11px]">
+              expires {record.expiresAt.slice(0, 10)}
+            </span>
+          ) : null}
+          {record.flags.includes("contact") ? (
+            <span className="text-muted-foreground text-[11px]">contact data</span>
           ) : null}
         </div>
         {detail && detail !== "{}" ? (

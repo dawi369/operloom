@@ -18,6 +18,7 @@ import { createRuntimeStatePort } from "./runtime-state";
 import { captureRuntimeContext, contextIsRequired } from "./runtime-context";
 import { createRuntimeModelPort } from "./runtime-models";
 import { createRuntimeSearchPort } from "./runtime-search";
+import { createMemoryPort } from "./memory";
 import { createNotificationPort } from "./notification-port";
 import { executeRuntimeToolBinding } from "./runtime-tool-execution";
 import { authorizeWorkflowTools } from "./workflow-tool-policy";
@@ -320,6 +321,11 @@ export const runDurableWorkflow = async (
                 { id: execution.pack_id },
                 runId,
               );
+            if (runtime.controlPlane.requirements.capabilities.includes("memory.recall"))
+              context.memory = createMemoryPort(env, identity, {
+                runId,
+                packId: execution.pack_id,
+              });
             controller.signal.throwIfAborted();
             const output = await Promise.race([
               Promise.resolve().then(() => callback(context)),

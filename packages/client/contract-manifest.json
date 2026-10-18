@@ -49,7 +49,7 @@
         },
         {
           "path": "client/dist/client.d.ts",
-          "sha256": "04d17b2354fe5028a6b904d6c6216081a12ed3553919cc499016f4076efa2b2a"
+          "sha256": "12d348df30386329fc506a890a286eef3cfd9a181e0e39364b2bfbbdee1e1c59"
         },
         {
           "path": "client/dist/contracts/agents-chat.d.ts",
@@ -97,7 +97,7 @@
         },
         {
           "path": "client/dist/public-api.d.ts",
-          "sha256": "7f251fb13ca95572d94d9fef33a570b858efa37bb620cb8b02550a72a9169ea9"
+          "sha256": "f8bbe772e085a61ed4a9641f96393afceadf598e6230e7f65b7a5636a6ce3035"
         },
         {
           "path": "client/dist/public-billing-contracts.d.ts",
@@ -117,7 +117,7 @@
         },
         {
           "path": "client/dist/public-memory-contracts.d.ts",
-          "sha256": "c00b0eaebf508aaf8e437faa799834578fa0c7fc4595a899fcb6c768d2e87e8a"
+          "sha256": "181de2792143a9f63d362f4bc60ce8f5bc9a9b70c0cad884514f7a9d1276f2c6"
         },
         {
           "path": "client/dist/public-state-contracts.d.ts",
@@ -133,7 +133,7 @@
         },
         {
           "path": "client/dist/response-schemas.d.ts",
-          "sha256": "acdb84ff34c5d2bb7b0df2cf237563ccfbadc455c5df38e4bcbf8296c4ba5fea"
+          "sha256": "cad51dac004ac536ce7d0be2ac9c0158714d4d96230ecc1b24df6cde4763a51a"
         },
         {
           "path": "client/dist/route-map.d.ts",
@@ -155,7 +155,7 @@
       "files": [
         {
           "path": "react/dist/index.d.ts",
-          "sha256": "34eddc186f97f0bbb8c2c0a0d4e975bfcfc82bebb88490634d167f9164801653"
+          "sha256": "daf9d77d5b96cf4a0c5dcdb36d9b1844cc6bf593a134633c2705f6fc4e07c10f"
         }
       ]
     }

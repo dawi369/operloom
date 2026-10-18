@@ -346,27 +346,47 @@ the delivery row delivered.
 ### Memory
 
 A package that requires `memory.recall` receives `context.memory` in workflow
-steps:
+steps, tool executions and monitor ticks:
 
 ```ts
+const watching = await context.memory?.list({ kind: "watchlist" });
 const record = await context.memory?.remember({
   kind: "conclusion",
-  key: `observation:${subject}`,
-  title: `Observed ${subject}`,
-  content: { subject, observedAt },
+  key: `research:${slug}`,
+  title: `Research: ${question}`,
+  content: { asOf, slug, yesPrice, summary },
+  target: { type: "market", id: slug },
 });
-const earlier = await context.memory?.list({ kind: "conclusion" });
 await context.memory?.forget(record.id);
 ```
 
-Writes default to `scope: "agent"` (pass `scope: "user"` for a user-wide
-record), are recorded with `source: "workflow"` and the run id, and replace an
-earlier record with the same kind and key. Active records are rendered as
-title plus content into the `## Memory` section of every chat turn for that
-user, so keep content small and factual. Packs cannot read another agent's
-records or the user's user-wide goals except through what the platform puts in
-the prompt. Goal and preference records authored by a model start as
-`proposed`; the user confirms them from the console memory panel.
+Writes default to `scope: "agent"` (`"user"` for a user-wide record,
+`"workspace"` to share with every member, which the platform allows only when
+the acting user is an owner or admin), are recorded with `source: "workflow"`
+and the run id, and replace an earlier record with the same kind and key.
+`list` accepts a `target` to fetch everything about one subject.
+
+The manifest's `memory` block sets how the platform treats what the model and
+your workflows write; every field is optional:
+
+```ts
+memory: {
+  autoActivate: ["note"],                          // the rest wait for the user's tap
+  ttlDays: { conclusion: 3, watchlist: 30, note: 14 }, // agent claims fade; null = never
+  contentSchema: { conclusion: { type: "object", required: ["asOf", "slug"], ... } },
+},
+```
+
+Platform defaults activate `note`, `conclusion` and `watchlist` on write and
+expire them after 14, 7 and 30 days; `goal` and `preference` always wait for
+confirmation and never expire. A package with `risk.financialData: true`
+activates nothing by default. User-written records are never subject to TTLs or
+proposals. Active records are rendered into the prompt in two piles, "what the
+user told you" and "what this agent concluded earlier" (with source and date,
+flagged stale past half their life), so keep content small, dated and factual.
+The bundled `baby-polymancer` pack is the reference: an empty research query is
+steered by the newest watchlist entry, each run remembers a dated conclusion
+about the market it looked at, and nothing activates without a tap.
 
 ### Settings And Queries
 

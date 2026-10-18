@@ -1,4 +1,5 @@
 import { durableAttemptGuard, type DurableAttemptAuthority } from "./durable-attempt-authority";
+import { memoryContextSourceId } from "./memory";
 import {
   collectRuntimeContext,
   assertRuntimeContextReady,
@@ -51,6 +52,8 @@ export const captureRuntimeContext = async (
     signal: AbortSignal;
     durableAttempt?: DurableAttemptAuthority;
     settingsVersion?: number;
+    /** Memory records recalled for this run; pinned so reviews can show what the agent believed. */
+    memoryRecordIds?: readonly string[];
   },
 ): Promise<RuntimeContextPort | undefined> => {
   input = { ...input, durableAttempt: input.durableAttempt && { ...input.durableAttempt } };
@@ -168,6 +171,17 @@ export const captureRuntimeContext = async (
     signal: input.signal,
     state: Object.freeze({ get: state.get.bind(state), list: state.list.bind(state) }),
   });
+  if (input.memoryRecordIds)
+    evidence.sources.push({
+      id: memoryContextSourceId,
+      binding: memoryContextSourceId,
+      version: "1",
+      trust: "trusted",
+      required: false,
+      status: "fresh",
+      observedAt: evidence.capturedAt,
+      data: { recordIds: [...input.memoryRecordIds] },
+    });
   const contentHash = await sha256Hex(
     runtimeStateCanonicalJson(
       evidence.sources.map((source) => ({

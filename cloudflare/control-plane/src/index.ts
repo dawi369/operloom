@@ -137,7 +137,7 @@ import {
 import { handleTriggerWebhookIngress } from "./trigger-webhook";
 import { handleBilling, handleBillingWebhookIngress, reportDailyBillingUsage } from "./billing";
 import { mcpProtectedResourceMetadata } from "./mcp";
-import { handleMemory } from "./memory";
+import { expireMemory, handleMemory } from "./memory";
 import {
   handleCreateTrigger,
   handleCreateTriggerDispatch,
@@ -1047,6 +1047,7 @@ export default Sentry.withSentry<Env>(
           expireActionReviews(env),
           sweepProviderOperationPayloads(env),
           reportDailyBillingUsage(env, new Date(controller.scheduledTime)),
+          expireMemory(env, new Date(controller.scheduledTime)),
         ]),
       );
     },

@@ -5,6 +5,9 @@ export type MemoryKind = z.infer<typeof memoryKindSchema>;
 const memoryStatus = z.enum(["active", "proposed", "archived"]);
 const memorySource = z.enum(["user", "model", "workflow"]);
 const content = z.record(z.string(), z.unknown());
+const memoryScope = z.enum(["user", "agent", "workspace"]);
+const targetId = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,199}$/);
+export const memoryTargetSchema = z.object({ type: targetId, id: targetId });
 
 export const memoryRecordSchema = z.object({
   id: z.string(),
@@ -14,7 +17,13 @@ export const memoryRecordSchema = z.object({
   content,
   source: memorySource,
   status: memoryStatus,
+  scope: memoryScope,
   agentId: z.string().nullable(),
+  target: memoryTargetSchema.nullable(),
+  /** Set for model and workflow records under a TTL; archived automatically when passed. */
+  expiresAt: z.string().nullable(),
+  /** Content observations such as `contact`; secrets and card numbers are refused on write. */
+  flags: z.array(z.string()),
   version: z.number().int().min(1),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -30,8 +39,10 @@ export const publicMemoryContracts = {
       .object({
         kind: memoryKindSchema.optional(),
         status: z.enum(["active", "proposed", "archived", "all"]).optional(),
-        /** `user` lists only user-wide records; default includes this agent's records too. */
-        scope: z.enum(["user", "agent"]).optional(),
+        /** `user` lists only user-wide records; `workspace` only shared ones; default includes this agent's records too. */
+        scope: memoryScope.optional(),
+        targetType: targetId.optional(),
+        targetId: targetId.optional(),
         limit: z.coerce.number().int().min(1).max(500).optional(),
       })
       .strict(),
@@ -51,7 +62,8 @@ export const publicMemoryContracts = {
       .object({
         title: z.string().min(1).max(160),
         content,
-        scope: z.enum(["user", "agent"]).optional(),
+        scope: memoryScope.optional(),
+        target: memoryTargetSchema.optional(),
       })
       .strict(),
     response: single,

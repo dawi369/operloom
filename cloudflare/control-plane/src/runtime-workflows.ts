@@ -481,7 +481,12 @@ export const executeRuntimeWorkflowRequest = async (
         }
       : {}),
     ...(runtime.controlPlane.requirements.capabilities.includes("memory.recall")
-      ? { memory: createMemoryPort(env, identity, { runId: started.runId }) }
+      ? {
+          memory: createMemoryPort(env, identity, {
+            runId: started.runId,
+            packId: runtime.controlPlane.packId,
+          }),
+        }
       : {}),
     ...(runtime.controlPlane.requirements.capabilities.includes("entitlements.read")
       ? { entitlements: await runtimeEntitlements(env, identity.scope.workspaceId) }

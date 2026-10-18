@@ -79,14 +79,14 @@ deferred.
 
 ### Knowledge and read access
 
-| Id  | Capability                                                                                | Status  | P   | R   | Notes                                               |
-| --- | ----------------------------------------------------------------------------------------- | ------- | --- | --- | --------------------------------------------------- |
-| C15 | Web search port with dated results and cutoffs, server-held key                           | Done    | x   | x   |                                                     |
-| C16 | Context resolvers with trust levels and evidence linkage                                  | Done    | x   | x   |                                                     |
-| C17 | Connection broker: OAuth code + PKCE, API keys, WorkOS Vault custody, host allowlist      | Done    | x   | x   | Provider definitions are environment configuration. |
-| C18 | Bundled read providers: maps/geocoding, news, public records, calendar read, mailbox read | Missing |     | x   | Generic brokered read tools packs bind to. See W4.  |
-| C19 | Attachments and files on R2                                                               | Done    | x   | x   |                                                     |
-| C35 | Durable user memory (goals, preferences, watchlists, conclusions) recalled every turn     | Done    | x   | x   | `memory.recall`; model proposals need user confirm. |
+| Id  | Capability                                                                                | Status  | P   | R   | Notes                                                            |
+| --- | ----------------------------------------------------------------------------------------- | ------- | --- | --- | ---------------------------------------------------------------- |
+| C15 | Web search port with dated results and cutoffs, server-held key                           | Done    | x   | x   |                                                                  |
+| C16 | Context resolvers with trust levels and evidence linkage                                  | Done    | x   | x   |                                                                  |
+| C17 | Connection broker: OAuth code + PKCE, API keys, WorkOS Vault custody, host allowlist      | Done    | x   | x   | Provider definitions are environment configuration.              |
+| C18 | Bundled read providers: maps/geocoding, news, public records, calendar read, mailbox read | Missing |     | x   | Generic brokered read tools packs bind to. See W4.               |
+| C19 | Attachments and files on R2                                                               | Done    | x   | x   |                                                                  |
+| C35 | Durable memory (goals, preferences, watchlists, conclusions) with per-pack trust policy   | Done    | x   | x   | `memory.recall`; pack `memory` block; TTLs; pinned to snapshots. |
 
 ### External action
 

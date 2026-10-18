@@ -400,6 +400,21 @@ export const notificationIntentForEvent = (
       body: input.package.body,
     };
   }
+  if (input.type === "memory.proposed") {
+    return {
+      category: "approval",
+      eventType: input.type,
+      targetType: "memory",
+      targetId,
+      route: "memory",
+      severity: "action",
+      title: "Memory suggestion",
+      body:
+        typeof input.data?.title === "string"
+          ? input.data.title
+          : "Confirm or forget it in Memory.",
+    };
+  }
   if (input.type === "approval.requested" || input.type === "action.approval.requested") {
     return {
       category: "approval",

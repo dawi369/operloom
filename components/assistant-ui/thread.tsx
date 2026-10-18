@@ -241,13 +241,24 @@ const Composer: FC<{ pendingFirstTurn: boolean }> = ({ pendingFirstTurn }) => {
   );
 
   const runExactSlashCommand = (submittedText: string, preventDefault: () => void) => {
-    const normalizedText = submittedText.trim().toLowerCase();
-    const command = commands.find((item) => normalizedText === `/${item.id.toLowerCase()}`);
+    const trimmed = submittedText.trim();
+    const normalizedText = trimmed.toLowerCase();
+    const exact = commands.find((item) => normalizedText === `/${item.id.toLowerCase()}`);
+    const withArgument = exact
+      ? undefined
+      : commands.find(
+          (item) => item.acceptsArgument && normalizedText.startsWith(`/${item.id.toLowerCase()} `),
+        );
+    const command = exact ?? withArgument;
     if (!command) return;
 
     preventDefault();
     aui.thread().composer().setText("");
-    void command.execute(commandContext);
+    void command.execute(
+      withArgument
+        ? { ...commandContext, argument: trimmed.slice(command.id.length + 2).trim() }
+        : commandContext,
+    );
     focusComposerAfterInteraction();
   };
 

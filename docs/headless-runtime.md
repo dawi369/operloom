@@ -485,31 +485,49 @@ retain their original capture. Required stale evidence still blocks execution.
 
 ### Memory
 
-Memory records are durable facts the platform carries into every chat turn:
-`kind` is one of `goal`, `preference`, `watchlist`, `conclusion`, `note`; a
-record is user-wide or bound to one agent (`agentId`), and keyed so a later
-write with the same `(kind, key, agentId)` replaces the earlier one. Status is
-`proposed` (a model suggested it), `active` or `archived`.
+Memory records are durable facts the platform carries into every chat turn.
+`kind` is one of `goal`, `preference`, `watchlist`, `conclusion`, `note`. A
+record's `scope` is `user` (one person, every agent), `agent` (one person, one
+agent) or `workspace` (shared with every member; written by owners and admins).
+Writing the same `(kind, key, scope)` again replaces the earlier record. An
+optional `target: { type, id }` says what the record is about (a market, a job,
+a customer) so clients and workflows can list by subject.
 
-- `client.memory.list({ kind?, scope?: "user" | "agent", status?: "active" | "proposed" | "archived" | "all", limit? })`
-- `client.memory.remember({ kind, key, title, content, scope? })` writes as the
-  user (`source: "user"`, always `active`); `scope: "agent"` binds the record to
-  the active agent. The Worker route is `PUT /v1/me/workbench/memory/{kind}/{key}`.
+- `client.memory.list({ kind?, scope?, status?: "active" | "proposed" | "archived" | "all", targetType?, targetId?, limit? })`
+- `client.memory.remember({ kind, key, title, content, scope?, target? })` writes
+  as the user (`source: "user"`, always `active`, never expires). The Worker
+  route is `PUT /v1/me/workbench/memory/{kind}/{key}`.
 - `client.memory.confirm(id)` activates a proposal; `client.memory.forget(id)`
-  archives a record. Archived records never enter the prompt.
+  archives a record. Archived and expired records never enter the prompt.
 
-Limits per user: 8 KiB per record, 200 active records and 256 KiB total; a
-write past the cap returns `409 memory_quota_exceeded`. Chat gets a `memory.remember`
-tool: a model-authored `goal` or `preference` lands as `proposed` and the
-model never downgrades a record the user activated. Workflow writes through
-`context.memory` are recorded with `source: "workflow"` and the run id.
+**Who wrote it decides how much the platform trusts it.** User records are
+authoritative. Model (`memory.remember` chat tool) and workflow
+(`context.memory`) records are dated claims: they carry `expiresAt`, are shown
+to the model with their source and date, are marked "stale, re-verify" past
+half their life and archived on the scheduler tick when they expire. Whether
+such a write lands `active` or `proposed` is the pack's choice (see the
+`memory` manifest block in the pack guide); packs with `risk.financialData`
+propose everything unless they say otherwise. A proposal records a
+`memory.proposed` control-plane event and a push with `route: "memory"`. A
+model write never downgrades a record the user activated.
 
-Each chat turn is assembled from, in order: a `## Memory` section (active
-records, 24 KiB budget, oldest dropped first), the five most recent artifact
-summaries, the context snapshot grouped by trust level, a digest of any
-transcript messages dropped to stay within the 48,000-character transcript
-budget, and the retained transcript. Records and summaries are tenant-scoped,
-included in workspace exports and removed by workspace purge.
+Writes are refused with `422 memory_content_refused` when they contain
+credentials or card numbers, and with `422 memory_content_invalid` when the
+pack declared a content schema for that kind and the content does not match.
+Records containing an email address or phone number carry the `contact` flag.
+Limits per user: 8 KiB per record, 200 active records and 256 KiB total
+(`409 memory_quota_exceeded`).
+
+Each chat turn is assembled from, in order: a `# Memory` section ("what the
+user told you", then "what this agent concluded earlier" with source and date,
+then proposals awaiting confirmation; 24 KiB budget), the five most recent
+artifact summaries, the context snapshot grouped by trust level, a digest of
+transcript messages dropped to stay within the 48,000-character budget, and
+the retained transcript. The ids of the recalled records are pinned into the
+turn's context snapshot as the `platform.memory` source, so an approval or a
+later review can show exactly what the agent believed when it proposed
+something. Records are tenant-scoped, included in workspace exports and removed
+by workspace purge.
 
 ### Provider action inspection and recovery
 

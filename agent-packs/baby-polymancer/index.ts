@@ -165,6 +165,24 @@ export const babyPolymancerPack = defineAgentPack({
   ],
   managedState: [],
   triggers: [],
+  // Prediction markets move fast: nothing the model writes activates without a tap, and
+  // conclusions are good for three days before the platform marks them stale and expires them.
+  memory: {
+    autoActivate: [],
+    ttlDays: { conclusion: 3, watchlist: 30, note: 14 },
+    contentSchema: {
+      conclusion: {
+        type: "object",
+        required: ["asOf", "slug"],
+        properties: {
+          asOf: { type: "string" },
+          slug: { type: "string" },
+          yesPrice: { type: "number" },
+          summary: { type: "string" },
+        },
+      },
+    },
+  },
   artifactRenderers: [
     {
       artifactKind: "market_research_report",

@@ -164,7 +164,13 @@ export const runAgentPackConformance = async (root: string, requested: string) =
       events: { async append() {} },
       memory: {
         async list(filter) {
-          return memoryRecords.filter((record) => !filter?.kind || record.kind === filter.kind);
+          return memoryRecords.filter(
+            (record) =>
+              (!filter?.kind || record.kind === filter.kind) &&
+              (!filter?.target ||
+                (record.target?.type === filter.target.type &&
+                  record.target.id === filter.target.id)),
+          );
         },
         async remember(record) {
           const existing = memoryRecords.find(
@@ -176,6 +182,7 @@ export const runAgentPackConformance = async (root: string, requested: string) =
             key: record.key,
             title: record.title,
             content: record.content,
+            ...(record.target ? { target: record.target } : {}),
           };
           if (existing) memoryRecords.splice(memoryRecords.indexOf(existing), 1, stored);
           else memoryRecords.push(stored);

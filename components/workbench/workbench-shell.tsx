@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  useRememberMemory,
   useRunWorkflow,
   useWorkbenchClient,
   useWorkbenchQueryClient,
@@ -13,6 +14,7 @@ import {
   ActivityIcon,
   BotIcon,
   BrainIcon,
+  EyeIcon,
   HistoryIcon,
   Loader2Icon,
   MessageSquarePlusIcon,
@@ -25,6 +27,7 @@ import {
 import { Assistant } from "@/app/assistant";
 import {
   AssistantSlashCommandProvider,
+  type AssistantSlashCommand,
   type AssistantSlashCommandContext,
 } from "@/components/assistant-ui/slash-command-context";
 import { AuthButton } from "@/components/auth/auth-button";
@@ -153,6 +156,8 @@ function WorkbenchShellContent({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [operationsOpen, setOperationsOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
+  const [memoryInitialKind, setMemoryInitialKind] = useState<"watchlist" | undefined>();
+  const rememberMemory = useRememberMemory();
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [historyFocus, setHistoryFocus] = useState<HistoryFocusRequest | null>(null);
   const [adminAccess, setAdminAccess] = useState<{ isAdmin: boolean } | null>(null);
@@ -408,7 +413,7 @@ function WorkbenchShellContent({
   );
 
   const slashCommands = useMemo(() => {
-    const commands = [
+    const commands: AssistantSlashCommand[] = [
       {
         id: "new",
         label: "New chat",
@@ -456,7 +461,35 @@ function WorkbenchShellContent({
         id: "memory",
         label: "Memory",
         icon: BrainIcon,
-        execute: () => setMemoryOpen(true),
+        execute: () => {
+          setMemoryInitialKind(undefined);
+          setMemoryOpen(true);
+        },
+      },
+      {
+        id: "watch",
+        label: "Watch",
+        description: "Add a market, job or topic to your watchlist: /watch <name>",
+        icon: EyeIcon,
+        acceptsArgument: true,
+        execute: ({ argument }) => {
+          if (!argument) {
+            setMemoryInitialKind("watchlist");
+            setMemoryOpen(true);
+            return;
+          }
+          rememberMemory.mutate({
+            kind: "watchlist",
+            key:
+              argument
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/^-|-$/g, "")
+                .slice(0, 60) || "watch",
+            title: argument,
+            content: { query: argument },
+          });
+        },
       },
       ...(!demoMode
         ? [
@@ -579,6 +612,7 @@ function WorkbenchShellContent({
           />
           <WorkbenchMemoryPanel
             open={memoryOpen}
+            initialKind={memoryInitialKind}
             onOpenChange={(nextOpen) => {
               setMemoryOpen(nextOpen);
               if (!nextOpen) focusComposerAfterOverlayClose();

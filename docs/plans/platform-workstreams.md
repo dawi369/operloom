@@ -419,3 +419,30 @@ transcript budgeting; agent-system conformance writes a user record, has the
 
 Non-goals: semantic retrieval, embeddings, cross-workspace memory,
 LLM summarization of transcripts.
+
+## Run 12 — W12.1 Memory policy and product fit
+
+Follow-up to W12 after review: memory as shipped treated a scraped conclusion
+like a user-stated goal and never forgot anything. This run keeps the platform
+product-neutral and gives packs the knobs.
+
+- Manifest `memory` block: `autoActivate` (kinds a model or workflow write
+  activates without confirmation), `ttlDays` per kind, `contentSchema` per
+  kind. Defaults preserve W12 behaviour except that agent claims now expire
+  (conclusion 7 d, watchlist 30 d, note 14 d). `risk.financialData` flips the
+  default to activate nothing.
+- Record model: `target {type,id}`, `expiresAt`, `scope: "workspace"` (shared,
+  owner/admin writes, partial unique index), `flags` (`contact`). Secrets and
+  card numbers refused. Migration 0008, additive.
+- Prompt: user records under "what the user told you"; model and workflow
+  records under "what this agent concluded earlier" with `[source, date,
+stale?]`; proposals listed as untrusted. Recalled ids pinned into the context
+  snapshot as `platform.memory` (hidden from the prompt, visible to reviews).
+- Lifecycle: `expireMemory` on the scheduler tick; `memory.proposed`
+  control-plane event and push (`route: "memory"`).
+- Surfaces: `/watch <name>` in the console composer (argument-accepting slash
+  commands), mobile Memory tab, panel shows scope, target, expiry and flags.
+- Reference pack: `baby-polymancer` requires `memory.recall`, declares a
+  cautious policy with a conclusion schema, steers an empty research query from
+  the watchlist and remembers a dated conclusion per market.
+- Deferred: embeddings or semantic retrieval, conflict UI, confidence scores.
