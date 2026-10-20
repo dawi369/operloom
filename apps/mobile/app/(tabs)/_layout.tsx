@@ -8,6 +8,7 @@ export default function TabsLayout() {
   if (state === "signed-out") return <Redirect href="/sign-in" />;
   return (
     <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: colors.accent }}>
+      <Tabs.Screen name="fleet" options={{ title: "Fleet" }} />
       <Tabs.Screen name="chat" options={{ title: "Chat" }} />
       <Tabs.Screen name="approvals" options={{ title: "Approvals" }} />
       <Tabs.Screen name="artifacts" options={{ title: "Artifacts" }} />

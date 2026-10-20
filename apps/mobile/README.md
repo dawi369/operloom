@@ -12,7 +12,8 @@ pnpm exec vitest run apps/mobile          # pure TypeScript unit tests
 
 - Sign-in is WorkOS AuthKit PKCE in the system browser; the Worker must list the
   client id in `OPERLOOM_WORKOS_ALLOWED_CLIENT_IDS`.
-- Tabs: chat (fetch transport, polling plus the session SSE stream), approvals
+- Tabs: fleet (every agent's status, current and last run, next tick, open
+  approvals), chat (fetch transport, polling plus the session SSE stream), approvals
   (approve/deny pending tool calls, with the memory each run relied on),
   artifacts (what agents produced), memory (confirm, add, forget), workspace
   (switch workspace and agent, sign out).

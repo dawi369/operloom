@@ -16,6 +16,7 @@ import {
   BrainIcon,
   EyeIcon,
   HistoryIcon,
+  LayoutGridIcon,
   Loader2Icon,
   MessageSquarePlusIcon,
   PlayIcon,
@@ -97,6 +98,14 @@ const WorkbenchHistoryPanel = dynamic(
   { ssr: false },
 );
 
+const WorkbenchFleetPanel = dynamic(
+  () =>
+    import("@/components/workbench/workbench-fleet-panel").then(
+      (module) => module.WorkbenchFleetPanel,
+    ),
+  { ssr: false },
+);
+
 const WorkbenchMemoryPanel = dynamic(
   () =>
     import("@/components/workbench/workbench-memory-panel").then(
@@ -156,6 +165,7 @@ function WorkbenchShellContent({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [operationsOpen, setOperationsOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
+  const [fleetOpen, setFleetOpen] = useState(false);
   const [memoryInitialKind, setMemoryInitialKind] = useState<"watchlist" | undefined>();
   const rememberMemory = useRememberMemory();
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
@@ -459,6 +469,13 @@ function WorkbenchShellContent({
         execute: openHistory,
       },
       {
+        id: "fleet",
+        label: "Fleet",
+        description: "Every agent in the workspace: what runs, what waits on you, what ticks next",
+        icon: LayoutGridIcon,
+        execute: () => setFleetOpen(true),
+      },
+      {
         id: "memory",
         label: "Memory",
         icon: BrainIcon,
@@ -614,6 +631,27 @@ function WorkbenchShellContent({
             onOpenChange={handleHistoryOpenChange}
             onCloseAutoFocus={handlePanelCloseAutoFocus}
             onFocusConsumed={handleHistoryFocusConsumed}
+          />
+          <WorkbenchFleetPanel
+            open={fleetOpen}
+            onOpenChange={(nextOpen) => {
+              setFleetOpen(nextOpen);
+              if (!nextOpen) focusComposerAfterOverlayClose();
+            }}
+            onCloseAutoFocus={handlePanelCloseAutoFocus}
+            onOpenApprovals={
+              adminAccess?.isAdmin
+                ? () => {
+                    setFleetOpen(false);
+                    openAdmin();
+                  }
+                : undefined
+            }
+            onOpenRun={(runId) => {
+              setFleetOpen(false);
+              setHistoryFocus({ runId, createdAt: Date.now() });
+              openHistory();
+            }}
           />
           <WorkbenchMemoryPanel
             open={memoryOpen}

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { actionProposalSummarySchema } from "./public-action-contracts.js";
 import { publicBillingContracts } from "./public-billing-contracts.js";
 import { publicMemoryContracts } from "./public-memory-contracts.js";
+import { publicFleetContracts } from "./public-fleet-contracts.js";
 import { publicAdminContracts } from "./public-admin-contracts.js";
 
 const id = z.string().min(1);
@@ -370,6 +371,7 @@ export const responseSchemas = {
   billingUsageReport:
     publicBillingContracts["POST /workbench/billing/usage/report"].response.passthrough(),
   memoryList: publicMemoryContracts["GET /workbench/memory"].response.passthrough(),
+  fleet: publicFleetContracts["GET /workbench/fleet"].response.passthrough(),
   memoryRecord: publicMemoryContracts["PUT /workbench/memory/{kind}/{key}"].response.passthrough(),
   adminMemoryList: publicMemoryContracts["GET /admin/memory"].response.passthrough(),
   adminMemoryRecord: publicMemoryContracts["PATCH /admin/memory/{id}"].response.passthrough(),

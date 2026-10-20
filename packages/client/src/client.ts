@@ -49,6 +49,7 @@ import type {
   MemoryRecord,
 } from "./public-memory-contracts.js";
 import type { AdminEvent } from "./public-admin-contracts.js";
+import type { FleetAgent } from "./public-fleet-contracts.js";
 
 export type WorkbenchClientPlatform = "web" | "ios" | "android";
 
@@ -620,6 +621,12 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
           { method: "POST", body: input },
         ),
     },
+    fleet: (options: WorkbenchReadOptions = {}) =>
+      request<{ ok: true; generatedAt: string; agents: FleetAgent[] }>(
+        "fleet",
+        "/api/workbench/fleet",
+        options,
+      ),
     memory: {
       list: (
         input: {

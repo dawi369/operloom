@@ -551,6 +551,21 @@ the run's pinned context snapshot; the list response includes
 per-member `usage` against the limits. The console exposes all of this as the
 Memory tab of the admin panel.
 
+### Fleet board
+
+`GET /v1/me/workbench/fleet` answers once for the whole workspace: every agent
+with a derived `status` (`waiting_approval` > `running` > `erroring` > `idle`;
+`paused` when the agent row is not active), the current run and stage, the
+last finished run and its summary, open approvals, runs and failures today,
+settled tokens today, enabled and paused triggers with the earliest
+`nextTickAt`, and the most recent failed run. It is computed from
+`control_runs`, `control_triggers`, `control_approval_requests` and
+`control_resource_reservations`; nothing is stored. The console opens it from
+`/fleet` in the command palette and the mobile app has a Fleet tab. Both use
+`useWorkbenchFleet`, which refetches on `workflow.run.updated`,
+`tool.run.updated`, `approval.updated` and `action.updated` session events and
+every 30 seconds for scheduler ticks that emit none.
+
 ### Audit feed
 
 `client.admin.events.list({ type?, userId?, q?, before?, limit? })`

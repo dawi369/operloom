@@ -33,6 +33,8 @@ export const workbenchQueryKeys = {
     [...workbenchQueryKeys.tenant(workspaceId), "threads", status] as const,
   memory: (workspaceId?: string | null) =>
     [...workbenchQueryKeys.tenant(workspaceId), "memory"] as const,
+  fleet: (workspaceId?: string | null) =>
+    [...workbenchQueryKeys.tenant(workspaceId), "fleet"] as const,
   agents: (workspaceId?: string | null) =>
     [...workbenchQueryKeys.tenant(workspaceId), "agents"] as const,
   workflows: (workspaceId?: string | null) =>
@@ -242,6 +244,17 @@ const invalidate = (queryClient: QueryClient, keys: readonly QueryKey[]) =>
 
 export const invalidateWorkbenchQueries = invalidate;
 
+/** Live board of every agent; session events refresh it and the interval covers scheduler ticks that emit none. */
+export const useWorkbenchFleet = (input: TenantInput & { refetchIntervalMs?: number } = {}) => {
+  const client = useWorkbenchClient();
+  return useQuery({
+    queryKey: workbenchQueryKeys.fleet(input.workspaceId),
+    queryFn: ({ signal }) => client.fleet({ signal }),
+    enabled: enabled(input),
+    refetchInterval: input.refetchIntervalMs ?? 30_000,
+  });
+};
+
 export const useWorkbenchMemory = (
   input: TenantInput & { status?: "active" | "proposed" | "archived" | "all" } = {},
 ) => {
@@ -356,6 +369,7 @@ export const workbenchSessionEventInvalidations = (
     return [
       workbenchQueryKeys.runLists(workspaceId),
       workbenchQueryKeys.artifactLists(workspaceId),
+      workbenchQueryKeys.fleet(workspaceId),
     ];
   }
   if (event.type === "approval.updated") {
@@ -364,6 +378,7 @@ export const workbenchSessionEventInvalidations = (
       workbenchQueryKeys.runLists(workspaceId),
       workbenchQueryKeys.runDetails(workspaceId),
       workbenchQueryKeys.actionLists(workspaceId),
+      workbenchQueryKeys.fleet(workspaceId),
     ];
   }
   if (event.type === "action.updated") {
@@ -372,6 +387,7 @@ export const workbenchSessionEventInvalidations = (
       workbenchQueryKeys.approvals(workspaceId),
       workbenchQueryKeys.runLists(workspaceId),
       workbenchQueryKeys.runDetails(workspaceId),
+      workbenchQueryKeys.fleet(workspaceId),
     ];
   }
   if (event.type.startsWith("chat.run.")) return threadKeys(workspaceId);

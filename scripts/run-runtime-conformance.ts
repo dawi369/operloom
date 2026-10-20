@@ -1120,6 +1120,14 @@ const main = async () => {
         ?.requestHash !== reviewGate.review.requestHash
     )
       throw new Error("History and approval list disagree on review content");
+    const fleet = await reviewerClient.request<{
+      agents: { id: string; status: string; openApprovals: number; currentRun: unknown }[];
+    }>("/workbench/fleet");
+    const fleetAgent = fleet.agents.find((agent) => agent.id === reviewer.agent.id);
+    if (!fleetAgent || fleetAgent.status !== "waiting_approval" || fleetAgent.openApprovals < 1)
+      throw new Error(
+        `Fleet board does not show the agent waiting on approval: ${JSON.stringify(fleetAgent)}`,
+      );
     if (process.argv.includes("--durable-restart")) {
       const db = new DatabaseSync(resolve(state, String(canonicalFile)), { readOnly: true });
       try {

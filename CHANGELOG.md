@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Fleet board: `GET /v1/me/workbench/fleet` returns every agent in the
+  workspace with a derived status (waiting on approval, running, last run
+  failed, idle, paused), current run and stage, last run and summary, open
+  approvals, runs and failures today, tokens today, trigger counts and the
+  next tick. The console opens it as `/fleet` from the command palette with
+  deep links into History and Approvals; the mobile app gains a Fleet tab.
+  `useWorkbenchFleet` refreshes on run, tool, approval and action session
+  events plus a 30 second interval.
 - Pack scaffold: `pnpm agent-packs:create` now emits a monitor trigger (off by
   default) routed to the starter workflow, a `memory` block with safe defaults,
   one editable setting, the `memory.recall` capability and a header listing

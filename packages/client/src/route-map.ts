@@ -11,6 +11,7 @@ const consolePrefix = "/api/workbench";
 const rules: ReadonlyArray<readonly [consolePath: string, workerPath: string | null]> = [
   ["/accounts", null],
   ["/admin", "/admin"],
+  ["/fleet", "/workbench/fleet"],
   ["/memory/records", "/workbench/memory"],
   ["/chat-session/stream", "/chat/session/stream"],
   ["/chat-session", "/chat/session"],

@@ -14,6 +14,7 @@ import {
   publicMemoryOpenApiOperation,
   publicMemoryOpenApiQueryParameters,
 } from "./public-memory-contracts.js";
+import { publicFleetOpenApiOperation } from "./public-fleet-contracts.js";
 import {
   publicAdminOpenApiOperation,
   publicAdminOpenApiQueryParameters,
@@ -137,6 +138,7 @@ export const publicApiRoutes = [
   ["DELETE", "/workbench/devices/{id}"],
   ["GET", "/workbench/notification-preferences"],
   ["PUT", "/workbench/notification-preferences"],
+  ["GET", "/workbench/fleet"],
   ["GET", "/workbench/memory"],
   ["PUT", "/workbench/memory/{kind}/{key}"],
   ["POST", "/workbench/memory/{id}/confirm"],
@@ -215,6 +217,7 @@ const publicApiOperation = (method: string, path: string, scopeParameters: reado
   ...publicBudgetOpenApiOperation(method, path),
   ...publicBillingOpenApiOperation(method, path),
   ...publicMemoryOpenApiOperation(method, path),
+  ...publicFleetOpenApiOperation(method, path),
   ...publicAdminOpenApiOperation(method, path),
   ...publicActionOpenApiOperation(method, path),
 });
