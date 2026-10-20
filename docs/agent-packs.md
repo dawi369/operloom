@@ -227,12 +227,30 @@ providerOperations: [transactionalEmailOperation({ providerId: "transactional-em
 
 Adapters: calendar (`google-calendar`, `microsoft-graph`), mail (`gmail`,
 `microsoft-graph`), geocoding (`nominatim`), routing (`osrm`), news
-(`newsapi`), and transactional email as a reviewed provider operation. A read
+(`newsapi`), and transactional email and SMS as reviewed provider operations. A read
 tool requests `broker://configured/<path>`; the broker resolves it under the
 connection provider's configured endpoint and host allowlist, so packages hold
 no hosts, client ids or credentials. With a `recorded` sample the tool answers
 from it, marked `source: "recorded"`, until the workspace authorizes the
 connection. See `examples/service-desk`.
+
+Operations that reach a person take an `outreach` block:
+
+```ts
+smsSendOperation({
+  providerId: "sms-relay",
+  outreach: { dailyCap: 40, window: { start: "09:00", end: "20:00", timezone: "America/Denver" } },
+});
+```
+
+The platform checks both before any provider is contacted: a send outside the
+window fails the action with `outreach_window_closed`, and one past the cap
+(counted per agent per local day from receipts, including sends still in
+flight) with `outreach_daily_cap_reached`. Put the limits here rather than in
+the prompt; the model cannot talk its way past them. `smsSendOperation` posts
+`{ to, text }` (E.164, 1600 characters) to the operator's relay, which holds
+the carrier credentials and the opt-out list and answers `queued`, `sent`,
+`rejected` or `opted_out`; the last two fail the action.
 
 ### Runner recipes
 

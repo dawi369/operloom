@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Outreach guard: provider operations accept `outreach: { dailyCap, window }`,
+  enforced by the Worker before dispatch (`outreach_daily_cap_reached`,
+  `outreach_window_closed`); the cap counts per agent per local day from
+  receipts. `smsSendOperation` joins `transactionalEmailOperation` in
+  `@operloom/agent-sdk/providers` for a relay that holds carrier credentials
+  and opt-outs.
 - Dependencies: `next` 16.4, patched pins for `@modelcontextprotocol/*`,
   `sharp`, `shell-quote`, `source-map-js` and `js-yaml`. The security audit
   gate keeps a dated, path-scoped acceptance list for the two Expo build-time

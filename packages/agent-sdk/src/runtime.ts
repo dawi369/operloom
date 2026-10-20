@@ -445,6 +445,16 @@ export type RuntimeProviderOperation = {
   outputSchema: JsonSchema;
   timeoutMs: number;
   maxResponseBytes: number;
+  /**
+   * Limits for operations that reach a person: sends per agent per local day
+   * and a local-time window. The platform enforces both before dispatch; a
+   * blocked send fails the action with `outreach_daily_cap_reached` or
+   * `outreach_window_closed`. Set them for any customer-facing channel.
+   */
+  outreach?: {
+    dailyCap?: number;
+    window?: { start: string; end: string; timezone?: string };
+  };
   /** How the projected response maps to a receipt. */
   receipt: {
     /** Output field that must echo the platform request id. */

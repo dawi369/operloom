@@ -48,7 +48,7 @@
     },
     {
       "path": "dist/providers.d.ts",
-      "sha256": "a0ecaa4e7a8290b7f8dbf84a519c74d791be56531150e61df5c28d01575931f5"
+      "sha256": "93cc4056beada57447598730ad3365cf7022933af2962f990ab5e62abbc009cc"
     },
     {
       "path": "dist/queries.d.ts",
@@ -64,7 +64,7 @@
     },
     {
       "path": "dist/runtime.d.ts",
-      "sha256": "d7ad210dbfd638075752d9c113e2f22a90dcb59bf0f7933bed6cab4d0e71a2d8"
+      "sha256": "26fb7b56fb977d12d00f0a9f0af45b063b6253d2aad9968ba057869756b9b88e"
     },
     {
       "path": "dist/schema.d.ts",

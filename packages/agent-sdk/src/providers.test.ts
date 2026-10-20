@@ -6,6 +6,8 @@ import {
   mailAdapters,
   newsAdapters,
   routingAdapters,
+  smsMessageSchema,
+  smsSendOperation,
   transactionalEmailOperation,
 } from "./providers.js";
 import type { AgentExecutionContext, ConnectionCapability } from "./runtime.js";
@@ -156,6 +158,27 @@ describe("bundled provider adapters", () => {
       "messageId",
       "status",
     ]);
+  });
+
+  it("declares SMS as a reviewed provider operation that treats opt-out as rejection", () => {
+    const operation = smsSendOperation({ providerId: "sms-relay" });
+    expect(operation).toMatchObject({
+      id: "sms.send",
+      providerId: "sms-relay",
+      method: "POST",
+      path: "/sms",
+      receipt: {
+        requestIdField: "requestId",
+        referenceField: "messageId",
+        statusField: "status",
+        rejectedValues: ["rejected", "opted_out"],
+      },
+    });
+    const to = new RegExp((smsMessageSchema.properties as { to: { pattern: string } }).to.pattern);
+    expect(to.test("+14155552671")).toBe(true);
+    expect(to.test("+0123")).toBe(false);
+    expect(to.test("415-555-2671")).toBe(false);
+    expect(to.test("+1 415 555 2671")).toBe(false);
   });
 
   it("returns the recorded sample without a connection and the live result through the broker", async () => {

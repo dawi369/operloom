@@ -321,7 +321,9 @@ export const transactionalEmailOperation = (input: {
   providerId: string;
   auth?: RuntimeProviderOperation["auth"];
   path?: string;
+  outreach?: RuntimeProviderOperation["outreach"];
 }): RuntimeProviderOperation => ({
+  ...(input.outreach ? { outreach: input.outreach } : {}),
   id: input.id ?? "email.send",
   version: input.version ?? "1",
   providerId: input.providerId,
@@ -364,6 +366,60 @@ export const transactionalEmailSchema: JsonSchema = {
     text: { type: "string", minLength: 1, maxLength: 20_000 },
   },
 };
+
+/** E.164 without spaces; the relay is responsible for opt-out lists and carrier rules. */
+export const e164Pattern = "^\\+[1-9][0-9]{6,14}$";
+
+export const smsMessageSchema: JsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["to", "text"],
+  properties: {
+    to: { type: "string", pattern: e164Pattern },
+    text: { type: "string", minLength: 1, maxLength: 1600 },
+  },
+};
+
+/**
+ * One text message through the operator's SMS relay, which holds the carrier
+ * credentials and the opt-out list and echoes `requestId`. Pair it with a tool
+ * whose `action.providerOperation` names it; approval and receipts follow.
+ */
+export const smsSendOperation = (input: {
+  id?: string;
+  version?: string;
+  providerId: string;
+  auth?: RuntimeProviderOperation["auth"];
+  path?: string;
+  outreach?: RuntimeProviderOperation["outreach"];
+}): RuntimeProviderOperation => ({
+  ...(input.outreach ? { outreach: input.outreach } : {}),
+  id: input.id ?? "sms.send",
+  version: input.version ?? "1",
+  providerId: input.providerId,
+  auth: input.auth ?? "bearer",
+  method: "POST",
+  path: input.path ?? "/sms",
+  inputSchema: smsMessageSchema,
+  outputSchema: {
+    type: "object",
+    additionalProperties: false,
+    required: ["requestId", "messageId", "status"],
+    properties: {
+      requestId: { type: "string", pattern: "^[a-f0-9]{64}$" },
+      messageId: { type: "string", minLength: 1, maxLength: 200 },
+      status: { type: "string", enum: ["queued", "sent", "rejected", "opted_out"] },
+    },
+  },
+  timeoutMs: 10_000,
+  maxResponseBytes: 16_384,
+  receipt: {
+    requestIdField: "requestId",
+    referenceField: "messageId",
+    statusField: "status",
+    rejectedValues: ["rejected", "opted_out"],
+  },
+});
 
 type ReadToolOptions<Input extends RuntimeRecord, Output extends RuntimeRecord> = {
   id: string;

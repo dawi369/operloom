@@ -1,3 +1,4 @@
+import { assertOutreachAllowed, parseOutreachPolicy } from "./outreach-policy";
 import {
   assertSchemaValue,
   type ActionExecutionResult,
@@ -306,6 +307,8 @@ export const dispatchProviderOperation = async (
     runtimeStateCanonicalJson(operation)
   )
     throw new Error("provider_operation_changed");
+  const outreach = parseOutreachPolicy((operation as { outreach?: unknown }).outreach);
+  if (outreach) await assertOutreachAllowed(env, identity, operation.id, outreach);
   const credential = await connectionCredential(env, identity, row, operation);
   const requestId = await sha256Hex(
     runtimeStateCanonicalJson({
