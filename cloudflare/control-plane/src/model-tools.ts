@@ -1,3 +1,4 @@
+import { postAgentUpdate } from "./agent-updates";
 import { currentAgentSettings } from "./agent-settings";
 import { bindRuntimeContext } from "./runtime-context";
 import { createMemoryPort } from "./memory";
@@ -249,6 +250,10 @@ const buildRuntimeModelTool = (input: {
             }
             return { id: result.state.id, version: result.state.version };
           },
+        },
+        updates: {
+          post: (text, data) =>
+            postAgentUpdate(input.env, input.identity, { runId: started.runId, text, data }),
         },
         events: {
           async append(type, summary, data) {

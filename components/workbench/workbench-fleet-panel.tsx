@@ -1,7 +1,8 @@
 "use client";
 
-import { useWorkbenchFleet } from "@operloom/react";
-import type { FleetAgent, FleetAgentStatus } from "@operloom/client";
+import { useWorkbenchFleet, useWorkbenchFleetTimeline } from "@operloom/react";
+import type { FleetAgent, FleetAgentStatus, FleetUpdate } from "@operloom/client";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,32 @@ const statusClass: Record<FleetAgentStatus, string> = {
 };
 
 const order: FleetAgentStatus[] = ["waiting_approval", "erroring", "running", "idle", "paused"];
+
+/** How much each agent says on the board; the choice survives reloads. */
+const densities = {
+  compact: { label: "Compact", updates: 1, chars: 80 },
+  normal: { label: "Normal", updates: 3, chars: 140 },
+  detailed: { label: "Detailed", updates: 10, chars: 280 },
+} as const;
+type Density = keyof typeof densities;
+const densityStorageKey = "operloom.fleet.density";
+const readDensity = (): Density => {
+  if (typeof window === "undefined") return "normal";
+  const stored = window.localStorage.getItem(densityStorageKey);
+  return stored && stored in densities ? (stored as Density) : "normal";
+};
+
+const eventLabel: Record<string, string> = {
+  "agent.update": "",
+  "run.started": "Started",
+  "run.completed": "Finished",
+  "run.failed": "Failed",
+  "artifact.created": "Produced",
+  "approval.requested": "Asked for approval",
+  "approval.approved": "Approved",
+  "approval.denied": "Denied",
+  "memory.proposed": "Suggested a memory",
+};
 
 export const relativeTime = (iso: string | null, now = Date.now()) => {
   if (!iso) return null;
@@ -66,7 +93,10 @@ export function WorkbenchFleetPanel({
   onOpenApprovals?: () => void;
   onOpenRun?: (runId: string) => void;
 }) {
-  const fleet = useWorkbenchFleet({ enabled: open });
+  const [density, setDensity] = useState<Density>("normal");
+  useEffect(() => setDensity(readDensity()), []);
+  const view = densities[density];
+  const fleet = useWorkbenchFleet({ enabled: open, updates: view.updates, chars: view.chars });
   const agents = [...(fleet.data?.agents ?? [])].sort(
     (left, right) => order.indexOf(left.status) - order.indexOf(right.status),
   );
@@ -88,6 +118,22 @@ export function WorkbenchFleetPanel({
             {fleet.data ? ` · updated ${relativeTime(fleet.data.generatedAt)}` : ""}
           </DialogDescription>
         </DialogHeader>
+        <div className="flex items-center gap-2 text-sm" role="group" aria-label="Detail level">
+          {(Object.keys(densities) as Density[]).map((key) => (
+            <Button
+              key={key}
+              size="sm"
+              variant={key === density ? "default" : "outline"}
+              aria-pressed={key === density}
+              onClick={() => {
+                setDensity(key);
+                window.localStorage.setItem(densityStorageKey, key);
+              }}
+            >
+              {densities[key].label}
+            </Button>
+          ))}
+        </div>
         {fleet.error ? <p className="text-destructive text-sm">{String(fleet.error)}</p> : null}
         <ul className="grid gap-3" aria-label="Agents">
           {agents.map((agent) => (
@@ -96,6 +142,7 @@ export function WorkbenchFleetPanel({
               agent={agent}
               onOpenApprovals={onOpenApprovals}
               onOpenRun={onOpenRun}
+              timelineChars={view.chars}
             />
           ))}
         </ul>
@@ -111,12 +158,15 @@ function FleetCard({
   agent,
   onOpenApprovals,
   onOpenRun,
+  timelineChars,
 }: {
   agent: FleetAgent;
   onOpenApprovals?: () => void;
   onOpenRun?: (runId: string) => void;
+  timelineChars: number;
 }) {
   const now = agent.currentRun?.startedAt ? agent.currentRun : agent.lastRun;
+  const [timelineOpen, setTimelineOpen] = useState(false);
   return (
     <li className="border-border rounded-lg border p-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -164,25 +214,99 @@ function FleetCard({
           </Row>
         ) : null}
       </dl>
-      {agent.openApprovals || now ? (
-        <div className="mt-2 flex gap-2">
-          {agent.openApprovals && onOpenApprovals ? (
-            <Button size="sm" onClick={onOpenApprovals}>
-              Review {agent.openApprovals} approval{agent.openApprovals === 1 ? "" : "s"}
-            </Button>
-          ) : null}
-          {now && onOpenRun ? (
-            <Button size="sm" variant="outline" onClick={() => onOpenRun(now.id)}>
-              Open run
-            </Button>
-          ) : null}
-        </div>
+      {agent.updates.length ? (
+        <ul className="mt-2 grid gap-1 text-sm" aria-label={`${agent.name} updates`}>
+          {agent.updates.map((update) => (
+            <UpdateLine key={update.id} update={update} onOpenRun={onOpenRun} />
+          ))}
+        </ul>
       ) : null}
+      {timelineOpen ? (
+        <Timeline agentId={agent.id} chars={timelineChars} onOpenRun={onOpenRun} />
+      ) : null}
+      <div className="mt-2 flex gap-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-expanded={timelineOpen}
+          onClick={() => setTimelineOpen((value) => !value)}
+        >
+          {timelineOpen ? "Hide timeline" : "Timeline"}
+        </Button>
+        {agent.openApprovals && onOpenApprovals ? (
+          <Button size="sm" onClick={onOpenApprovals}>
+            Review {agent.openApprovals} approval{agent.openApprovals === 1 ? "" : "s"}
+          </Button>
+        ) : null}
+        {now && onOpenRun ? (
+          <Button size="sm" variant="outline" onClick={() => onOpenRun(now.id)}>
+            Open run
+          </Button>
+        ) : null}
+      </div>
     </li>
   );
 }
 
-const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+const UpdateLine = ({
+  update,
+  onOpenRun,
+}: {
+  update: FleetUpdate;
+  onOpenRun?: (runId: string) => void;
+}) => {
+  const label = eventLabel[update.type] ?? update.type;
+  return (
+    <li className="flex gap-2">
+      <span className="text-muted-foreground w-14 shrink-0 text-xs leading-5">
+        {relativeTime(update.at)}
+      </span>
+      <span className="min-w-0">
+        {label ? <span className="text-muted-foreground">{label}: </span> : null}
+        {update.runId && onOpenRun ? (
+          <button
+            type="button"
+            className="text-left underline-offset-2 hover:underline"
+            onClick={() => onOpenRun(update.runId!)}
+          >
+            {update.text}
+          </button>
+        ) : (
+          update.text
+        )}
+      </span>
+    </li>
+  );
+};
+
+function Timeline({
+  agentId,
+  chars,
+  onOpenRun,
+}: {
+  agentId: string;
+  chars: number;
+  onOpenRun?: (runId: string) => void;
+}) {
+  const timeline = useWorkbenchFleetTimeline({ agentId, limit: 30, chars });
+  if (timeline.isPending) return <p className="text-muted-foreground mt-2 text-sm">Loading…</p>;
+  if (timeline.error)
+    return <p className="text-destructive mt-2 text-sm">{String(timeline.error)}</p>;
+  const updates = timeline.data?.updates ?? [];
+  return (
+    <ul className="border-border mt-2 grid gap-1 border-l pl-3 text-sm" aria-label="Timeline">
+      {updates.map((update) => (
+        <UpdateLine key={update.id} update={update} onOpenRun={onOpenRun} />
+      ))}
+      {!updates.length ? <li className="text-muted-foreground">Nothing recorded yet.</li> : null}
+      {timeline.data?.nextBefore ? (
+        <li className="text-muted-foreground text-xs">Older entries are in History.</li>
+      ) : null}
+    </ul>
+  );
+}
+
+const Row = ({ label, children }: { label: string; children: ReactNode }) => (
   <div className="flex gap-2">
     <dt className="w-16 shrink-0">{label}</dt>
     <dd className="text-foreground min-w-0">{children}</dd>

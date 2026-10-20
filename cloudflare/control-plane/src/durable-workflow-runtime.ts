@@ -1,3 +1,4 @@
+import { postAgentUpdate } from "./agent-updates";
 import { readDurableRunTrigger } from "./durable-trigger-links";
 import { readRunSettings } from "./agent-settings";
 import {
@@ -246,6 +247,9 @@ export const runDurableWorkflow = async (
                 async append() {
                   return fail("durable_legacy_port_unavailable");
                 },
+              },
+              updates: {
+                post: (text, data) => postAgentUpdate(env, identity, { runId, text, data }),
               },
               tools: {
                 async invoke(toolId, toolInput) {

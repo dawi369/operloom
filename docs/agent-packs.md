@@ -332,6 +332,15 @@ key/value view otherwise. A native module imports `react-native`, so add it as
 a `devDependency` of the package for typechecking; packs without a native
 module render through the generic view on mobile.
 
+### Status lines
+
+A workflow tells the owner what it is doing with `context.updates.post(text)`
+(one sentence; the platform clamps it to 280 characters and stops at 60 per
+run). The lines show on the fleet board beside run and approval events. Post
+after each meaningful step, with the finding rather than the mechanics: "3 of
+12 quotes unanswered past 48h" beats "queried jobs table". Inside the signed
+runner the port is a no-op; post from the workflow that invoked the tool.
+
 ### Notifications
 
 A package declares the user-facing events it may emit:

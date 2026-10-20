@@ -19,6 +19,7 @@ import {
   renderContextEvidence,
   MemoryError,
 } from "./memory";
+import { postAgentUpdate } from "./agent-updates";
 import { jsonSchema, tool } from "ai";
 import { chatRuntimeFailureCode, createChatUsageTracker } from "./chat-usage";
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -1018,6 +1019,25 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
               throw error;
             }
           },
+        });
+      }
+      if (runId) {
+        const chatRunId = runId;
+        modelTools.tools["agent.update"] = tool({
+          description:
+            "Post one short status line to the owner's fleet board about what you are doing or found (not a reply to the user). Use it when a step finishes or something changes; at most a sentence.",
+          inputSchema: jsonSchema<{ text: string }>({
+            type: "object",
+            required: ["text"],
+            additionalProperties: false,
+            properties: { text: { type: "string", minLength: 1, maxLength: 280 } },
+          }),
+          execute: async (input) => ({
+            ok: await postAgentUpdate(this.getEnv(), identity, {
+              runId: chatRunId,
+              text: input.text,
+            }),
+          }),
         });
       }
       const system = chatSystemPrompt({

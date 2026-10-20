@@ -33,8 +33,12 @@ export const workbenchQueryKeys = {
     [...workbenchQueryKeys.tenant(workspaceId), "threads", status] as const,
   memory: (workspaceId?: string | null) =>
     [...workbenchQueryKeys.tenant(workspaceId), "memory"] as const,
-  fleet: (workspaceId?: string | null) =>
+  fleetBoards: (workspaceId?: string | null) =>
     [...workbenchQueryKeys.tenant(workspaceId), "fleet"] as const,
+  fleet: (workspaceId?: string | null, view?: { updates?: number; chars?: number }) =>
+    [...workbenchQueryKeys.fleetBoards(workspaceId), "board", view ?? {}] as const,
+  fleetTimeline: (workspaceId?: string | null, agentId?: string) =>
+    [...workbenchQueryKeys.fleetBoards(workspaceId), "timeline", agentId] as const,
   agents: (workspaceId?: string | null) =>
     [...workbenchQueryKeys.tenant(workspaceId), "agents"] as const,
   workflows: (workspaceId?: string | null) =>
@@ -245,13 +249,29 @@ const invalidate = (queryClient: QueryClient, keys: readonly QueryKey[]) =>
 export const invalidateWorkbenchQueries = invalidate;
 
 /** Live board of every agent; session events refresh it and the interval covers scheduler ticks that emit none. */
-export const useWorkbenchFleet = (input: TenantInput & { refetchIntervalMs?: number } = {}) => {
+export const useWorkbenchFleet = (
+  input: TenantInput & { refetchIntervalMs?: number; updates?: number; chars?: number } = {},
+) => {
   const client = useWorkbenchClient();
+  const view = { updates: input.updates, chars: input.chars };
   return useQuery({
-    queryKey: workbenchQueryKeys.fleet(input.workspaceId),
-    queryFn: ({ signal }) => client.fleet({ signal }),
+    queryKey: workbenchQueryKeys.fleet(input.workspaceId, view),
+    queryFn: ({ signal }) => client.fleet(view, { signal }),
     enabled: enabled(input),
     refetchInterval: input.refetchIntervalMs ?? 30_000,
+  });
+};
+
+/** One agent's recent timeline: its own status lines plus run, artifact, approval and memory events. */
+export const useWorkbenchFleetTimeline = (
+  input: TenantInput & { agentId?: string; limit?: number; chars?: number },
+) => {
+  const client = useWorkbenchClient();
+  return useQuery({
+    queryKey: workbenchQueryKeys.fleetTimeline(input.workspaceId, input.agentId),
+    queryFn: ({ signal }) =>
+      client.fleet.timeline(input.agentId!, { limit: input.limit, chars: input.chars }, { signal }),
+    enabled: enabled(input) && Boolean(input.agentId),
   });
 };
 
@@ -369,7 +389,7 @@ export const workbenchSessionEventInvalidations = (
     return [
       workbenchQueryKeys.runLists(workspaceId),
       workbenchQueryKeys.artifactLists(workspaceId),
-      workbenchQueryKeys.fleet(workspaceId),
+      workbenchQueryKeys.fleetBoards(workspaceId),
     ];
   }
   if (event.type === "approval.updated") {
@@ -378,7 +398,7 @@ export const workbenchSessionEventInvalidations = (
       workbenchQueryKeys.runLists(workspaceId),
       workbenchQueryKeys.runDetails(workspaceId),
       workbenchQueryKeys.actionLists(workspaceId),
-      workbenchQueryKeys.fleet(workspaceId),
+      workbenchQueryKeys.fleetBoards(workspaceId),
     ];
   }
   if (event.type === "action.updated") {
@@ -387,7 +407,7 @@ export const workbenchSessionEventInvalidations = (
       workbenchQueryKeys.approvals(workspaceId),
       workbenchQueryKeys.runLists(workspaceId),
       workbenchQueryKeys.runDetails(workspaceId),
-      workbenchQueryKeys.fleet(workspaceId),
+      workbenchQueryKeys.fleetBoards(workspaceId),
     ];
   }
   if (event.type.startsWith("chat.run.")) return threadKeys(workspaceId);

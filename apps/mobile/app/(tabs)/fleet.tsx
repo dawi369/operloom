@@ -1,7 +1,8 @@
-import { useWorkbenchFleet } from "@operloom/react";
+import { useWorkbenchFleet, useWorkbenchFleetTimeline } from "@operloom/react";
 import type { FleetAgent, FleetAgentStatus } from "@operloom/client";
 import { useRouter } from "expo-router";
-import { Text, View } from "react-native";
+import { useState } from "react";
+import { Pressable, Text, View } from "react-native";
 
 import { Card, ErrorNotice, Screen } from "../../src/components/screen";
 import { colors } from "../../src/theme";
@@ -39,8 +40,9 @@ export const relativeTime = (iso: string | null, now = Date.now()) => {
 
 /** The whole team at a glance; tap an agent with open approvals to go review them. */
 export default function FleetScreen() {
-  const fleet = useWorkbenchFleet();
+  const fleet = useWorkbenchFleet({ updates: 2, chars: 120 });
   const router = useRouter();
+  const [expanded, setExpanded] = useState<string | null>(null);
   const agents = [...(fleet.data?.agents ?? [])].sort(
     (left, right) => order.indexOf(left.status) - order.indexOf(right.status),
   );
@@ -65,16 +67,28 @@ export default function FleetScreen() {
       {agents.map((agent) => (
         <Card
           key={agent.id}
-          onPress={agent.openApprovals ? () => router.navigate("/approvals") : undefined}
+          onPress={() => setExpanded((current) => (current === agent.id ? null : agent.id))}
         >
-          <AgentRow agent={agent} />
+          <AgentRow
+            agent={agent}
+            expanded={expanded === agent.id}
+            onReview={agent.openApprovals ? () => router.navigate("/approvals") : undefined}
+          />
         </Card>
       ))}
     </Screen>
   );
 }
 
-const AgentRow = ({ agent }: { agent: FleetAgent }) => {
+const AgentRow = ({
+  agent,
+  expanded,
+  onReview,
+}: {
+  agent: FleetAgent;
+  expanded: boolean;
+  onReview?: () => void;
+}) => {
   const line = agent.currentRun
     ? `${agent.currentRun.workflowType ?? "run"}${agent.currentRun.stage ? ` · ${agent.currentRun.stage}` : ""} · started ${relativeTime(agent.currentRun.startedAt)}`
     : agent.lastRun
@@ -106,10 +120,59 @@ const AgentRow = ({ agent }: { agent: FleetAgent }) => {
           {agent.lastError.summary ?? "Run failed"} · {relativeTime(agent.lastError.at)}
         </Text>
       ) : null}
-      {agent.openApprovals ? (
-        <Text style={{ color: colors.accent, fontWeight: "600" }}>
-          Review {agent.openApprovals} approval{agent.openApprovals === 1 ? "" : "s"} ›
+      {agent.updates.map((update) => (
+        <Text key={update.id} style={{ color: colors.ink, fontSize: 13 }} numberOfLines={2}>
+          <Text style={{ color: colors.muted }}>{relativeTime(update.at)} </Text>
+          {update.text}
         </Text>
+      ))}
+      {onReview ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={onReview}
+          style={{ alignSelf: "flex-start" }}
+        >
+          <Text style={{ color: colors.accent, fontWeight: "600" }}>
+            Review {agent.openApprovals} approval{agent.openApprovals === 1 ? "" : "s"} ›
+          </Text>
+        </Pressable>
+      ) : null}
+      {expanded ? <Timeline agentId={agent.id} /> : null}
+    </View>
+  );
+};
+
+const eventLabel: Record<string, string> = {
+  "agent.update": "",
+  "run.started": "Started",
+  "run.completed": "Finished",
+  "run.failed": "Failed",
+  "artifact.created": "Produced",
+  "approval.requested": "Asked for approval",
+  "approval.approved": "Approved",
+  "approval.denied": "Denied",
+  "memory.proposed": "Suggested a memory",
+};
+
+const Timeline = ({ agentId }: { agentId: string }) => {
+  const timeline = useWorkbenchFleetTimeline({ agentId, limit: 20, chars: 200 });
+  const updates = timeline.data?.updates ?? [];
+  return (
+    <View style={{ borderLeftWidth: 1, borderLeftColor: colors.line, paddingLeft: 10, gap: 4 }}>
+      {timeline.isPending ? <Text style={{ color: colors.muted }}>Loading…</Text> : null}
+      {updates.map((update) => {
+        const label = eventLabel[update.type] ?? update.type;
+        return (
+          <Text key={update.id} style={{ color: colors.ink, fontSize: 13 }}>
+            <Text style={{ color: colors.muted }}>
+              {relativeTime(update.at)} {label ? `${label}: ` : ""}
+            </Text>
+            {update.text}
+          </Text>
+        );
+      })}
+      {timeline.data && !updates.length ? (
+        <Text style={{ color: colors.muted }}>Nothing recorded yet.</Text>
       ) : null}
     </View>
   );

@@ -64,7 +64,7 @@
     },
     {
       "path": "dist/runtime.d.ts",
-      "sha256": "d07301882bc3a00b3665406c2ac789fa4e90369867eeeeb17c6766bcc017a0b9"
+      "sha256": "d7ad210dbfd638075752d9c113e2f22a90dcb59bf0f7933bed6cab4d0e71a2d8"
     },
     {
       "path": "dist/schema.d.ts",

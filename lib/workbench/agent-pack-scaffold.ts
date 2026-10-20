@@ -258,6 +258,8 @@ export const controlPlane = defineControlPlaneModule({
     async execute(_input, context) {
       // A monitor tick arrives with context.run.trigger set; a user request does not.
       const result = await context.tools.invoke(${JSON.stringify(`${id.replaceAll("-", "_")}.inspect`)}, {});
+      // One line per meaningful step shows on the owner's fleet board.
+      await context.updates.post(result.summary ?? "Inspection finished.");
       return context.run.trigger ? { ...result, summary: \`Scheduled: \${result.summary}\` } : result;
     },
   }],

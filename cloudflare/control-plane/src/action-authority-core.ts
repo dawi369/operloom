@@ -372,6 +372,7 @@ export const executionContext = (
     },
   },
   events: { async append() {} },
+  updates: { post: async () => false },
 });
 
 export type ActionDispatchResult = ActionExecutionResult & { errorCode?: string };

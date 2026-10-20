@@ -44,7 +44,7 @@ describe("workbench query model", () => {
         workbenchQueryKeys.runLists("workspace:a"),
         workbenchQueryKeys.runDetails("workspace:a"),
         workbenchQueryKeys.actionLists("workspace:a"),
-        workbenchQueryKeys.fleet("workspace:a"),
+        workbenchQueryKeys.fleetBoards("workspace:a"),
       ],
     );
     expect(

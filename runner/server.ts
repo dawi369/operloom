@@ -737,6 +737,8 @@ const handleToolRunnerInvocation = async (
         },
       },
       events: { async append() {} },
+      // Runner tools report through signed callbacks; status lines belong to the control-plane workflow that invoked them.
+      updates: { post: async () => false },
     };
     const startedAt = Date.now();
     try {

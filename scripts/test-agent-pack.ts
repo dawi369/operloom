@@ -162,6 +162,11 @@ export const runAgentPackConformance = async (root: string, requested: string) =
         },
       },
       events: { async append() {} },
+      updates: {
+        async post() {
+          return true;
+        },
+      },
       memory: {
         async list(filter) {
           return memoryRecords.filter(

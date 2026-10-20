@@ -61,6 +61,7 @@ export const executeResolvedRuntimeAdminTool = async (input: {
       },
     },
     events: { async append() {} },
+    updates: { post: async () => false },
   };
   const result = await executeRuntimeToolBinding({
     env: input.env,

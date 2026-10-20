@@ -372,6 +372,7 @@ export const responseSchemas = {
     publicBillingContracts["POST /workbench/billing/usage/report"].response.passthrough(),
   memoryList: publicMemoryContracts["GET /workbench/memory"].response.passthrough(),
   fleet: publicFleetContracts["GET /workbench/fleet"].response.passthrough(),
+  fleetTimeline: publicFleetContracts["GET /workbench/fleet/{agentId}"].response.passthrough(),
   memoryRecord: publicMemoryContracts["PUT /workbench/memory/{kind}/{key}"].response.passthrough(),
   adminMemoryList: publicMemoryContracts["GET /admin/memory"].response.passthrough(),
   adminMemoryRecord: publicMemoryContracts["PATCH /admin/memory/{id}"].response.passthrough(),

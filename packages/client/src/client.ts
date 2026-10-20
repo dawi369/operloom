@@ -49,7 +49,7 @@ import type {
   MemoryRecord,
 } from "./public-memory-contracts.js";
 import type { AdminEvent } from "./public-admin-contracts.js";
-import type { FleetAgent } from "./public-fleet-contracts.js";
+import type { FleetAgent, FleetUpdate } from "./public-fleet-contracts.js";
 
 export type WorkbenchClientPlatform = "web" | "ios" | "android";
 
@@ -621,12 +621,31 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
           { method: "POST", body: input },
         ),
     },
-    fleet: (options: WorkbenchReadOptions = {}) =>
-      request<{ ok: true; generatedAt: string; agents: FleetAgent[] }>(
-        "fleet",
-        "/api/workbench/fleet",
-        options,
-      ),
+    fleet: Object.assign(
+      (input: { updates?: number; chars?: number } = {}, options: WorkbenchReadOptions = {}) =>
+        request<{ ok: true; generatedAt: string; agents: FleetAgent[] }>(
+          "fleet",
+          `/api/workbench/fleet${queryString(input)}`,
+          options,
+        ),
+      {
+        timeline: (
+          agentId: Id,
+          input: { limit?: number; before?: string; chars?: number } = {},
+          options: WorkbenchReadOptions = {},
+        ) =>
+          request<{
+            ok: true;
+            agent: { id: string; name: string };
+            updates: FleetUpdate[];
+            nextBefore: string | null;
+          }>(
+            "fleetTimeline",
+            `/api/workbench/fleet/${encodeURIComponent(agentId)}${queryString(input)}`,
+            options,
+          ),
+      },
+    ),
     memory: {
       list: (
         input: {

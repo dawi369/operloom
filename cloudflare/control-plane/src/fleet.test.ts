@@ -137,7 +137,8 @@ describe("fleet snapshot", () => {
 
   it("answers the route with the contract shape", async () => {
     const runtime = createPackTestRuntime({ packId: "complex-operator" });
-    const body = (await (await handleFleet(runtime.env, runtime.identity())).json()) as {
+    const request = new Request("https://worker.test/workbench/fleet?updates=2&chars=60");
+    const body = (await (await handleFleet(request, runtime.env, runtime.identity())).json()) as {
       ok: boolean;
       generatedAt: string;
       agents: unknown[];

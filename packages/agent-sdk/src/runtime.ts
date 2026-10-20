@@ -307,6 +307,15 @@ export type AgentExecutionContext = {
   events: {
     append(type: string, summary: string, data?: RuntimeRecord): Promise<void>;
   };
+  /**
+   * One short line about what the agent is doing or found, shown on the fleet
+   * board. Clamped to 280 characters; a run may post at most 60, later posts
+   * return false. Put detail in an artifact, not here. Inside the signed
+   * runner this is a no-op that returns false; post from the invoking workflow.
+   */
+  updates: {
+    post(text: string, data?: RuntimeRecord): Promise<boolean>;
+  };
 };
 
 export type WorkflowFormField = {

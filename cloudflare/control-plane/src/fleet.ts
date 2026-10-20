@@ -1,6 +1,7 @@
 import type { AgentIdentity, Env } from "./types";
 import { selectWorkspaceAgents } from "./authz-store";
 import { json } from "./http";
+import { latestUpdatesByAgent, listAgentTimeline, type AgentUpdate } from "./agent-updates";
 
 export type FleetAgentStatus = "idle" | "running" | "waiting_approval" | "erroring" | "paused";
 
@@ -34,7 +35,25 @@ export type FleetAgent = {
     lastTickAt: string | null;
   };
   lastError: { runId: string; at: string; summary: string | null } | null;
+  /** The agent's own latest status lines, newest first; length and count follow the request. */
+  updates: AgentUpdate[];
 };
+
+export type FleetOptions = { updatesPerAgent: number; updateChars: number };
+export const defaultFleetOptions: FleetOptions = { updatesPerAgent: 3, updateChars: 140 };
+const clampInt = (value: string | null, fallback: number, min: number, max: number) => {
+  const parsed = value === null ? Number.NaN : Number.parseInt(value, 10);
+  return Number.isInteger(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+};
+export const fleetOptionsFromUrl = (url: URL): FleetOptions => ({
+  updatesPerAgent: clampInt(
+    url.searchParams.get("updates"),
+    defaultFleetOptions.updatesPerAgent,
+    0,
+    20,
+  ),
+  updateChars: clampInt(url.searchParams.get("chars"), defaultFleetOptions.updateChars, 40, 280),
+});
 
 const activeRunStatuses = ["queued", "running", "waiting", "interrupted", "blocked"] as const;
 const inList = (values: readonly string[]) => values.map(() => "?").join(",");
@@ -71,10 +90,11 @@ export const fleetSnapshot = async (
   env: Env,
   identity: AgentIdentity,
   now = new Date(),
+  options: FleetOptions = defaultFleetOptions,
 ): Promise<FleetAgent[]> => {
   const workspaceId = identity.scope.workspaceId;
   const dayStart = `${now.toISOString().slice(0, 10)}T00:00:00.000Z`;
-  const [agents, active, recent, approvals, today, triggers, usage] = await Promise.all([
+  const [agents, active, recent, approvals, today, triggers, usage, updates] = await Promise.all([
     selectWorkspaceAgents(env, workspaceId),
     env.DB.prepare(
       `SELECT r.agent_id, r.id, r.status, r.stage, r.created_at, r.completed_at, r.failed_at, r.cancelled_at,
@@ -128,6 +148,10 @@ export const fleetSnapshot = async (
     )
       .bind(workspaceId, now.toISOString().slice(0, 10))
       .all<{ agent_id: string; tokens: number | null }>(),
+    latestUpdatesByAgent(env, workspaceId, {
+      perAgent: options.updatesPerAgent,
+      chars: options.updateChars,
+    }),
   ]);
 
   const activeByAgent = byAgent(active.results);
@@ -199,13 +223,29 @@ export const fleetSnapshot = async (
       lastError: lastFailed
         ? { runId: lastFailed.id, at: finishedAt(lastFailed), summary: lastFailed.summary }
         : null,
+      updates: updates.get(agent.id) ?? [],
     };
   });
 };
 
-export const handleFleet = async (env: Env, identity: AgentIdentity) =>
-  json({
+export const handleFleet = async (request: Request, env: Env, identity: AgentIdentity) => {
+  const url = new URL(request.url);
+  const match = url.pathname.match(/\/workbench\/fleet\/([^/]+)$/);
+  if (match) {
+    const agentId = decodeURIComponent(match[1]!);
+    const agents = await selectWorkspaceAgents(env, identity.scope.workspaceId);
+    const agent = agents.results.find((row) => row.id === agentId);
+    if (!agent) return json({ ok: false, error: "Agent not found" }, { status: 404 });
+    const page = await listAgentTimeline(env, identity.scope.workspaceId, agentId, {
+      limit: clampInt(url.searchParams.get("limit"), 50, 1, 200),
+      before: url.searchParams.get("before") ?? undefined,
+      chars: clampInt(url.searchParams.get("chars"), 280, 40, 280),
+    });
+    return json({ ok: true, agent: { id: agent.id, name: agent.name }, ...page });
+  }
+  return json({
     ok: true,
     generatedAt: new Date().toISOString(),
-    agents: await fleetSnapshot(env, identity),
+    agents: await fleetSnapshot(env, identity, new Date(), fleetOptionsFromUrl(url)),
   });
+};

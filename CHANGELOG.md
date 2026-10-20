@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Fleet updates: agents post one-line status updates with
+  `context.updates.post(text)` (280 characters, 60 per run) and the chat model
+  through an `agent.update` tool; they land as control-plane events. Fleet
+  rows carry the latest lines (`?updates=&chars=` choose count and length) and
+  `GET /workbench/fleet/{agentId}` returns the agent's timeline with run,
+  artifact, approval and memory events. The console board gains Compact /
+  Normal / Detailed and an inline timeline; mobile cards show two lines and
+  expand on tap. Scaffolded packs post after their starter step. Migration 0009.
 - Fleet board: `GET /v1/me/workbench/fleet` returns every agent in the
   workspace with a derived status (waiting on approval, running, last run
   failed, idle, paused), current run and stage, last run and summary, open

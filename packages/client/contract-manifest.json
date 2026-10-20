@@ -3,7 +3,7 @@
   "runtimeSchemas": [
     {
       "path": "client/src/response-schemas.ts",
-      "sha256": "9389aca8e1b3b7d7e3e92a51bad4ad1860997ed659e0344c162e89137eab7405"
+      "sha256": "ff9d83a24c347776f3bafe49a643724b55538a48d26303ee837c350b9f886cb7"
     },
     {
       "path": "client/src/validation.ts",
@@ -49,7 +49,7 @@
         },
         {
           "path": "client/dist/client.d.ts",
-          "sha256": "3bc9e6e49ec936cd273a51a00c61c59e7856e1bc5abc96da147a0b318cd96e06"
+          "sha256": "7b6ff5e4ad6046efe3b71736a81a873a504cd035d698ab8d613f03376858f7bb"
         },
         {
           "path": "client/dist/contracts/agents-chat.d.ts",
@@ -101,7 +101,7 @@
         },
         {
           "path": "client/dist/public-api.d.ts",
-          "sha256": "8bc7af06bdd02a39d60b11bf74cc27db945bd08d92387b2f25597e4d89c46d90"
+          "sha256": "5efcddcea499da1f7d82ca79e1ad00d0db4b24ceca9ac36366dc183549f3d32a"
         },
         {
           "path": "client/dist/public-billing-contracts.d.ts",
@@ -121,7 +121,7 @@
         },
         {
           "path": "client/dist/public-fleet-contracts.d.ts",
-          "sha256": "7fbb930c84f7540e2379446431d8c1dc5bc397398ec258a70aa02d89b59a2622"
+          "sha256": "95da9186792dae54bea0bda4a8ca3c5984932482183255d16469e9e970723a00"
         },
         {
           "path": "client/dist/public-memory-contracts.d.ts",
@@ -141,7 +141,7 @@
         },
         {
           "path": "client/dist/response-schemas.d.ts",
-          "sha256": "6e5a130d6b9c0a0aefa96f95e228d61249b385a1e4dfc08ff6fecce7dddb2959"
+          "sha256": "1fbbc459a5515c4e9b536ef69007ed2f885b147a5ce0f33afcecfd3cb278c798"
         },
         {
           "path": "client/dist/route-map.d.ts",
@@ -163,7 +163,7 @@
       "files": [
         {
           "path": "react/dist/index.d.ts",
-          "sha256": "28b8ebd52697c469bdd328c7ba6ec450888b1f43d21f31d38d0b92c0e4cf54fa"
+          "sha256": "50d27381d3c5f69a0de7f782afead09233b916c8cc4c395c24b297865c494141"
         }
       ]
     }

@@ -23,6 +23,7 @@ import { resolveAgentBehaviorConfig } from "./agent-records";
 import { agentSettingsFor, settingsPin } from "./agent-settings";
 import { selectAgent } from "./authz-store";
 import { appendControlPlaneEvent } from "./control-plane-events";
+import { postAgentUpdate } from "./agent-updates";
 import { isRecord, json, parseJson } from "./http";
 import { readManagedStateVersion, upsertManagedState } from "./managed-state";
 import {
@@ -541,6 +542,12 @@ export const executeRuntimeWorkflowRequest = async (
           targetId: started.runId,
           data: { runId: started.runId, runtimeVersion: runtime.runtimeVersion, ...data },
         });
+      },
+    },
+    updates: {
+      async post(text, data) {
+        controller.signal.throwIfAborted();
+        return postAgentUpdate(env, identity, { runId: started.runId, text, data });
       },
     },
   };

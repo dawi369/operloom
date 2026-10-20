@@ -566,6 +566,19 @@ settled tokens today, enabled and paused triggers with the earliest
 `tool.run.updated`, `approval.updated` and `action.updated` session events and
 every 30 seconds for scheduler ticks that emit none.
 
+Agents narrate themselves with `context.updates.post(text)`: one line, clamped
+to 280 characters, at most 60 per run (later posts return `false`), stored as
+an `agent.update` control-plane event against the run, so it is audited,
+exported and purged with everything else. The chat model has the same through
+its `agent.update` tool. Each fleet row carries the latest lines as `updates`;
+`?updates=0..20&chars=40..280` (default 3 × 140) sets how many and how long.
+`GET /v1/me/workbench/fleet/{agentId}?limit=&before=&chars=` returns the
+agent's timeline: its own lines interleaved with `run.*`, `artifact.created`,
+`approval.*` and `memory.proposed` events, newest first, paged by the last id
+seen. The console board has Compact / Normal / Detailed and an inline
+timeline per agent; the mobile Fleet tab shows two lines per card and expands
+on tap. Migration 0009 adds the per-agent event index.
+
 ### Audit feed
 
 `client.admin.events.list({ type?, userId?, q?, before?, limit? })`

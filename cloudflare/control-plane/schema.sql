@@ -953,6 +953,9 @@ CREATE TABLE control_plane_events (
 CREATE INDEX idx_control_plane_events_scope_latest
   ON control_plane_events (user_id, workspace_id, created_at DESC, id DESC);
 
+CREATE INDEX idx_control_plane_events_agent_latest
+  ON control_plane_events (workspace_id, agent_id, created_at DESC, id DESC);
+
 CREATE TABLE runtime_traces (
   trace_id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
