@@ -29,10 +29,48 @@ try {
   process.exit(1);
 }
 
-const decision = evaluateSecurityAudit(report as { advisories?: unknown });
+/**
+ * Advisories accepted for now. Each needs a path that never reaches a shipped
+ * artifact, a reason, and an expiry; the gate fails again the day after.
+ */
+const acceptedAdvisories: Array<{ id: string; pathPrefix: string; reason: string; until: string }> =
+  [
+    {
+      id: "GHSA-86w9-cpqp-85rv",
+      pathPrefix: "apps__mobile>expo>@expo/cli>",
+      reason: "node-forge is used by the Expo CLI at build time only; no patched release exists.",
+      until: "2026-12-31",
+    },
+    {
+      id: "GHSA-vfj7-8cjw-p6xm",
+      pathPrefix: "apps__mobile>expo>@expo/metro>",
+      reason:
+        "braces is used by Metro's file watcher at build time only; no patched release exists.",
+      until: "2026-12-31",
+    },
+  ];
+const today = new Date().toISOString().slice(0, 10);
+const accepted = new Set(
+  acceptedAdvisories.filter((entry) => entry.until >= today).map((entry) => entry.id),
+);
+
+const decision = evaluateSecurityAudit(report as { advisories?: unknown }, {
+  locallyRemediatedAdvisories: accepted,
+});
+for (const advisory of decision.allowed) {
+  const entry = acceptedAdvisories.find((candidate) => candidate.id === advisory.githubAdvisoryId)!;
+  const stray = advisory.paths.filter((path) => !path.startsWith(entry.pathPrefix));
+  if (stray.length) {
+    console.error(
+      `${advisory.githubAdvisoryId} is accepted only under ${entry.pathPrefix}; also reached via ${stray.join(", ")}`,
+    );
+    process.exit(1);
+  }
+}
 
 for (const advisory of decision.allowed) {
-  console.warn(`${advisory.githubAdvisoryId} is constrained or locally remediated.`);
+  const entry = acceptedAdvisories.find((candidate) => candidate.id === advisory.githubAdvisoryId)!;
+  console.warn(`${advisory.githubAdvisoryId} accepted until ${entry.until}: ${entry.reason}`);
 }
 
 if (decision.blocked.length > 0) {

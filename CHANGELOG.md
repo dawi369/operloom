@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Dependencies: `next` 16.4, patched pins for `@modelcontextprotocol/*`,
+  `sharp`, `shell-quote`, `source-map-js` and `js-yaml`. The security audit
+  gate keeps a dated, path-scoped acceptance list for the two Expo build-time
+  advisories with no upstream fix (`node-forge`, `braces`), expiring
+  2026-12-31; a new path for either fails the gate again.
 - Fleet updates: agents post one-line status updates with
   `context.updates.post(text)` (280 characters, 60 per run) and the chat model
   through an `agent.update` tool; they land as control-plane events. Fleet
