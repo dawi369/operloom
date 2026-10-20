@@ -35,15 +35,30 @@ describe("agent updates", () => {
       true,
     );
     expect(await postAgentUpdate(runtime.env, identity, { runId: "r2", text: "   " })).toBe(false);
+    expect(
+      await postAgentUpdate(runtime.env, identity, {
+        runId: "r2",
+        text: "too much detail",
+        data: { blob: "x".repeat(3000) },
+      }),
+    ).toBe(false);
+    expect(
+      await postAgentUpdate(runtime.env, identity, {
+        runId: "r2",
+        text: "spoofed run",
+        data: { runId: "someone-elses-run" },
+      }),
+    ).toBe(true);
     const latest = await latestUpdatesByAgent(runtime.env, identity.scope.workspaceId, {
       perAgent: 2,
       chars: 140,
     });
     expect(latest.get(identity.agentId)?.map((update) => update.text)).toEqual([
+      "spoofed run",
       "fresh run",
-      `step ${agentUpdatesPerRun - 1}`,
     ]);
     expect(latest.get(identity.agentId)?.[0]?.runId).toBe("r2");
+    expect(latest.get(identity.agentId)?.[0]?.data.runId).toBe("r2");
   });
 
   it("lists a mixed timeline newest first with a stable cursor", async () => {

@@ -59,7 +59,9 @@ const decision = evaluateSecurityAudit(report as { advisories?: unknown }, {
 });
 for (const advisory of decision.allowed) {
   const entry = acceptedAdvisories.find((candidate) => candidate.id === advisory.githubAdvisoryId)!;
-  const stray = advisory.paths.filter((path) => !path.startsWith(entry.pathPrefix));
+  const stray = advisory.paths.filter(
+    (path) => !(path === entry.pathPrefix || path.startsWith(entry.pathPrefix.replace(/>?$/, ">"))),
+  );
   if (stray.length) {
     console.error(
       `${advisory.githubAdvisoryId} is accepted only under ${entry.pathPrefix}; also reached via ${stray.join(", ")}`,

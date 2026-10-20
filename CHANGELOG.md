@@ -2,7 +2,13 @@
 
 ## Unreleased
 
-- Outreach guard: provider operations accept `outreach: { dailyCap, window }`,
+- Operations: `environment:worker secrets` now keeps existing signing secrets
+  and only creates missing ones; `--rotate` replaces them. The mobile app
+  stops background polling by wiring react-query focus to `AppState`.
+  Migration 0010 indexes provider receipts for the outreach cap.
+- Outreach guard: `transactionalEmailOperation` and `smsSendOperation`
+  default to `outreach: { dailyCap: 50 }`; agent status lines refuse `data`
+  over 2 KiB and always carry the real run id. Provider operations accept `outreach: { dailyCap, window }`,
   enforced by the Worker before dispatch (`outreach_daily_cap_reached`,
   `outreach_window_closed`); the cap counts per agent per local day from
   receipts. `smsSendOperation` joins `transactionalEmailOperation` in

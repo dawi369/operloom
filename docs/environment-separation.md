@@ -40,13 +40,17 @@ own and keep the shape.
 pnpm environment:worker check               # manifest valid, no collision with full targets
 pnpm environment:worker render              # output/environments/staging/wrangler.json
 pnpm environment:worker migrate             # wrangler d1 migrations apply --remote
-pnpm environment:worker secrets             # rotate signing secrets; set provider keys if present
+pnpm environment:worker secrets             # create missing signing secrets; set provider keys if present
+pnpm environment:worker secrets --rotate    # replace signing secrets (drops in-flight runner callbacks)
 pnpm environment:worker deploy              # wrangler deploy
 pnpm environment:worker smoke               # health 200, authenticated routes 401
 ```
 
-`secrets` generates fresh random values for the four signing secrets every time
-(nothing outside the Worker holds them) and sets `OPENROUTER_API_KEY` and
+`secrets` creates the four signing secrets with random values when the Worker
+does not have them yet (nothing outside the Worker holds them) and keeps them
+otherwise; `--rotate` replaces them, which fails any runner callback signed
+with the old value, so run it between deploys, not during a busy hour. The
+command also sets `OPENROUTER_API_KEY` and
 `WORKOS_API_KEY` from the variables named under `secretEnvironmentVariables`
 when those are present in the shell. Add an `email` block
 (`{ "provider": "resend", "from": "Name <notify@domain>" }`) and

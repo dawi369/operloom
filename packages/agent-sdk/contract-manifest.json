@@ -48,7 +48,7 @@
     },
     {
       "path": "dist/providers.d.ts",
-      "sha256": "93cc4056beada57447598730ad3365cf7022933af2962f990ab5e62abbc009cc"
+      "sha256": "8aa3a509cf0b0bde09ee103ede84625ed9ebd15cdc5a0308bdf6bc9621251dda"
     },
     {
       "path": "dist/queries.d.ts",

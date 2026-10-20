@@ -6,6 +6,8 @@ export const agentUpdateType = "agent.update";
 export const agentUpdateMaxChars = 280;
 /** A loop that narrates every iteration stops being a status feed; later posts in the run are dropped. */
 export const agentUpdatesPerRun = 60;
+/** Structured detail riding along with a line; anything bigger belongs in an artifact. */
+export const agentUpdateDataMaxBytes = 2048;
 
 /** Event types the fleet timeline shows beside the agent's own updates. */
 export const fleetTimelineTypes = [
@@ -52,6 +54,9 @@ export const postAgentUpdate = async (
 ) => {
   const text = clampUpdateText(input.text);
   if (!text) return false;
+  const data = input.data ?? {};
+  if (new TextEncoder().encode(JSON.stringify(data)).byteLength > agentUpdateDataMaxBytes)
+    return false;
   const used = await countUpdatesForRun(env, identity, input.runId);
   if (used >= agentUpdatesPerRun) return false;
   await appendControlPlaneEvent(env, identity, {
@@ -59,7 +64,7 @@ export const postAgentUpdate = async (
     summary: text,
     targetType: "run",
     targetId: input.runId,
-    data: { runId: input.runId, ...(input.data ?? {}) },
+    data: { ...data, runId: input.runId },
   });
   return true;
 };

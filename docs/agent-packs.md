@@ -243,7 +243,9 @@ smsSendOperation({
 });
 ```
 
-The platform checks both before any provider is contacted: a send outside the
+Both helpers default to `{ dailyCap: 50 }` so a fork cannot ship without a
+cap; pass `outreach` to raise it or add a window. The platform checks both
+before any provider is contacted: a send outside the
 window fails the action with `outreach_window_closed`, and one past the cap
 (counted per agent per local day from receipts, including sends still in
 flight) with `outreach_daily_cap_reached`. Put the limits here rather than in

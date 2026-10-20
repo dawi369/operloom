@@ -291,14 +291,38 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       wrangler("deploy");
       break;
     case "secrets": {
-      // Signing secrets are rotated to fresh random values; provider keys come from the named
-      // variables and are skipped when absent so a partial rotation never clears a key.
-      for (const secret of generatedWorkerSecrets)
+      // Signing secrets are created once and kept; `--rotate` replaces them, which invalidates
+      // runner callbacks already in flight. Provider keys come from the named variables and are
+      // skipped when absent so a partial run never clears a key.
+      const rotate = rest.includes("--rotate");
+      const existing = new Set(
+        rotate
+          ? []
+          : (() => {
+              const listed = spawnSync(
+                "pnpm",
+                ["exec", "wrangler", "secret", "list", "--config", rendered.wranglerPath],
+                { cwd: process.cwd(), encoding: "utf8" },
+              );
+              if (listed.status !== 0) return [] as string[];
+              try {
+                return (JSON.parse(listed.stdout) as { name: string }[]).map((item) => item.name);
+              } catch {
+                return [] as string[];
+              }
+            })(),
+      );
+      for (const secret of generatedWorkerSecrets) {
+        if (existing.has(secret)) {
+          console.log(`Kept ${secret}; pass --rotate to replace it.`);
+          continue;
+        }
         run(
           "pnpm",
           ["exec", "wrangler", "secret", "put", secret, "--config", rendered.wranglerPath],
           `${randomBytes(48).toString("base64url")}\n`,
         );
+      }
       for (const [secret, variable] of [
         ["OPENROUTER_API_KEY", manifest.secretEnvironmentVariables.openrouter],
         ["WORKOS_API_KEY", manifest.secretEnvironmentVariables.workosApiKey],
@@ -348,7 +372,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     }
     default:
       throw new Error(
-        "usage: worker-environment <check|render|migrate|deploy|secrets|smoke> [--name staging]",
+        "usage: worker-environment <check|render|migrate|deploy|secrets [--rotate]|smoke> [--name staging]",
       );
   }
 }

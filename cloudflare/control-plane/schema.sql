@@ -3781,6 +3781,8 @@ CREATE TABLE control_provider_operations (
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
 CREATE INDEX idx_provider_operations_scope ON control_provider_operations(user_id,workspace_id,agent_id,created_at);
+CREATE INDEX idx_provider_operations_outreach
+  ON control_provider_operations (workspace_id, agent_id, operation_id, status, created_at);
 CREATE TRIGGER provider_operation_immutable BEFORE UPDATE ON control_provider_operations
 WHEN NEW.id IS NOT OLD.id OR NEW.user_id IS NOT OLD.user_id OR NEW.workspace_id IS NOT OLD.workspace_id
  OR NEW.agent_id IS NOT OLD.agent_id OR NEW.proposal_id IS NOT OLD.proposal_id OR NEW.review_id IS NOT OLD.review_id

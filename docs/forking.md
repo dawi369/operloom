@@ -42,6 +42,13 @@ merges stay conflict-free.
 
 ## Day one checklist
 
+Accounts you need before step 3, all with free tiers: Cloudflare (Workers,
+D1, R2, Queues), a WorkOS AuthKit application (issuer, JWKS URL and client
+ids come from its dashboard), an OpenRouter key, and for email a Resend
+account with a verified sending domain. Log in once with `wrangler login`.
+Run `pnpm install --frozen-lockfile && pnpm operloom init` first; it writes
+`.env.local` and the Worker's `.dev.vars` with local signing secrets.
+
 In this order, each step verifiable before the next:
 
 1. **Pack.** `pnpm agent-packs:create --id my-pack --name "My Pack"`, then
@@ -49,15 +56,21 @@ In this order, each step verifiable before the next:
    tool and workflow, a monitor trigger (off), a `memory` block with nothing
    auto-activating, one editable setting, and posts a status line to the
    fleet board. Replace the placeholder behaviour; keep the safe defaults.
-2. **Identity.** `pnpm operloom fork init ... --default-pack my-pack`, then
-   `pnpm operloom fork --check`.
+2. **Identity.** `pnpm operloom fork init ... --default-pack my-pack` (the
+   origin must be your public HTTPS URL), then `pnpm operloom fork --check`.
 3. **Environment.** Copy `config/environments/staging.json` to
-   `config/environments/<name>.json` for a Worker-only target (Cloudflare ids,
-   WorkOS issuer and client ids, `features`, `model`), then
-   `pnpm environment:worker check --name <name>`, `migrate`, `secrets`,
-   `deploy`, `smoke`. `/health` names any variable an enabled feature is
-   missing; the smoke prints the same list. Full web plus Worker targets use
-   `config/environments/{acceptance,production}.json` and the
+   `config/environments/<name>.json` for a Worker-only target and replace
+   every identifier: the `cloudflare` block (`workerName`, `d1DatabaseName`
+   and `d1DatabaseId` from `wrangler d1 create <name>`, `r2BucketName`,
+   `origin`), `consoleOrigin`, the `workos` block (issuer, JWKS URL, allowed
+   client ids), `mcpAllowedClientIds`, and `secretEnvironmentVariables`,
+   which names the shell variables holding your OpenRouter and WorkOS API
+   keys (for example `OPERLOOM_<NAME>_OPENROUTER_API_KEY`); export them
+   before `secrets`. Then `pnpm environment:worker check --name <name>`,
+   `migrate`, `secrets` (generates the signing secrets and pushes the named
+   keys), `deploy`, `smoke`. `/health` names any variable an enabled feature
+   is missing; the smoke prints the same list. Full web plus Worker targets
+   use `config/environments/{acceptance,production}.json` and the
    [deployment guide](environment-separation.md).
 4. **Email.** Owner notifications: `OPERLOOM_EMAIL_PROVIDER=resend`,
    `RESEND_API_KEY`, `OPERLOOM_EMAIL_FROM`. Customer email: either
@@ -67,8 +80,10 @@ In this order, each step verifiable before the next:
 5. **Memory policy.** In the manifest `memory` block decide `autoActivate`
    (start empty), `ttlDays` per kind and any `contentSchema`. Packs with
    `risk.financialData` propose everything by default.
-6. **Outreach limits.** Any operation that reaches a person gets
-   `outreach: { dailyCap, window }`; the Worker refuses sends outside them.
+6. **Outreach limits.** `transactionalEmailOperation` and `smsSendOperation`
+   carry `outreach: { dailyCap: 50 }` unless you pass your own; add a
+   `window` with the business's timezone. The Worker refuses sends outside
+   them.
 7. **Simulation first.** Agents start on the `simulation` effect target. Run
    the whole loop there, approve from the mobile Approvals tab, watch the
    fleet board, then switch the agent to `external` per connection.

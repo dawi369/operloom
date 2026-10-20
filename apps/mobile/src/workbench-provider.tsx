@@ -21,6 +21,7 @@ import {
   type PropsWithChildren,
 } from "react";
 import { AppState } from "react-native";
+import { focusManager } from "@tanstack/react-query";
 
 import { useMobileAuth } from "./auth/auth-provider";
 import { mobileConfig } from "./config";
@@ -85,6 +86,14 @@ function SessionStream({
   }, [onState, queryClient, realtime]);
   return null;
 }
+
+// react-query only knows browser focus; without this, intervals keep polling while the app is backgrounded.
+focusManager.setEventListener((handleFocus) => {
+  const subscription = AppState.addEventListener("change", (state) =>
+    handleFocus(state === "active"),
+  );
+  return () => subscription.remove();
+});
 
 export function MobileWorkbenchProvider({ children }: PropsWithChildren) {
   const auth = useMobileAuth();

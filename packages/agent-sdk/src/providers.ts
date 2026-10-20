@@ -321,9 +321,10 @@ export const transactionalEmailOperation = (input: {
   providerId: string;
   auth?: RuntimeProviderOperation["auth"];
   path?: string;
+  /** Defaults to `defaultOutreachPolicy`; pass a higher cap deliberately, the platform never runs without one. */
   outreach?: RuntimeProviderOperation["outreach"];
 }): RuntimeProviderOperation => ({
-  ...(input.outreach ? { outreach: input.outreach } : {}),
+  outreach: { ...defaultOutreachPolicy, ...input.outreach },
   id: input.id ?? "email.send",
   version: input.version ?? "1",
   providerId: input.providerId,
@@ -367,6 +368,11 @@ export const transactionalEmailSchema: JsonSchema = {
   },
 };
 
+/** Applied to every person-facing operation unless the pack raises it: a modest daily cap, no window. */
+export const defaultOutreachPolicy: NonNullable<RuntimeProviderOperation["outreach"]> = {
+  dailyCap: 50,
+};
+
 /** E.164 without spaces; the relay is responsible for opt-out lists and carrier rules. */
 export const e164Pattern = "^\\+[1-9][0-9]{6,14}$";
 
@@ -391,9 +397,10 @@ export const smsSendOperation = (input: {
   providerId: string;
   auth?: RuntimeProviderOperation["auth"];
   path?: string;
+  /** Defaults to `defaultOutreachPolicy`; pass a higher cap deliberately, the platform never runs without one. */
   outreach?: RuntimeProviderOperation["outreach"];
 }): RuntimeProviderOperation => ({
-  ...(input.outreach ? { outreach: input.outreach } : {}),
+  outreach: { ...defaultOutreachPolicy, ...input.outreach },
   id: input.id ?? "sms.send",
   version: input.version ?? "1",
   providerId: input.providerId,

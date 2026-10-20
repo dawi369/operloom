@@ -162,6 +162,10 @@ describe("bundled provider adapters", () => {
 
   it("declares SMS as a reviewed provider operation that treats opt-out as rejection", () => {
     const operation = smsSendOperation({ providerId: "sms-relay" });
+    expect(operation.outreach).toEqual({ dailyCap: 50 });
+    expect(
+      smsSendOperation({ providerId: "sms-relay", outreach: { dailyCap: 200 } }).outreach,
+    ).toEqual({ dailyCap: 200 });
     expect(operation).toMatchObject({
       id: "sms.send",
       providerId: "sms-relay",
