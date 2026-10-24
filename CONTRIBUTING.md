@@ -60,6 +60,15 @@ Use `pnpm release:check` for the complete code, build, and browser gate.
 Local Markdown and image links are enforced by `pnpm docs:check`, which is also
 part of `pnpm verify:fast`.
 
+GitHub Actions mirrors those gates without third-party services:
+`verify.yml` runs `pnpm verify:security` and `pnpm verify:fast` on every pull
+request and push, then deploys and smokes staging from `main`
+(see [environments](docs/environment-separation.md#continuous-staging));
+`codeql.yml` runs GitHub code scanning on pull requests, pushes and weekly;
+`release-gates.yml` runs the production build, Docker boundary and browser
+conformance nightly; Dependabot opens grouped monthly update pull requests
+with a seven-day cooldown that matches `minimumReleaseAge`.
+
 ## Architecture Rules
 
 - Browser code never chooses tenant scope, user IDs, workspace IDs, or secrets.

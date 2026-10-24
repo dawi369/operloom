@@ -48,6 +48,13 @@ const acceptedAdvisories: Array<{ id: string; pathPrefix: string; reason: string
         "braces is used by Metro's file watcher at build time only; no patched release exists.",
       until: "2026-12-31",
     },
+    {
+      id: "GHSA-mrhx-c7xc-m3w5",
+      pathPrefix: "apps__mobile>expo>@expo/cli>",
+      reason:
+        "zod 3.x is used by the Expo CLI at build time only; the fix ships in zod 4.6.6 and no 3.x release exists.",
+      until: "2026-12-31",
+    },
   ];
 const today = new Date().toISOString().slice(0, 10);
 const accepted = new Set(

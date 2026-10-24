@@ -60,6 +60,40 @@ Worker; `secrets` then sets `RESEND_API_KEY` too. Heavy tools run inline
 `conformanceMode: true` mark it as non-production. Pass `--name <other>` to use
 a second manifest with the same `kind`.
 
+### Continuous staging
+
+`.github/workflows/verify.yml` deploys staging after every green push to
+`main` (`check`, `render`, `migrate`, `deploy`, `smoke`) when the repository
+variable `OPERLOOM_STAGING_DEPLOY` is `true` and the `staging` GitHub
+environment holds `CLOUDFLARE_API_TOKEN` (Workers Scripts, D1 and R2 edit on
+the account) and `CLOUDFLARE_ACCOUNT_ID`. The job never runs `secrets`:
+signing and provider secrets stay hand-managed. Forks that do not set the
+variable skip the job. The nightly release gate still runs the browser
+conformance suites against a local Worker; staging has no automated
+authenticated journey, so a change to chat or runs still deserves one manual
+turn there.
+
+### Sign in to staging from the local console
+
+Staging verifies WorkOS access tokens, so the local console signs in through
+WorkOS AuthKit and sends that token to the Worker. In `.env.local`:
+
+```text
+OPERLOOM_BACKEND_URL=<cloudflare.origin from config/environments/staging.json>
+OPERLOOM_LOCAL_API_ENABLED=false
+WORKOS_CLIENT_ID=<one of workos.allowedClientIds>
+WORKOS_API_KEY=<the matching WorkOS environment key>
+WORKOS_COOKIE_PASSWORD=<32+ random characters>
+NEXT_PUBLIC_WORKOS_REDIRECT_URI=http://localhost:3000/auth/callback
+```
+
+Register `http://localhost:3000/auth/callback` as a redirect URI on that
+WorkOS application, start only the web console with `pnpm dev:frontend`, open
+`localhost:3000` and sign in. The manifest's `consoleOrigin` is already in the
+Worker's CORS allowlist. Native shells point `EXPO_PUBLIC_CONTROL_PLANE_ORIGIN`
+at the same origin. Keep the Worker and signed runner from `pnpm operloom dev`
+stopped while doing this; they are not used.
+
 ## Configuration guard
 
 The Worker checks that every enabled feature has the variables it needs
