@@ -7,12 +7,11 @@ import {
   type ErrorInfo,
   type ReactNode,
 } from "react";
-import { useAssistantToolUI, type ToolCallMessagePartProps } from "@assistant-ui/react";
+import type { ToolCallMessagePartProps } from "@assistant-ui/react";
 import type { ToolResultRendererProps } from "@operloom/agent-sdk/web";
 
 import { ToolFallback } from "@/components/assistant-ui/tool-fallback";
 import {
-  listToolResultRenderers,
   resolveToolResultRenderer,
   sanitizeRendererValue,
   withinRendererBound,
@@ -54,7 +53,9 @@ const artifactRefs = (result: unknown): ToolResultRendererProps["artifactRefs"] 
 /**
  * Renders one tool call with the package's component when the compiled
  * registry has one for the tool and the payload is inside its bound; otherwise
- * the generic fallback. Exported for host tests.
+ * the generic fallback. The thread's `tool-call` part renders through this
+ * directly, so no renderer is registered in model context and the Worker stays
+ * the only place that exposes tools to the model.
  */
 export const PackToolResult = (part: ToolCallMessagePartProps) => {
   const fallback = <ToolFallback {...part} />;
@@ -78,17 +79,3 @@ export const PackToolResult = (part: ToolCallMessagePartProps) => {
     </RendererBoundary>
   );
 };
-
-const PackToolUI = ({ toolName }: { toolName: string }) => {
-  useAssistantToolUI({ toolName, render: PackToolResult });
-  return null;
-};
-
-/** Mount once inside the assistant runtime provider to register every compiled tool renderer. */
-export const PackToolRenderers = () => (
-  <>
-    {listToolResultRenderers().map(({ packId, toolId }) => (
-      <PackToolUI key={`${packId}:${toolId}`} toolName={toolId} />
-    ))}
-  </>
-);

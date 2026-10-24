@@ -144,6 +144,17 @@
     ) {
     outline: none;
   }
+
+  /* Keyboard focus is tracked by the browser, not drawn: no outline or ring
+     on any control, including assistant-ui and Radix internals. Focus order,
+     traps and aria state are unaffected. Ring variables are forced rather than
+     box-shadow so elevation shadows survive focus. */
+  *:focus-visible {
+    outline: none !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+    --tw-ring-offset-shadow: 0 0 #0000 !important;
+    --tw-ring-color: transparent !important;
+  }
 }
 
 @layer components {

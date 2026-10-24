@@ -32,7 +32,6 @@ import {
   nextQueuedChatCommand,
   promoteQueuedChatCommand,
   queueChatCommand,
-  queuePosition,
   readChatCommand,
   reserveChatCommand,
   type ChatCommandMode,

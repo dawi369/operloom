@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Console: keyboard focus is no longer drawn. A global `:focus-visible` rule
+  removes outlines and focus rings on every control; focus order, dialog
+  traps and aria state are unchanged. `@assistant-ui/react` 0.15.29,
+  `@assistant-ui/react-markdown` 0.14.23, `@assistant-ui/ai-sdk` 0.0.13
+  (replacing the `react-ai-sdk` shim), `@cloudflare/ai-chat` 0.12.1,
+  `agents` 0.28.1 and `ai` 7.0.143. Pack tool renderers render through the
+  thread's `tool-call` part instead of the deprecated `useAssistantToolUI`
+  registration, so nothing in the browser registers tools in model context.
 - Hosted staging console: `Dockerfile.web` and `fly.web.toml` run the Next.js
   console on Fly against a worker-only environment (`pnpm deploy:web:fly`);
   worker-only manifests take `webOrigins`, rendered into the Worker's

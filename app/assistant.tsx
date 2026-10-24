@@ -18,7 +18,7 @@ import {
   type ReactNode,
 } from "react";
 import { AssistantRuntimeProvider, useAui } from "@assistant-ui/react";
-import { useAISDKRuntime } from "@assistant-ui/react-ai-sdk";
+import { useAISDKRuntime } from "@assistant-ui/ai-sdk";
 import { useAgentChat } from "@cloudflare/ai-chat/react";
 import { useAuth } from "@workos-inc/authkit-nextjs/components";
 import { useAgent } from "agents/react";
@@ -32,7 +32,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { WorkbenchMark } from "@/components/workbench/workbench-mark";
 import { Thread } from "@/components/assistant-ui/thread";
-import { PackToolRenderers } from "@/components/assistant-ui/pack-tool-renderers";
 import {
   StarterSuggestionGrid,
   ThreadWelcomeLayout,
@@ -235,7 +234,6 @@ function AgentRuntime({
 
   return (
     <AssistantRuntimeProvider runtime={providerRuntime}>
-      <PackToolRenderers />
       <RuntimeDraftHandoff
         draft={draft}
         acceptedDraft={acceptedDraft}
