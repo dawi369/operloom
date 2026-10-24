@@ -25,6 +25,11 @@ describe("worker-only environments", () => {
     expect(vars.OPERLOOM_RELEASE_SHA).toBe("a".repeat(40));
     expect(JSON.stringify(rendered.wrangler)).not.toMatch(/sk-|secret_|API_KEY/i);
     expect(rendered.wrangler.d1_databases[0]!.migrations_dir).toContain("control-plane/migrations");
+    expect(rendered.wrangler.observability).toEqual({
+      enabled: true,
+      head_sampling_rate: 1,
+      logs: { invocation_logs: true },
+    });
   });
 
   it("rejects manifests that collide with full targets or point at http origins", () => {

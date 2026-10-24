@@ -224,6 +224,10 @@ export const renderWorkerEnvironment = (
       SENTRY_TRACES_SAMPLE_RATE: "0",
     },
     triggers: { crons: ["* * * * *"] },
+    // Workers Logs keeps request, Durable Object and cron outcomes for a week,
+    // so a stall or reset can be read back from the dashboard after the fact.
+    // Worker-only environments carry no customer data; sample everything.
+    observability: { enabled: true, head_sampling_rate: 1, logs: { invocation_logs: true } },
     d1_databases: [
       {
         binding: "DB",

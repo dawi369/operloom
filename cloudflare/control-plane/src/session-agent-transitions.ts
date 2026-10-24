@@ -223,6 +223,9 @@ export const abortThreadChatResponse = async (env: Env, thread: ChatThreadRow) =
     const response = await stub.fetch("https://thread-agent.internal/internal/thread-cancel", {
       method: "POST",
       headers: { "x-operloom-agent-secret": secret },
+      // The session coordinator must never wait on a thread's Durable Object
+      // indefinitely; the status write has already landed and cancel is advisory.
+      signal: AbortSignal.timeout(5_000),
     });
     return response.ok;
   } catch {
