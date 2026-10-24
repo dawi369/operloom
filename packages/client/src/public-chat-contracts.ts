@@ -13,13 +13,21 @@ export const publicChatContracts = {
   "POST /chat/threads/{id}/turns": {
     status: 202,
     request: z
-      .object({ text: z.string().trim().min(1).max(8000), clientTurnId: id.max(128).optional() })
+      .object({
+        text: z.string().trim().min(1).max(8000),
+        clientTurnId: id.max(128).optional(),
+        /** `steer` joins the running turn at its next step; `turn` (default) waits its turn. */
+        mode: z.enum(["turn", "steer"]).optional(),
+      })
       .strict(),
     response: z.object({
       ok,
       messageId: id,
       threadId: id,
-      status: z.literal("accepted"),
+      /** `queued` means another turn holds the thread; the command runs when it finishes. */
+      status: z.enum(["accepted", "queued"]),
+      mode: z.enum(["turn", "steer"]).optional(),
+      queuePosition: z.number().int().min(1).optional(),
       duplicate: z.boolean().optional(),
       commandId: id.optional(),
     }),
@@ -45,8 +53,11 @@ export const publicChatContracts = {
         id,
         threadId: id,
         messageId: id,
-        status: z.enum(["pending", "running", "completed", "failed", "cancelled"]),
+        status: z.enum(["queued", "pending", "running", "completed", "failed", "cancelled"]),
+        mode: z.enum(["turn", "steer"]).optional(),
+        queuePosition: z.number().int().min(0).optional(),
         runId: id.nullable(),
+        queuedAt: z.string().nullable().optional(),
         acceptedAt: z.string().nullable(),
         createdAt: z.string(),
         updatedAt: z.string(),
@@ -89,3 +100,7 @@ export const publicChatOpenApiOperation = (method: string, path: string) => {
     },
   };
 };
+
+export type ChatTurnSubmitResponse = z.infer<
+  (typeof publicChatContracts)["POST /chat/threads/{id}/turns"]["response"]
+>;

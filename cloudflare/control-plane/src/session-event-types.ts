@@ -8,6 +8,8 @@ export type WorkbenchSessionEventType =
   | "chat.run.started"
   | "chat.run.completed"
   | "chat.run.failed"
+  | "chat.turn.queued"
+  | "chat.turn.steered"
   | "workflow.run.updated"
   | "approval.updated"
   | "action.updated"

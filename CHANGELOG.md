@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Queued turns and steering: a `/v1` turn submitted while another runs is
+  recorded as a durable `queued` command (migration 0011) and answered `202`
+  with `queuePosition`, instead of `409`; the thread agent drains the queue
+  in order through normal admission, capped at three waiting turns with a
+  ten-minute expiry. `mode: "steer"` (`client.threads.steer`) joins the
+  running turn at its next model step and is persisted as a user message
+  with `metadata.steeredRunId`. `threads.command` reports `queued`, `mode`
+  and `queuePosition`; session events `chat.turn.queued` and
+  `chat.turn.steered`; capability `chat.queue`. The web console sends while
+  a turn runs (Enter or the queue button) and the thread agent runs it next
+  rather than dropping it. Runtime conformance covers the queue, the limit
+  and the steer. The thread viewport drops CSS `scroll-smooth`, which fought
+  the top-anchor scroll and bounced a few pixels when a new turn landed.
 - Dependencies: `next` 16.4.2 and `@sentry/nextjs` 10.76.2 clear the critical
   `use cache` and image-optimization advisories (GHSA-673q-mjm6-r5xr,
   GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r) and the Sentry tunnel middleware

@@ -317,9 +317,10 @@ are kept for 30 days.
 New HTTP turns return `commandId` alongside the accepted message identity.
 `client.threads.command(commandId)` reads the canonical outcome using
 `GET /chat/commands/{id}` under the same explicit workspace/agent scope. Commands
-report `pending`, `running`, `completed`, `failed` or `cancelled`, with acceptance
-time, run identity and a bounded error code. Historical local-only receipts may
-omit `commandId` when replayed.
+report `queued`, `pending`, `running`, `completed`, `failed` or `cancelled`, with
+their `mode`, 1-based `queuePosition` while waiting, acceptance time, run
+identity and a bounded error code. Historical local-only receipts may omit
+`commandId` when replayed.
 
 Only one pending/running command is admitted per thread. D1 registers it before
 HTTP acknowledgement and links it to one execution run atomically. Reconnection
@@ -327,6 +328,28 @@ and same-key replay observe the original command; they do not repeat model work.
 The existing scheduler inspects at most 100 expired commands per tick. A two-minute
 deadline closes abandoned work and fences late execution; export fences defer
 recovery writes. Review a failed outcome before explicitly sending a new key.
+
+### Queued turns and steering
+
+A turn submitted while another is running is not refused. The Worker records it
+as a `queued` command outside the active slot and answers `202` with
+`status: "queued"` and `queuePosition`; the user message is kept with the
+thread and the turn starts, in order, when the thread is free. At most three
+turns wait per thread (`chat_queue_full` beyond that) and a waiting turn expires
+after ten minutes as `cancelled` (`chat_queue_expired`). Draining re-runs
+admission, so a membership or thread change between enqueue and start cancels
+the turn (`chat_command_admission_denied`) instead of running it; an agent
+revision upgrade is refused while turns wait.
+
+`mode: "steer"` (`client.threads.steer(threadId, text, key)`) hands the text to
+the running turn at its next model step rather than after it. The steer is
+persisted as a user message with `metadata.steeredRunId`, its command completes
+with the turn it joined, and if the turn finishes first the steer runs as an
+ordinary queued turn. Session events `chat.turn.queued` and `chat.turn.steered`
+carry `threadId`, `clientTurnId`, `commandId` and `queuePosition`; packs and
+clients negotiate the capability as `chat.queue`. The web console sends while a
+turn runs (Enter or the queue button); the thread agent persists the message
+immediately and runs it next.
 Command outcomes are included in workspace exports and removed on purge.
 
 This provides observable interruption handling, not resumable model execution.

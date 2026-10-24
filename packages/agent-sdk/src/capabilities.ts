@@ -16,6 +16,7 @@ export const implementedRuntimeCapabilities = [
   "tasks.delegate",
   "entitlements.read",
   "memory.recall",
+  "chat.queue",
 ] as const;
 
 export type RuntimeRequirements = {

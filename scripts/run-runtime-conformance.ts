@@ -193,6 +193,83 @@ const main = async () => {
     if (command.status !== "completed" || !command.runId || !command.acceptedAt)
       throw new Error("Command was not linked to its completed canonical run");
 
+    // Queued turns: a turn submitted while another runs waits durably, drains in
+    // order through normal admission, and a steer joins the running turn.
+    {
+      const queueThread = await client.threads.create();
+      const slow = await client.threads.submit(
+        queueThread.threadId,
+        "[slow:2500] Take your time.",
+        "queue-slow-turn",
+      );
+      if (slow.status !== "accepted") throw new Error("Slow turn was not accepted");
+      // Give the detached turn a moment to start before overlapping it.
+      await new Promise((resolveWait) => setTimeout(resolveWait, 300));
+      const queued = await client.threads.submit(
+        queueThread.threadId,
+        "Second, after the slow one.",
+        "queue-second-turn",
+      );
+      if (queued.status !== "queued" || queued.queuePosition !== 1 || !queued.commandId)
+        throw new Error(`Overlapping turn was not queued: ${JSON.stringify(queued)}`);
+      const steered = await client.threads.steer(
+        queueThread.threadId,
+        "Also mention the weather.",
+        "queue-steer-turn",
+      );
+      if (steered.status !== "queued" || steered.mode !== "steer")
+        throw new Error(`Steer was not acknowledged: ${JSON.stringify(steered)}`);
+      const replay = await client.threads.submit(
+        queueThread.threadId,
+        "Second, after the slow one.",
+        "queue-second-turn",
+      );
+      if (replay.commandId !== queued.commandId)
+        throw new Error("Queued replay changed command identity");
+      const waiting = (await client.threads.command(queued.commandId)).command;
+      if (waiting.status !== "queued" || waiting.mode !== "turn" || !waiting.queuePosition)
+        throw new Error(`Queued command was not reported as waiting: ${JSON.stringify(waiting)}`);
+      let third = 0;
+      for (const key of ["queue-fill-1", "queue-fill-2", "queue-fill-3"]) {
+        try {
+          const filled = await client.threads.submit(queueThread.threadId, `Fill ${key}`, key);
+          if (filled.status === "queued") third += 1;
+        } catch (error) {
+          if ((error as { code?: string }).code !== "chat_queue_full")
+            throw new Error(`Unexpected queue failure: ${(error as Error).message}`);
+        }
+      }
+      // The steer waits in the same durable queue until the running turn takes
+      // it, so with the queued turn it leaves room for exactly one more.
+      if (third !== 1) throw new Error(`Queue limit admitted ${third + 2} waiting turns`);
+
+      const drainedBy = Date.now() + 30_000;
+      let drained = (await client.threads.command(queued.commandId)).command;
+      while (drained.status !== "completed") {
+        if (Date.now() > drainedBy)
+          throw new Error(`Queued turn did not drain: ${JSON.stringify(drained)}\n${logs}`);
+        if (drained.status === "failed" || drained.status === "cancelled")
+          throw new Error(`Queued turn ended ${drained.status}: ${drained.errorCode}`);
+        await new Promise((resolveWait) => setTimeout(resolveWait, 200));
+        drained = (await client.threads.command(queued.commandId)).command;
+      }
+      if (!drained.runId || drained.queuePosition !== 0)
+        throw new Error("Drained turn did not bind its own run");
+      const steerCommand = (await client.threads.command(steered.commandId!)).command;
+      if (steerCommand.status !== "completed")
+        throw new Error(`Steer did not complete with its turn: ${JSON.stringify(steerCommand)}`);
+      const transcript = await client.threads.messages(queueThread.threadId);
+      const userTexts = transcript.messages
+        .filter((message) => message.role === "user")
+        .map((message) =>
+          message.content.map((part) => (part.type === "text" ? part.text : "")).join(""),
+        );
+      if (!userTexts.some((text) => text.includes("Also mention the weather")))
+        throw new Error("Steer text is missing from the canonical transcript");
+      if (!userTexts.some((text) => text.includes("Second, after the slow one")))
+        throw new Error("Queued turn text is missing from the canonical transcript");
+    }
+
     const forged = await fetch(
       `${baseUrl}/v1/workspaces/other/agents/${encodeURIComponent(agentId)}/chat/threads`,
       { headers: { ...headers, "x-operloom-workspace-id": workspaceId } },
@@ -1813,7 +1890,7 @@ const main = async () => {
           : "Automatic local Workflows restart passed with retained step identities.",
       );
     console.log(
-      "Backend-only conformance passed: local authentication, explicit thread, Node and browser HTTP acceptance, canonical transcript after reconnect, idempotent replay/conflict and durable command/run identity, explicit package upgrade/history/replay, actual Workflows steps/wait, cancellation during a wait with scheduler-confirmed native termination and stable 202 durable submission, tenant isolation, typed state/decision inspection, simulation isolation, document-review workflow/no-op/blocked evidence and chat context, structured model fixture, budget exhaustion blocking chat/workflows while no-op remains usable, usage inspection, failed-delivery retry, policy-bound approval and run history at a nonzero agent revision, completed export and checksum-verified download, quarantine denial and recovery with retained budgets, usage, state, context and command identity. No Next process or model provider used.",
+      "Backend-only conformance passed: local authentication, explicit thread, Node and browser HTTP acceptance, canonical transcript after reconnect, idempotent replay/conflict and durable command/run identity, queued turns draining in order with a steer joining the running turn and the queue limit enforced, explicit package upgrade/history/replay, actual Workflows steps/wait, cancellation during a wait with scheduler-confirmed native termination and stable 202 durable submission, tenant isolation, typed state/decision inspection, simulation isolation, document-review workflow/no-op/blocked evidence and chat context, structured model fixture, budget exhaustion blocking chat/workflows while no-op remains usable, usage inspection, failed-delivery retry, policy-bound approval and run history at a nonzero agent revision, completed export and checksum-verified download, quarantine denial and recovery with retained budgets, usage, state, context and command identity. No Next process or model provider used.",
     );
   } finally {
     clearTimeout(timeout);

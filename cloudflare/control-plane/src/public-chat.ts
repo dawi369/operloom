@@ -117,6 +117,7 @@ export const handlePublicThreadOperation = async (
       sessionId: thread.session_id,
       message: body.text,
       clientTurnId,
+      mode: body.mode ?? "turn",
     }),
   });
   return new Response(response.body, {

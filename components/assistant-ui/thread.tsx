@@ -62,6 +62,7 @@ import {
   ArrowRightLeftIcon,
   ArrowUpIcon,
   CheckIcon,
+  ListEndIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CopyIcon,
@@ -95,7 +96,10 @@ export const Thread: FC<{ pendingFirstTurn?: boolean }> = ({ pendingFirstTurn = 
       <ThreadPrimitive.Viewport
         turnAnchor="top"
         data-slot="aui_thread-viewport"
-        className="relative flex flex-1 flex-col overflow-x-auto overflow-y-auto scroll-smooth"
+        // No CSS `scroll-smooth`: the top-anchor logic animates the turn
+        // scroll itself and snaps corrections with `behavior: "instant"`,
+        // which `scroll-behavior: smooth` would override into a visible bounce.
+        className="relative flex flex-1 flex-col overflow-x-auto overflow-y-auto"
       >
         <div className="mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4">
           <AuiIf condition={(s) => s.thread.isEmpty}>
@@ -240,6 +244,16 @@ const Composer: FC<{ pendingFirstTurn: boolean }> = ({ pendingFirstTurn }) => {
     [registerComposerInput],
   );
 
+  /**
+   * Sends while a turn is running. The thread agent persists the message at
+   * once and runs it after the current turn, so the bubble appears immediately.
+   */
+  const queueComposerText = (text: string) => {
+    aui.thread().composer().setText("");
+    void aui.thread().append({ role: "user", content: [{ type: "text", text }] });
+    focusComposerAfterInteraction();
+  };
+
   const runExactSlashCommand = (submittedText: string, preventDefault: () => void) => {
     const trimmed = submittedText.trim();
     const normalizedText = trimmed.toLowerCase();
@@ -300,10 +314,19 @@ const Composer: FC<{ pendingFirstTurn: boolean }> = ({ pendingFirstTurn }) => {
           if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
           if (!(event.target instanceof HTMLTextAreaElement)) return;
           // Resolve from the input before the popover or send handler consumes Enter.
+          let handled = false;
           runExactSlashCommand(event.target.value, () => {
+            handled = true;
             event.preventDefault();
             event.stopPropagation();
           });
+          if (handled || !isThreadRunning) return;
+          // The primitive ignores Enter during a run; queue the text instead.
+          const text = event.target.value.trim();
+          if (!text) return;
+          event.preventDefault();
+          event.stopPropagation();
+          queueComposerText(text);
         }}
       >
         <ComposerPrimitive.AttachmentDropzone asChild>
@@ -326,6 +349,12 @@ const Composer: FC<{ pendingFirstTurn: boolean }> = ({ pendingFirstTurn }) => {
                   () => event.preventDefault(),
                 )
               }
+              onQueue={() => {
+                const text = (
+                  composerRootRef.current?.querySelector("textarea")?.value ?? composerText
+                ).trim();
+                if (text) queueComposerText(text);
+              }}
             />
           </div>
         </ComposerPrimitive.AttachmentDropzone>
@@ -420,7 +449,9 @@ const ComposerSlashCommandPopover: FC<{
 const ComposerAction: FC<{
   pendingFirstTurn: boolean;
   onSend: MouseEventHandler<HTMLButtonElement>;
-}> = ({ pendingFirstTurn, onSend }) => {
+  onQueue: () => void;
+}> = ({ pendingFirstTurn, onSend, onQueue }) => {
+  const hasText = useAuiState((s) => s.composer.text.trim().length > 0);
   if (pendingFirstTurn) {
     return (
       <div className="aui-composer-action-wrapper relative flex h-8 items-center justify-between">
@@ -466,6 +497,20 @@ const ComposerAction: FC<{
           </ComposerPrimitive.Send>
         </AuiIf>
         <AuiIf condition={(s) => s.thread.isRunning}>
+          {hasText ? (
+            <TooltipIconButton
+              tooltip="Queue message (Enter)"
+              side="top"
+              type="button"
+              variant="outline"
+              size="icon"
+              className="aui-composer-queue size-8 rounded-full"
+              aria-label="Queue message"
+              onClick={onQueue}
+            >
+              <ListEndIcon className="size-4" />
+            </TooltipIconButton>
+          ) : null}
           <ComposerPrimitive.Cancel asChild>
             <TooltipIconButton
               tooltip="Stop response (Esc)"

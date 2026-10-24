@@ -2847,9 +2847,10 @@ CREATE TABLE control_chat_commands (
   user_id TEXT NOT NULL, workspace_id TEXT NOT NULL, agent_id TEXT NOT NULL,
   thread_id TEXT NOT NULL, instance_name TEXT NOT NULL, turn_id TEXT NOT NULL,
   payload_hash TEXT NOT NULL, agent_revision INTEGER NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('pending','running','completed','failed','cancelled')),
+  status TEXT NOT NULL CHECK (status IN ('queued','pending','running','completed','failed','cancelled')),
+  mode TEXT NOT NULL DEFAULT 'turn' CHECK (mode IN ('turn','steer')),
   run_id TEXT UNIQUE, error_code TEXT,
-  created_at TEXT NOT NULL, updated_at TEXT NOT NULL, accepted_at TEXT, expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL, queued_at TEXT, accepted_at TEXT, expires_at TEXT NOT NULL,
   preconditions_met INTEGER NOT NULL CONSTRAINT chat_command_precondition CHECK (preconditions_met = 1),
   UNIQUE(user_id, workspace_id, thread_id, turn_id)
 );
@@ -2857,6 +2858,7 @@ CREATE UNIQUE INDEX idx_chat_commands_active_thread ON control_chat_commands(use
 CREATE INDEX idx_chat_commands_deadline ON control_chat_commands(status, expires_at, id);
 CREATE INDEX idx_chat_commands_agent ON control_chat_commands(workspace_id, agent_id, status);
 CREATE INDEX idx_chat_commands_instance ON control_chat_commands(instance_name, status);
+CREATE INDEX idx_chat_commands_queue ON control_chat_commands(instance_name, queued_at, id) WHERE status = 'queued';
 
 CREATE TRIGGER export_fence_control_chat_commands_insert BEFORE INSERT ON control_chat_commands
 WHEN EXISTS (SELECT 1 FROM control_workspace_write_fences f WHERE f.workspace_id = NEW.workspace_id
@@ -2874,7 +2876,7 @@ BEGIN SELECT RAISE(ABORT, 'workspace_export_in_progress'); END;
 CREATE TRIGGER agent_revision_pending_chat_commands BEFORE UPDATE OF runtime_revision ON agents
 WHEN NEW.runtime_revision != OLD.runtime_revision AND EXISTS (
  SELECT 1 FROM control_chat_commands c WHERE c.workspace_id = OLD.workspace_id AND c.agent_id = OLD.id
- AND c.status IN ('pending','running'))
+ AND c.status IN ('queued','pending','running'))
 BEGIN SELECT RAISE(ABORT, 'agent_runtime_revision_busy'); END;
 
 CREATE TRIGGER chat_command_immutable BEFORE UPDATE ON control_chat_commands
@@ -2882,10 +2884,12 @@ WHEN NEW.user_id IS NOT OLD.user_id OR NEW.workspace_id IS NOT OLD.workspace_id
  OR NEW.agent_id IS NOT OLD.agent_id OR NEW.thread_id IS NOT OLD.thread_id
  OR NEW.instance_name IS NOT OLD.instance_name OR NEW.turn_id IS NOT OLD.turn_id
  OR NEW.payload_hash IS NOT OLD.payload_hash OR NEW.agent_revision IS NOT OLD.agent_revision
+ OR NEW.mode IS NOT OLD.mode
  OR (OLD.run_id IS NOT NULL AND NEW.run_id IS NOT OLD.run_id)
  OR (OLD.accepted_at IS NOT NULL AND NEW.accepted_at IS NOT OLD.accepted_at)
  OR (OLD.status IN ('completed','failed','cancelled') AND NEW.status IS NOT OLD.status)
- OR (OLD.status = 'running' AND NEW.status = 'pending')
+ OR (OLD.status = 'running' AND NEW.status IN ('pending','queued'))
+ OR (OLD.status = 'pending' AND NEW.status = 'queued')
 BEGIN SELECT RAISE(ABORT, 'chat_command_conflict'); END;
 
 CREATE TRIGGER chat_command_run_admission BEFORE INSERT ON chat_runs
@@ -2925,7 +2929,7 @@ BEGIN INSERT INTO control_plane_events
  (id,user_id,workspace_id,agent_id,type,summary,target_type,target_id,data_json,created_at)
  VALUES ('chat-command:' || NEW.id || ':' || NEW.status, NEW.user_id,NEW.workspace_id,NEW.agent_id,
  'chat.command.updated','Chat command ' || NEW.status,'chat_command',NEW.id,
- json_object('commandId',NEW.id,'threadId',NEW.thread_id,'messageId',NEW.turn_id,'status',NEW.status,'runId',NEW.run_id,'errorCode',NEW.error_code),NEW.updated_at)
+ json_object('commandId',NEW.id,'threadId',NEW.thread_id,'messageId',NEW.turn_id,'status',NEW.status,'runId',NEW.run_id,'errorCode',NEW.error_code,'mode',NEW.mode),NEW.updated_at)
  ON CONFLICT(id) DO NOTHING; END;
 
 CREATE TABLE control_agent_snapshots (

@@ -1,10 +1,14 @@
 # Queued turns and mid-turn steering
 
-Status: design note, not scheduled. No code, migration or contract exists for
-this yet. Written after reviewing how `nuphos/nuphos` models
-`pending-messages`, `queued-turn` and `steering-history` on top of an
-in-process run registry; the shape below keeps the idea and moves the
-authority into D1, where every other Operloom admission already lives.
+Status: implemented (migration 0011, `chat-command-admission.ts`,
+`thread-chat-agent.ts`, `/v1` turns contract, `@operloom/client`
+`threads.steer`, capability `chat.queue`). The current behaviour is documented
+in [headless runtime](../headless-runtime.md#queued-turns-and-steering); this
+note keeps the decisions and what was deliberately left out. Written after
+reviewing how `nuphos/nuphos` models `pending-messages`, `queued-turn` and
+`steering-history` on top of an in-process run registry; the shape below keeps
+the idea and moves the authority into D1, where every other Operloom admission
+already lives.
 
 ## Today
 

@@ -10,6 +10,11 @@ import {
   cancelThreadChatCommands,
   readChatCommand,
   handleGetChatCommand,
+  queueChatCommand,
+  queuePosition,
+  nextQueuedChatCommand,
+  promoteQueuedChatCommand,
+  chatQueueLimit,
 } from "./chat-command-admission";
 import { createRuntimeClient } from "../../../packages/client/src/runtime-client";
 import type { AgentIdentity, D1PreparedStatement, Env } from "./types";
@@ -302,5 +307,119 @@ describe("pending chat command admission", () => {
     ).toBe(404);
     db.exec("UPDATE workspaces SET status = 'quarantined'");
     await expect(client.threads.command(command.id)).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe("queued chat command admission", () => {
+  const queued = (turnId: string, mode: "turn" | "steer" = "turn") => ({
+    ...input,
+    turnId,
+    payloadHash: Buffer.from(turnId.padEnd(32, "x")).toString("hex").padEnd(64, "0").slice(0, 64),
+    mode,
+  });
+
+  it("parks turns behind the active command in submission order and reports their position", async () => {
+    const { env } = fixture();
+    const active = await reserveChatCommand(env, identity, input);
+    await expect(reserveChatCommand(env, identity, queued("second"))).rejects.toMatchObject({
+      code: "chat_command_busy",
+    });
+
+    const first = await queueChatCommand(env, identity, queued("second"));
+    const second = await queueChatCommand(env, identity, queued("third", "steer"));
+    expect(first.command).toMatchObject({ status: "queued", mode: "turn" });
+    expect(first.position).toBe(1);
+    expect(second.command).toMatchObject({ status: "queued", mode: "steer" });
+    expect(second.position).toBe(2);
+    expect((await nextQueuedChatCommand(env, input.instanceName))?.id).toBe(first.command.id);
+    // The active slot is untouched.
+    expect((await readChatCommand(env, active.id))?.status).toBe("pending");
+  });
+
+  it("is idempotent on the same key and rejects a changed payload or mode", async () => {
+    const { env } = fixture();
+    await reserveChatCommand(env, identity, input);
+    const once = await queueChatCommand(env, identity, queued("second"));
+    const again = await queueChatCommand(env, identity, queued("second"));
+    expect(again.command.id).toBe(once.command.id);
+    expect(again.position).toBe(1);
+    await expect(
+      queueChatCommand(env, identity, { ...queued("second"), payloadHash: "b".repeat(64) }),
+    ).rejects.toMatchObject({ code: "idempotency_conflict" });
+    await expect(queueChatCommand(env, identity, queued("second", "steer"))).rejects.toMatchObject({
+      code: "idempotency_conflict",
+    });
+  });
+
+  it("refuses the turn after the queue limit", async () => {
+    const { env } = fixture();
+    await reserveChatCommand(env, identity, input);
+    for (let index = 0; index < chatQueueLimit; index += 1)
+      await queueChatCommand(env, identity, queued(`q${index}`));
+    await expect(queueChatCommand(env, identity, queued("overflow"))).rejects.toMatchObject({
+      code: "chat_queue_full",
+    });
+  });
+
+  it("promotes the head of the queue only once the slot is free and re-checks authority", async () => {
+    const { env, db } = fixture();
+    const active = await reserveChatCommand(env, identity, input);
+    const { command: head } = await queueChatCommand(env, identity, queued("second"));
+    await expect(promoteQueuedChatCommand(env, identity, head)).rejects.toMatchObject({
+      code: "chat_command_busy",
+    });
+    expect((await readChatCommand(env, head.id))?.status).toBe("queued");
+
+    await finishChatCommand(env, active.id, "completed");
+    const promoted = await promoteQueuedChatCommand(env, identity, head);
+    expect(promoted.status).toBe("pending");
+    expect(await queuePosition(env, promoted)).toBe(0);
+    const accepted = await acceptChatCommand(env, identity, promoted);
+    const run = await start(env, accepted!.id);
+    expect(await readChatCommand(env, head.id)).toMatchObject({
+      status: "running",
+      run_id: run.runId,
+    });
+
+    // Authority lost between enqueue and drain cancels the queued turn instead of running it.
+    const { command: stale } = await queueChatCommand(env, identity, queued("third"));
+    await finishChatCommand(env, head.id, "completed");
+    db.exec("UPDATE memberships SET status = 'revoked' WHERE id = 'm'");
+    await expect(promoteQueuedChatCommand(env, identity, stale)).rejects.toMatchObject({
+      code: "chat_command_admission_denied",
+    });
+    expect(await readChatCommand(env, stale.id)).toMatchObject({
+      status: "cancelled",
+      error_code: "chat_command_admission_denied",
+    });
+  });
+
+  it("expires waiting turns as cancelled and cancels them with the thread", async () => {
+    const { env, db } = fixture();
+    await reserveChatCommand(env, identity, input);
+    const { command: waiting } = await queueChatCommand(env, identity, queued("second"));
+    await expireChatCommands(env, new Date("2100-01-01T00:00:00Z"));
+    expect(await readChatCommand(env, waiting.id)).toMatchObject({
+      status: "cancelled",
+      error_code: "chat_queue_expired",
+    });
+    expect(
+      db
+        .prepare(
+          "SELECT data_json FROM control_plane_events WHERE target_id = ? ORDER BY created_at DESC",
+        )
+        .get(waiting.id),
+    ).toMatchObject({ data_json: expect.stringContaining('"mode":"turn"') });
+
+    const { command: another } = await queueChatCommand(env, identity, queued("fourth"));
+    await cancelThreadChatCommands(env, input.instanceName);
+    expect((await readChatCommand(env, another.id))?.status).toBe("cancelled");
+  });
+
+  it("blocks an agent revision change while turns are queued", async () => {
+    const { env, advance } = fixture();
+    await reserveChatCommand(env, identity, input);
+    await queueChatCommand(env, identity, queued("second"));
+    expect(() => advance()).toThrow(/agent_runtime_revision_busy/);
   });
 });

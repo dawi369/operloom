@@ -103,7 +103,11 @@ export type WebhookDelivery = {
   updatedAt: string;
 };
 import type { PublicMessage } from "./messages.js";
-import { findPublicChatContract, type ChatCommandResponse } from "./public-chat-contracts.js";
+import {
+  findPublicChatContract,
+  type ChatCommandResponse,
+  type ChatTurnSubmitResponse,
+} from "./public-chat-contracts.js";
 import {
   findPublicStateContract,
   type RuntimeStateRecordQuery,
@@ -532,11 +536,29 @@ export const createRuntimeClient = (options: RuntimeClientOptions) => {
           messages: PublicMessage[];
           run?: { id: string; status: string } | null;
         }>(`/chat/threads/${encodeURIComponent(threadId)}/messages`, { signal }),
-      submit: (threadId: string, text: string, idempotencyKey: string) =>
-        request<{ ok: true; messageId: string; status: "accepted"; commandId?: string }>(
-          `/chat/threads/${encodeURIComponent(threadId)}/turns`,
-          { method: "POST", body: { text }, idempotencyKey },
-        ),
+      /**
+       * Sends a turn. While another turn runs the result is `queued` with a
+       * 1-based `queuePosition`; it starts when the thread is free. Pass
+       * `mode: "steer"` to hand the text to the running turn at its next step
+       * instead of waiting for it to finish.
+       */
+      submit: (
+        threadId: string,
+        text: string,
+        idempotencyKey: string,
+        options: { mode?: "turn" | "steer" } = {},
+      ) =>
+        request<ChatTurnSubmitResponse>(`/chat/threads/${encodeURIComponent(threadId)}/turns`, {
+          method: "POST",
+          body: options.mode ? { text, mode: options.mode } : { text },
+          idempotencyKey,
+        }),
+      steer: (threadId: string, text: string, idempotencyKey: string) =>
+        request<ChatTurnSubmitResponse>(`/chat/threads/${encodeURIComponent(threadId)}/turns`, {
+          method: "POST",
+          body: { text, mode: "steer" },
+          idempotencyKey,
+        }),
       cancel: (threadId: string) =>
         request(`/chat/threads/${encodeURIComponent(threadId)}/cancel`, { method: "POST" }),
       command: (commandId: string) =>

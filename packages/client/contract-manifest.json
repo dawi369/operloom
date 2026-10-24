@@ -11,7 +11,7 @@
     },
     {
       "path": "client/src/public-chat-contracts.ts",
-      "sha256": "29ffce613a7bc87cd789d98b538bcaf9cc2d786d6c7374e53c705ea592bc4e1d"
+      "sha256": "9756efaef519d551805cf3c24699c869ba8d0c4ed4f89321a52a89832da470fc"
     },
     {
       "path": "client/src/public-context-contracts.ts",
@@ -53,7 +53,7 @@
         },
         {
           "path": "client/dist/contracts/agents-chat.d.ts",
-          "sha256": "388d8c171338b4abd8605c77971a7ffe273d7ce89710212f2bc6537431c434b9"
+          "sha256": "946e1ebc8809fec70060cab05e43250d9c79645d35b6bdf8c793d5578491f888"
         },
         {
           "path": "client/dist/contracts/automation.d.ts",
@@ -101,7 +101,7 @@
         },
         {
           "path": "client/dist/public-api.d.ts",
-          "sha256": "5efcddcea499da1f7d82ca79e1ad00d0db4b24ceca9ac36366dc183549f3d32a"
+          "sha256": "26e8b168af17d149a7ac255f80269a4f6b72f7287a4d4fbc9202fc0e422dfab7"
         },
         {
           "path": "client/dist/public-billing-contracts.d.ts",
@@ -113,7 +113,7 @@
         },
         {
           "path": "client/dist/public-chat-contracts.d.ts",
-          "sha256": "138a849b5d9deef08c80d4480d779a5a30b48129433f0a11e4c3138eef86f654"
+          "sha256": "5d4f286bcebd5fa46cc184230e7d7e72a4275a4365a8cb334bc1b470d9b2808c"
         },
         {
           "path": "client/dist/public-context-contracts.d.ts",
@@ -149,7 +149,7 @@
         },
         {
           "path": "client/dist/runtime-client.d.ts",
-          "sha256": "4a80fc85f2b0b3465e9243dc015a6fa4979c913bb38de0fceb8cc2d40eb2a772"
+          "sha256": "fb7b20a741df0499128efcfd3af17fa8db10b13a3adabed1e41069adc6c6a0cf"
         },
         {
           "path": "client/dist/validation.d.ts",

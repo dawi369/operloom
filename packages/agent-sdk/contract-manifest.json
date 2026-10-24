@@ -4,7 +4,7 @@
   "files": [
     {
       "path": "dist/capabilities.d.ts",
-      "sha256": "edc3c464ea54c5315797bbb3dbd5a8b9e0a59f46cf64acc9effafee4cd9db22f"
+      "sha256": "44b917f3a04ee0dee44ef050769508753de0bb0ccf20e2e6df6491efa71793a5"
     },
     {
       "path": "dist/compatibility.d.ts",

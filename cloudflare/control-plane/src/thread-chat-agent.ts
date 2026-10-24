@@ -29,9 +29,15 @@ import {
   cancelThreadChatCommands,
   chatCommandId,
   finishChatCommand,
+  nextQueuedChatCommand,
+  promoteQueuedChatCommand,
+  queueChatCommand,
+  queuePosition,
   readChatCommand,
   reserveChatCommand,
+  type ChatCommandMode,
 } from "./chat-command-admission";
+import { QueuedTurnStore } from "./thread-chat-queue";
 import { toPublicMessage } from "../../../packages/client/src/messages";
 import { registerRuntimeDeadline } from "./runtime-watchdog";
 import {
@@ -65,6 +71,7 @@ import {
   verifyAgentConnectionToken,
 } from "./agent-connection-token";
 import type { AgentConnectionClaims } from "./agent-connection-token";
+import type { AgentIdentity } from "./types";
 import { selectAgent } from "./authz-store";
 import { resolveThreadAgentInstanceName } from "./chat-agent-connection-context";
 import {
@@ -94,6 +101,9 @@ const getTokenFromRequest = (request: Request) =>
 const getTokenFromBody = (body?: Record<string, unknown>) =>
   typeof body?.token === "string" ? body.token.trim() : "";
 
+const getModeFromBody = (body?: Record<string, unknown>): ChatCommandMode =>
+  body?.mode === "steer" ? "steer" : "turn";
+
 const getTraceIdFromBody = (body?: Record<string, unknown>) =>
   typeof body?.traceId === "string" && body.traceId.trim() ? body.traceId.trim() : undefined;
 
@@ -120,7 +130,15 @@ const normalizeProgrammaticMessage = (message: unknown) => {
   return normalized;
 };
 
-const createE2EChatResponse = (complete?: () => Promise<void>) => {
+/** `[slow:1500]` at the start of a fixture user message holds the turn open that long. */
+const e2eFixtureDelayMs = (messages: readonly UIMessage[]) => {
+  const last = [...messages].reverse().find((message) => message.role === "user");
+  const text = last?.parts.find((part) => part.type === "text")?.text ?? "";
+  const match = /^\[slow:(\d{1,5})\]/.exec(text);
+  return match ? Math.min(Number(match[1]), 30_000) : 0;
+};
+
+const createE2EChatResponse = (complete?: () => Promise<void>, delayMs = 0) => {
   const messageId = `assistant-e2e-${crypto.randomUUID()}`;
   const textId = `text-e2e-${crypto.randomUUID()}`;
   return createUIMessageStreamResponse({
@@ -128,6 +146,7 @@ const createE2EChatResponse = (complete?: () => Promise<void>) => {
       execute: async ({ writer }) => {
         writer.write({ type: "start", messageId });
         writer.write({ type: "text-start", id: textId });
+        if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
         writer.write({ type: "text-delta", id: textId, delta: "Ready." });
         writer.write({ type: "text-end", id: textId });
         writer.write({ type: "finish", finishReason: "stop" });
@@ -218,6 +237,12 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
   private turnReceipts() {
     return new ChatTurnReceipts(this.sql.bind(this));
   }
+  private queuedTurns() {
+    return new QueuedTurnStore(this.sql.bind(this));
+  }
+  /** Steers accepted for the running turn, consumed by the next prepareStep. */
+  private pendingSteers: { commandId: string; clientTurnId: string; text: string }[] = [];
+  private draining = false;
   private ensureLifecycleFenceTable() {
     void this.sql`CREATE TABLE IF NOT EXISTS workbench_lifecycle_fence (
       singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
@@ -231,7 +256,9 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
       SELECT job_id, frozen_at FROM workbench_lifecycle_fence WHERE singleton = 1 LIMIT 1
     `[0];
   }
-  messageConcurrency = "drop" as const;
+  // Follow-ups typed while a turn runs wait their turn instead of vanishing;
+  // the SDK persists the user message immediately and runs turns in order.
+  messageConcurrency = "queue" as const;
 
   private cacheKey(claims: AgentConnectionClaims, row: AgentRow | null) {
     return `${claims.workspaceId}:${claims.agentId}:${claims.agentRevision ?? 0}:${claims.agentUpdatedAt ?? row?.updated_at ?? "unknown"}`;
@@ -340,6 +367,7 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
         messageId: clientTurnId,
       });
     }
+    const mode = getModeFromBody(body);
     if (this.programmaticSubmitBody) {
       if (this.programmaticSubmitBody.body.clientTurnId === clientTurnId) {
         if (this.programmaticSubmitBody.body.messageText !== message)
@@ -360,7 +388,17 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
           409,
         );
       }
-      return jsonResponse({ ok: false, error: "Programmatic turn already in progress" }, 409);
+    }
+    if (this.programmaticSubmitBody || this.isTurnActive()) {
+      return this.queueOrSteer({
+        body,
+        claims,
+        clientTurnId,
+        message,
+        payloadHash,
+        commandId,
+        mode,
+      });
     }
     const existingMessageId = existingProgrammaticTurnMessageId(this.messages, clientTurnId);
     if (existingMessageId) {
@@ -405,16 +443,250 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
         failure.status,
       );
     }
+    return this.startProgrammaticRun({
+      claims,
+      clientTurnId,
+      message,
+      payloadHash,
+      commandId,
+      token: getTokenFromBody(body),
+      traceId: getTraceIdFromBody(body),
+      source: "programmatic-materialize-turn",
+    });
+  }
+
+  private isTurnActive() {
+    return (this as unknown as { isChatTurnActive?: () => boolean }).isChatTurnActive?.() ?? false;
+  }
+
+  /**
+   * Parks a turn behind the running one, or hands a steer to the running
+   * turn. Both are acknowledged with their durable command id; a queued turn
+   * also reports its 1-based place in line.
+   */
+  private async queueOrSteer(input: {
+    body: Record<string, unknown>;
+    claims: AgentConnectionClaims;
+    clientTurnId: string;
+    message: string;
+    payloadHash: string;
+    commandId: string;
+    mode: ChatCommandMode;
+  }) {
+    const { claims, clientTurnId, message, payloadHash, commandId, mode } = input;
+    const identity = claimsToIdentity(claims);
+    let queued: Awaited<ReturnType<typeof queueChatCommand>>;
+    try {
+      queued = await queueChatCommand(this.getEnv(), identity, {
+        threadId: claims.threadId,
+        instanceName: claims.instanceName,
+        turnId: clientTurnId,
+        payloadHash,
+        mode,
+      });
+    } catch (error) {
+      const failure = error as { code?: string; status?: number; message?: string };
+      return jsonResponse(
+        {
+          ok: false,
+          code: failure.code ?? "chat_queue_failed",
+          error: failure.message ?? "The turn could not be queued",
+        },
+        failure.status ?? 409,
+      );
+    }
+    if (queued.command.status !== "queued") {
+      // Re-submitted after it already left the queue: report where it went.
+      return jsonResponse({
+        ok: true,
+        duplicate: true,
+        status:
+          queued.command.status === "running" || queued.command.accepted_at
+            ? "accepted"
+            : queued.command.status,
+        commandId,
+        threadId: claims.threadId,
+        messageId: clientTurnId,
+      });
+    }
+    this.queuedTurns().put({
+      command_id: commandId,
+      client_turn_id: clientTurnId,
+      mode,
+      message_text: message,
+      token: getTokenFromBody(input.body),
+      session_id: claims.sessionId,
+      trace_id: getTraceIdFromBody(input.body) ?? `trace-${crypto.randomUUID()}`,
+      queued_at: queued.command.queued_at ?? new Date().toISOString(),
+    });
+    if (mode === "steer") {
+      // The running turn picks this up at its next model step; if the turn
+      // ends first, the drain runs it as an ordinary queued turn.
+      this.pendingSteers.push({ commandId, clientTurnId, text: message });
+    }
+    this.waitUntil(
+      dispatchWorkbenchSessionEvent(this.getEnv(), identity, {
+        type: mode === "steer" ? "chat.turn.steered" : "chat.turn.queued",
+        data: {
+          threadId: claims.threadId,
+          sessionId: claims.sessionId,
+          clientTurnId,
+          commandId,
+          queuePosition: queued.position,
+          mode,
+        },
+      }).catch(() => undefined),
+    );
+    // A turn may have finished between the busy check and the enqueue.
+    this.waitUntil(this.drainQueue());
+    return jsonResponse(
+      {
+        ok: true,
+        status: "queued",
+        mode,
+        queuePosition: queued.position,
+        commandId,
+        threadId: claims.threadId,
+        messageId: clientTurnId,
+      },
+      202,
+    );
+  }
+
+  /**
+   * Hands steers accepted during this turn to the model and records each as a
+   * visible user message bound to the running run. Returns their texts.
+   */
+  private async takeSteers(runId: string | null, threadId: string, identity: AgentIdentity) {
+    if (!this.pendingSteers.length || !runId) return [];
+    const steers = this.pendingSteers.splice(0);
+    const now = new Date().toISOString();
+    const steerMessages: UIMessage[] = steers.map((steer) => ({
+      id: steer.clientTurnId,
+      role: "user",
+      parts: [{ type: "text", text: steer.text }],
+      metadata: { steeredRunId: runId, steeredAt: now },
+    }));
+    await this.persistMessages([
+      ...this.messages.filter((message) => !steers.some((s) => s.clientTurnId === message.id)),
+      ...steerMessages,
+    ]);
+    for (const steer of steers) {
+      this.queuedTurns().delete(steer.commandId);
+      this.turnReceipts().prepare(steer.clientTurnId, await sha256Text(steer.text));
+      this.turnReceipts().accept(steer.clientTurnId);
+      // Steers do not hold the slot: they complete with the turn they steered.
+      await finishChatCommand(this.getEnv(), steer.commandId, "completed", null).catch(
+        () => undefined,
+      );
+    }
+    this.waitUntil(
+      dispatchWorkbenchSessionEvent(this.getEnv(), identity, {
+        type: "chat.turn.steered",
+        data: {
+          threadId,
+          runId,
+          clientTurnIds: steers.map((steer) => steer.clientTurnId),
+          applied: true,
+        },
+      }).catch(() => undefined),
+    );
+    return steers.map((steer) => steer.text);
+  }
+
+  /**
+   * Runs the oldest queued turn once the active slot is free. Called after
+   * every terminal run state and after every enqueue; cheap when idle.
+   */
+  private async drainQueue(): Promise<void> {
+    if (this.draining || this.programmaticSubmitBody || this.isTurnActive()) return;
+    if (this.lifecycleFence()) return;
+    this.draining = true;
+    try {
+      const head = await nextQueuedChatCommand(this.getEnv(), this.name);
+      if (!head) return;
+      const payload = this.queuedTurns().get(head.id);
+      if (!payload) {
+        // Payload lost with the Durable Object state; close the command rather than leave it waiting.
+        await finishChatCommand(this.getEnv(), head.id, "failed", "chat_queue_payload_missing");
+        return;
+      }
+      let claims: AgentConnectionClaims;
+      try {
+        claims = await this.verifyScopedClaims(payload.token);
+      } catch {
+        this.queuedTurns().delete(head.id);
+        await finishChatCommand(
+          this.getEnv(),
+          head.id,
+          "cancelled",
+          "chat_command_admission_denied",
+        );
+        return;
+      }
+      const identity = claimsToIdentity(claims);
+      let promoted;
+      try {
+        promoted = await promoteQueuedChatCommand(this.getEnv(), identity, head);
+      } catch (error) {
+        const failure = error as { code?: string };
+        if (failure.code === "chat_command_busy") return;
+        this.queuedTurns().delete(head.id);
+        return;
+      }
+      this.queuedTurns().delete(head.id);
+      this.pendingSteers = this.pendingSteers.filter((steer) => steer.commandId !== head.id);
+      const receipts = this.turnReceipts();
+      try {
+        receipts.prepare(payload.client_turn_id, head.payload_hash);
+      } catch {
+        await finishChatCommand(this.getEnv(), head.id, "failed", "chat_acceptance_interrupted");
+        return;
+      }
+      await this.startProgrammaticRun({
+        claims,
+        clientTurnId: payload.client_turn_id,
+        message: payload.message_text,
+        payloadHash: head.payload_hash,
+        commandId: head.id,
+        token: payload.token,
+        traceId: payload.trace_id,
+        source: "programmatic-queued-turn",
+        reserved: promoted,
+      });
+    } finally {
+      this.draining = false;
+    }
+  }
+
+  /**
+   * Persists the user turn, binds it to its command and runs the model
+   * detached. `reserved` carries an already-promoted queued command; otherwise
+   * the command is reserved here.
+   */
+  private async startProgrammaticRun(input: {
+    claims: AgentConnectionClaims;
+    clientTurnId: string;
+    message: string;
+    payloadHash: string;
+    commandId: string;
+    token: string;
+    traceId?: string;
+    source: string;
+    reserved?: Awaited<ReturnType<typeof reserveChatCommand>>;
+  }) {
+    const { claims, clientTurnId, message, payloadHash, commandId } = input;
+    const receipts = this.turnReceipts();
     const submitId = crypto.randomUUID();
     const submitBody = {
       id: submitId,
       commandId,
       body: {
-        token: getTokenFromBody(body),
+        token: input.token,
         threadId: claims.threadId,
         sessionId: claims.sessionId,
-        traceId: getTraceIdFromBody(body) ?? `trace-${crypto.randomUUID()}`,
-        source: "programmatic-materialize-turn",
+        traceId: input.traceId ?? `trace-${crypto.randomUUID()}`,
+        source: input.source,
         clientTurnId,
         messageText: message,
       },
@@ -430,12 +702,14 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
     // latency into composer latency.
     let reserved = false;
     try {
-      const command = await reserveChatCommand(this.getEnv(), claimsToIdentity(claims), {
-        threadId: claims.threadId,
-        instanceName: claims.instanceName,
-        turnId: clientTurnId,
-        payloadHash,
-      });
+      const command =
+        input.reserved ??
+        (await reserveChatCommand(this.getEnv(), claimsToIdentity(claims), {
+          threadId: claims.threadId,
+          instanceName: claims.instanceName,
+          turnId: clientTurnId,
+          payloadHash,
+        }));
       reserved = true;
       if (command.status !== "pending") {
         this.programmaticSubmitBody = null;
@@ -515,6 +789,7 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
           if (this.programmaticSubmitBody?.id === submitId) {
             this.programmaticSubmitBody = null;
           }
+          await this.drainQueue().catch(() => undefined);
         }
       })(),
     );
@@ -590,6 +865,8 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
       this.programmaticSubmitBody = null;
       await this.persistMessages([], [], { _deleteStaleRows: true });
       this.turnReceipts().purge();
+      this.queuedTurns().purge();
+      this.pendingSteers = [];
       this.ensureLifecycleFenceTable();
       void this.sql`DELETE FROM workbench_lifecycle_fence WHERE singleton = 1`;
       this.agentConfigCache = null;
@@ -616,6 +893,8 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
       await cancelThreadChatCommands(this.getEnv(), this.name);
       this.resetTurnState();
       this.programmaticSubmitBody = null;
+      this.queuedTurns().purge();
+      this.pendingSteers = [];
       return jsonResponse({ ok: true, cancelled: true });
     }
     try {
@@ -716,12 +995,14 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
         });
         throw error;
       }
-      return createE2EChatResponse(() =>
-        updateChatRun(this.getEnv(), {
-          runId: run.runId,
-          scope: identity.scope,
-          status: "completed",
-        }).then(() => {}),
+      return createE2EChatResponse(
+        () =>
+          updateChatRun(this.getEnv(), {
+            runId: run.runId,
+            scope: identity.scope,
+            status: "completed",
+          }).then(() => {}),
+        e2eFixtureDelayMs(this.messages),
       );
     }
     if (!this.getEnv().OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured");
@@ -1083,7 +1364,11 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
         maxOutputTokens: runtimeConfig.maxTokens,
         maxRetries: 0,
         prepareStep: async ({ stepNumber, steps, messages }) => {
-          await usageTracker!.beforeStep(stepNumber, messages);
+          const steered = await this.takeSteers(runId, claims.threadId, identity);
+          const stepMessages = steered.length
+            ? [...messages, ...steered.map((text) => ({ role: "user" as const, content: text }))]
+            : messages;
+          await usageTracker!.beforeStep(stepNumber, stepMessages);
           const plan = planChatStep({ stepNumber, steps });
           if (plan.runaway && !runawayReported) {
             runawayReported = true;
@@ -1107,8 +1392,10 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
               }),
             );
           }
-          if (plan.activeTools === false) return {};
+          const messageOverride = steered.length ? { messages: stepMessages } : {};
+          if (plan.activeTools === false) return messageOverride;
           return {
+            ...messageOverride,
             activeTools: plan.activeTools,
             instructions: `${system}${plan.instructionSuffix}`,
           };

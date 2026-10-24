@@ -13,14 +13,22 @@ export type ChatCommand = {
   turn_id: string;
   payload_hash: string;
   agent_revision: number;
-  status: "pending" | "running" | "completed" | "failed" | "cancelled";
+  status: "queued" | "pending" | "running" | "completed" | "failed" | "cancelled";
+  mode: "turn" | "steer";
   run_id: string | null;
   error_code: string | null;
+  queued_at: string | null;
   accepted_at: string | null;
   created_at: string;
   updated_at: string;
   expires_at: string;
 };
+export type ChatCommandMode = ChatCommand["mode"];
+
+/** Queued turns per thread; the next one is refused with `chat_queue_full`. */
+export const chatQueueLimit = 3;
+/** A queued turn waits at most this long for the running turn before it fails. */
+export const chatQueueTtlMs = 10 * 60_000;
 const fail = (code: string, error: string, status = 409): never => {
   throw Object.assign(new Error(error), { code, status });
 };
@@ -52,6 +60,7 @@ export const reserveChatCommand = async (
     instanceName: string;
     turnId: string;
     payloadHash: string;
+    mode?: ChatCommandMode;
   },
 ) => {
   if (
@@ -63,12 +72,13 @@ export const reserveChatCommand = async (
   const id = await chatCommandId(identity, input.threadId, input.turnId);
   const now = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 120_000).toISOString();
+  const mode = input.mode ?? "turn";
   const prior = await readChatCommand(env, id);
   if (!prior) {
     try {
       await env.DB.prepare(`INSERT INTO control_chat_commands
-        (id,user_id,workspace_id,agent_id,thread_id,instance_name,turn_id,payload_hash,agent_revision,status,created_at,updated_at,expires_at,preconditions_met)
-        VALUES (?,?,?,?,?,?,?,?,?,'pending',?,?,?,CASE WHEN EXISTS (${authority})
+        (id,user_id,workspace_id,agent_id,thread_id,instance_name,turn_id,payload_hash,agent_revision,status,mode,created_at,updated_at,expires_at,preconditions_met)
+        VALUES (?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,CASE WHEN EXISTS (${authority})
           AND (SELECT COUNT(*) FROM control_chat_commands WHERE user_id = ? AND workspace_id = ? AND thread_id = ?) < 10000
           THEN 1 ELSE 0 END) ON CONFLICT(id) DO NOTHING`)
         .bind(
@@ -81,6 +91,7 @@ export const reserveChatCommand = async (
           input.turnId,
           input.payloadHash,
           identity.agentRevision ?? 0,
+          mode,
           now,
           now,
           expiresAt,
@@ -112,7 +123,8 @@ export const reserveChatCommand = async (
     !row ||
     row.agent_id !== identity.agentId ||
     row.instance_name !== input.instanceName ||
-    row.payload_hash !== input.payloadHash
+    row.payload_hash !== input.payloadHash ||
+    row.mode !== mode
   )
     fail("idempotency_conflict", "Turn key was already bound to different content or an agent");
   if (
@@ -159,7 +171,7 @@ export const finishChatCommand = async (
   expiredBefore?: string,
 ) => {
   const now = new Date().toISOString();
-  const predicate = `id = ? AND status IN ('pending','running')${expiredBefore ? " AND expires_at <= ?" : ""}`;
+  const predicate = `id = ? AND status IN ('queued','pending','running')${expiredBefore ? " AND expires_at <= ?" : ""}`;
   const values = [id, ...(expiredBefore ? [expiredBefore] : [])];
   await env.DB.batch([
     env.DB.prepare(`UPDATE chat_runs SET status = ?, updated_at = ?,
@@ -182,9 +194,162 @@ export const finishChatCommand = async (
   ]);
 };
 
+/**
+ * Parks a turn behind the running one. The row is durable and outside the
+ * active-thread slot, so a Durable Object restart loses nothing and the slot
+ * stays free for the turn that holds it. Authority is checked again when the
+ * queue drains, so a queued turn never outlives a revoked membership or a
+ * changed agent revision.
+ */
+export const queueChatCommand = async (
+  env: Env,
+  identity: AgentIdentity,
+  input: {
+    threadId: string;
+    instanceName: string;
+    turnId: string;
+    payloadHash: string;
+    mode?: ChatCommandMode;
+  },
+) => {
+  if (
+    !input.turnId.trim() ||
+    input.turnId.length > 128 ||
+    !/^[a-f0-9]{64}$/.test(input.payloadHash)
+  )
+    fail("invalid_turn", "Invalid command identity or payload hash", 400);
+  const id = await chatCommandId(identity, input.threadId, input.turnId);
+  const mode = input.mode ?? "turn";
+  const prior = await readChatCommand(env, id);
+  if (prior) {
+    if (
+      prior.agent_id !== identity.agentId ||
+      prior.instance_name !== input.instanceName ||
+      prior.payload_hash !== input.payloadHash ||
+      prior.mode !== mode
+    )
+      fail("idempotency_conflict", "Turn key was already bound to different content or an agent");
+    return { command: prior, position: await queuePosition(env, prior) };
+  }
+  const now = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + chatQueueTtlMs).toISOString();
+  try {
+    await env.DB.prepare(`INSERT INTO control_chat_commands
+      (id,user_id,workspace_id,agent_id,thread_id,instance_name,turn_id,payload_hash,agent_revision,status,mode,created_at,updated_at,queued_at,expires_at,preconditions_met)
+      VALUES (?,?,?,?,?,?,?,?,?,'queued',?,?,?,?,?,CASE WHEN EXISTS (${authority})
+        AND (SELECT COUNT(*) FROM control_chat_commands WHERE instance_name = ? AND status = 'queued') < ?
+        THEN 1 ELSE 0 END) ON CONFLICT(id) DO NOTHING`)
+      .bind(
+        id,
+        identity.scope.userId,
+        identity.scope.workspaceId,
+        identity.agentId,
+        input.threadId,
+        input.instanceName,
+        input.turnId,
+        input.payloadHash,
+        identity.agentRevision ?? 0,
+        mode,
+        now,
+        now,
+        now,
+        expiresAt,
+        ...authorityValues(identity, input.threadId),
+        input.instanceName,
+        chatQueueLimit,
+      )
+      .run();
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("chat_command_precondition")) {
+      const queued = await env.DB.prepare(
+        "SELECT COUNT(*) AS n FROM control_chat_commands WHERE instance_name = ? AND status = 'queued'",
+      )
+        .bind(input.instanceName)
+        .first<{ n: number }>();
+      if ((queued?.n ?? 0) >= chatQueueLimit)
+        fail("chat_queue_full", `This chat already has ${chatQueueLimit} turns waiting`);
+      fail("chat_command_admission_denied", "Current command authority changed");
+    }
+    throw error;
+  }
+  const row = await readChatCommand(env, id);
+  if (!row) fail("chat_command_closed", "Queued turn was not recorded");
+  return { command: row!, position: await queuePosition(env, row!) };
+};
+
+/** 1-based place in the thread's queue; 0 once the command has left the queue. */
+export const queuePosition = async (env: Env, command: ChatCommand) => {
+  if (command.status !== "queued") return 0;
+  const ahead = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM control_chat_commands
+     WHERE instance_name = ? AND status = 'queued' AND (queued_at < ? OR (queued_at = ? AND id < ?))`,
+  )
+    .bind(command.instance_name, command.queued_at, command.queued_at, command.id)
+    .first<{ n: number }>();
+  return (ahead?.n ?? 0) + 1;
+};
+
+export const nextQueuedChatCommand = (env: Env, instanceName: string) =>
+  env.DB.prepare(
+    `SELECT * FROM control_chat_commands WHERE instance_name = ? AND status = 'queued'
+     ORDER BY queued_at, id LIMIT 1`,
+  )
+    .bind(instanceName)
+    .first<ChatCommand>();
+
+export const queuedChatCommands = async (env: Env, instanceName: string) =>
+  (
+    await env.DB.prepare(
+      `SELECT * FROM control_chat_commands WHERE instance_name = ? AND status = 'queued'
+       ORDER BY queued_at, id LIMIT ?`,
+    )
+      .bind(instanceName, chatQueueLimit)
+      .all<ChatCommand>()
+  ).results;
+
+/**
+ * Moves the head of the queue into the active slot. Fails with
+ * `chat_command_busy` while another command holds it and with
+ * `chat_command_admission_denied` when authority changed since enqueue.
+ */
+export const promoteQueuedChatCommand = async (
+  env: Env,
+  identity: AgentIdentity,
+  command: ChatCommand,
+) => {
+  const now = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 120_000).toISOString();
+  if (
+    !(await env.DB.prepare(authority)
+      .bind(...authorityValues(identity, command.thread_id))
+      .first())
+  ) {
+    await finishChatCommand(env, command.id, "cancelled", "chat_command_admission_denied");
+    fail("chat_command_admission_denied", "Current command authority changed");
+  }
+  try {
+    await env.DB.prepare(
+      `UPDATE control_chat_commands SET status = 'pending', updated_at = ?, expires_at = ?
+       WHERE id = ? AND status = 'queued' AND agent_revision = ?`,
+    )
+      .bind(now, expiresAt, command.id, identity.agentRevision ?? 0)
+      .run();
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      /UNIQUE constraint failed: control_chat_commands\.user_id/.test(error.message)
+    )
+      fail("chat_command_busy", "Another command still holds the thread");
+    throw error;
+  }
+  const row = await readChatCommand(env, command.id);
+  if (row?.status !== "pending") fail("chat_command_closed", "Queued turn left the queue");
+  return row!;
+};
+
 export const cancelThreadChatCommands = async (env: Env, instanceName: string) => {
   const rows = await env.DB.prepare(
-    "SELECT id FROM control_chat_commands WHERE instance_name = ? AND status IN ('pending','running') LIMIT 100",
+    "SELECT id FROM control_chat_commands WHERE instance_name = ? AND status IN ('queued','pending','running') LIMIT 100",
   )
     .bind(instanceName)
     .all<{ id: string }>();
@@ -193,15 +358,21 @@ export const cancelThreadChatCommands = async (env: Env, instanceName: string) =
 };
 
 export const expireChatCommands = async (env: Env, now = new Date()) => {
-  const rows = await env.DB.prepare(`SELECT c.id FROM control_chat_commands c
-    WHERE c.status IN ('pending','running') AND c.expires_at <= ?
+  const rows = await env.DB.prepare(`SELECT c.id, c.status FROM control_chat_commands c
+    WHERE c.status IN ('queued','pending','running') AND c.expires_at <= ?
     AND NOT EXISTS (SELECT 1 FROM control_workspace_write_fences f WHERE f.workspace_id = c.workspace_id
       AND f.status = 'active' AND f.lease_expires_at > ?)
     ORDER BY c.expires_at,c.id LIMIT 100`)
     .bind(now.toISOString(), now.toISOString())
-    .all<{ id: string }>();
+    .all<{ id: string; status: ChatCommand["status"] }>();
   for (const row of rows.results)
-    await finishChatCommand(env, row.id, "failed", "chat_command_timeout", now.toISOString());
+    await finishChatCommand(
+      env,
+      row.id,
+      row.status === "queued" ? "cancelled" : "failed",
+      row.status === "queued" ? "chat_queue_expired" : "chat_command_timeout",
+      now.toISOString(),
+    );
   return { inspected: rows.results.length };
 };
 
@@ -227,7 +398,10 @@ export const handleGetChatCommand = async (env: Env, identity: AgentIdentity, id
         threadId: row.thread_id,
         messageId: row.turn_id,
         status: row.status,
+        mode: row.mode,
+        queuePosition: await queuePosition(env, row),
         runId: row.run_id,
+        queuedAt: row.queued_at,
         acceptedAt: row.accepted_at,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
