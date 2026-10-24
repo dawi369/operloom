@@ -48,6 +48,7 @@ import type {
   MemoryPolicyView,
   MemoryRecord,
 } from "./public-memory-contracts.js";
+import type { NotificationDelivery } from "./runtime-client.js";
 import type { AdminEvent } from "./public-admin-contracts.js";
 import type { FleetAgent, FleetUpdate } from "./public-fleet-contracts.js";
 
@@ -777,6 +778,19 @@ export const createWorkbenchClient = (options: WorkbenchClientOptions) => {
           "notificationPreferences",
           "/api/workbench/notification-preferences",
           { method: "PUT", body: input },
+        ),
+      /** Where email or SMS notifications for this user go; the address is vaulted, not echoed back. */
+      setAddress: (input: { channel: "email" | "sms"; address: string }) =>
+        request<{ ok: true; channel: "email" | "sms"; status: string; updatedAt: string }>(
+          "notificationAddress",
+          "/api/workbench/notifications/address",
+          { method: "PUT", body: input },
+        ),
+      deliveries: (input: { limit?: number } = {}, options: WorkbenchReadOptions = {}) =>
+        request<{ ok: true; deliveries: NotificationDelivery[] }>(
+          "notificationDeliveries",
+          `/api/workbench/notifications/deliveries${queryString(input)}`,
+          options,
         ),
     },
   };

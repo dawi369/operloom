@@ -31,6 +31,7 @@ export default function ApprovalsScreen() {
       subtitle={pending.length ? `${pending.length} waiting on you` : "Nothing is waiting on you."}
       refreshing={approvals.isFetching}
       onRefresh={() => void approvals.refetch()}
+      loading={approvals.isPending}
     >
       <View style={{ paddingHorizontal: 16, gap: 12 }}>
         {pending.map((item) => (

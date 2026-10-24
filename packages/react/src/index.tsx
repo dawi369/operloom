@@ -272,6 +272,7 @@ export const useWorkbenchFleetTimeline = (
     queryFn: ({ signal }) =>
       client.fleet.timeline(input.agentId!, { limit: input.limit, chars: input.chars }, { signal }),
     enabled: enabled(input) && Boolean(input.agentId),
+    staleTime: 10_000,
   });
 };
 

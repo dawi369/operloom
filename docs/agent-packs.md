@@ -244,8 +244,10 @@ smsSendOperation({
 ```
 
 Both helpers default to `{ dailyCap: 50 }` so a fork cannot ship without a
-cap; pass `outreach` to raise it or add a window. The platform checks both
-before any provider is contacted: a send outside the
+cap; pass `outreach` to raise it or add a window. `window.timezone` is an
+IANA name (`America/Denver`); a policy the platform cannot parse fails the
+action with `outreach_policy_invalid` rather than running unlimited. The
+platform checks both before any provider is contacted: a send outside the
 window fails the action with `outreach_window_closed`, and one past the cap
 (counted per agent per local day from receipts, including sends still in
 flight) with `outreach_daily_cap_reached`. Put the limits here rather than in
@@ -253,6 +255,15 @@ the prompt; the model cannot talk its way past them. `smsSendOperation` posts
 `{ to, text }` (E.164, 1600 characters) to the operator's relay, which holds
 the carrier credentials and the opt-out list and answers `queued`, `sent`,
 `rejected` or `opted_out`; the last two fail the action.
+
+Wiring it end to end, mirroring `examples/service-desk/control-plane.ts` for
+email: the manifest declares a connection
+(`{ id: "sms.relay", provider: "sms-relay", principal: "app", credentialClass: "api_key", ... }`),
+`requirements.capabilities` includes `actions.provider_operations`,
+`providerOperations: [smsSendOperation({ providerId: "sms-relay", outreach })]`,
+and a tool with `action: { connectionId: "sms.relay", providerOperation: { id: "sms.send", version: "1" }, approval: "required", ... }`.
+The workspace owner authorizes the connection once; until then the tool's
+`simulate` branch runs.
 
 ### Runner recipes
 
@@ -342,7 +353,8 @@ the generic JSON view. Renderers must not fetch. `json`, `markdown` and `table`
 remain the generic artifact kinds for packages without components.
 
 A package may also ship a `native` subpath (`native.ts` for source entries,
-`./native` in `exports` for installed ones) built with
+`./native` in `exports` for installed ones; the scaffold does not create it,
+the compiler picks it up when present) built with
 `defineNativeModule` from `@operloom/agent-sdk/native`. It maps artifact kinds
 to React Native components and is optional: the compiler emits
 `generated/agent-runtime/native.ts` from the packages that have one, each key
@@ -354,9 +366,11 @@ module render through the generic view on mobile.
 
 ### Status lines
 
-A workflow tells the owner what it is doing with `context.updates.post(text)`
-(one sentence; the platform clamps it to 280 characters and stops at 60 per
-run). The lines show on the fleet board beside run and approval events. Post
+A workflow tells the owner what it is doing with
+`context.updates.post(text, data?)`, which resolves to `true` when the line
+was recorded and `false` once the run has used its 60 or the optional `data`
+exceeds 2 KiB; text is clamped to 280 characters. The lines show on the fleet
+board beside run and approval events. Post
 after each meaningful step, with the finding rather than the mechanics: "3 of
 12 quotes unanswered past 48h" beats "queried jobs table". Inside the signed
 runner the port is a no-op; post from the workflow that invoked the tool.

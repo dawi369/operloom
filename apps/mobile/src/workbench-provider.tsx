@@ -2,6 +2,7 @@ import {
   createRuntimeClient,
   createWorkbenchClient,
   createWorkbenchRealtimeAdapter,
+  WorkbenchClientError,
   type WorkbenchSessionEvent,
 } from "@operloom/client";
 import {
@@ -41,9 +42,11 @@ const clientIdentity = { platform: mobileConfig.platform, version: mobileConfig.
 function SessionStream({
   realtime,
   onState,
+  onUnauthorized,
 }: {
   realtime: ReturnType<typeof createWorkbenchRealtimeAdapter>;
   onState(state: RealtimeState): void;
+  onUnauthorized(): Promise<void>;
 }) {
   const queryClient = useWorkbenchQueryClient();
   const lastEventId = useRef<string | undefined>(undefined);
@@ -63,8 +66,13 @@ function SessionStream({
             if (typed.id) lastEventId.current = typed.id;
             void invalidateWorkbenchQueries(queryClient, workbenchSessionEventInvalidations(typed));
           }
-        } catch {
-          // The stream ends on network loss; a bounded retry resumes from the last id.
+        } catch (error) {
+          // A rejected token means the session is gone; anything else is network and retries.
+          if (error instanceof WorkbenchClientError && error.status === 401) {
+            onState("idle");
+            void onUnauthorized();
+            return;
+          }
         }
         if (!closed) retry = setTimeout(connect, 2_000);
       })();
@@ -83,21 +91,23 @@ function SessionStream({
       subscription?.close();
       appState.remove();
     };
-  }, [onState, queryClient, realtime]);
+  }, [onState, onUnauthorized, queryClient, realtime]);
   return null;
 }
-
-// react-query only knows browser focus; without this, intervals keep polling while the app is backgrounded.
-focusManager.setEventListener((handleFocus) => {
-  const subscription = AppState.addEventListener("change", (state) =>
-    handleFocus(state === "active"),
-  );
-  return () => subscription.remove();
-});
 
 export function MobileWorkbenchProvider({ children }: PropsWithChildren) {
   const auth = useMobileAuth();
   const [realtimeState, setRealtimeState] = useState<RealtimeState>("idle");
+  // react-query only knows browser focus; without this, intervals keep polling while the app is backgrounded.
+  useEffect(() => {
+    focusManager.setEventListener((handleFocus) => {
+      const subscription = AppState.addEventListener("change", (state) =>
+        handleFocus(state === "active"),
+      );
+      return () => subscription.remove();
+    });
+    return () => focusManager.setEventListener(() => () => {});
+  }, []);
   const queryClient = useMemo(() => createWorkbenchQueryClient(), []);
   const getAccessToken = auth.getAccessToken;
   const { client, realtime, runtime } = useMemo(() => {
@@ -127,7 +137,11 @@ export function MobileWorkbenchProvider({ children }: PropsWithChildren) {
     <WorkbenchClientProvider client={client} queryClient={queryClient}>
       <MobileWorkbenchContext.Provider value={value}>
         {auth.state === "signed-in" ? (
-          <SessionStream realtime={realtime} onState={setRealtimeState} />
+          <SessionStream
+            realtime={realtime}
+            onState={setRealtimeState}
+            onUnauthorized={auth.signOut}
+          />
         ) : null}
         {children}
       </MobileWorkbenchContext.Provider>

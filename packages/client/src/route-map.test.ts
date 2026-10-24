@@ -101,6 +101,8 @@ const operations: Array<() => Promise<unknown>> = [
   () => client.approvals.list({ status: "all", limit: 20 }),
   () => client.notificationPreferences.get(),
   () => client.notificationPreferences.update({ approvalRequired: true, terminalOutcomes: true }),
+  () => client.notificationPreferences.setAddress({ channel: "sms", address: "+14155552671" }),
+  () => client.notificationPreferences.deliveries({ limit: 10 }),
 ];
 
 describe("control-plane route map", () => {

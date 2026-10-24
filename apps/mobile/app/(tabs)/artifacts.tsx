@@ -46,6 +46,7 @@ export default function ArtifactsScreen() {
       subtitle={items.length ? `${items.length} produced by your agents` : "Nothing produced yet."}
       refreshing={artifacts.isFetching}
       onRefresh={() => void artifacts.refetch()}
+      loading={artifacts.isPending}
     >
       <ErrorNotice message={artifacts.error ? String(artifacts.error) : null} />
       {items.map((item) => (

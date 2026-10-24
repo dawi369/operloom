@@ -44,6 +44,7 @@ export default function MemoryScreen() {
       }
       refreshing={memory.isFetching}
       onRefresh={() => void memory.refetch()}
+      loading={memory.isPending}
     >
       <ErrorNotice message={error ? String(error) : null} />
       <View style={{ paddingHorizontal: 16, gap: 10 }}>

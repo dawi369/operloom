@@ -307,7 +307,10 @@ export const dispatchProviderOperation = async (
     runtimeStateCanonicalJson(operation)
   )
     throw new Error("provider_operation_changed");
-  const outreach = parseOutreachPolicy((operation as { outreach?: unknown }).outreach);
+  const declaredOutreach = (operation as { outreach?: unknown }).outreach;
+  const outreach = parseOutreachPolicy(declaredOutreach);
+  // A limit the pack wrote but the platform cannot read must not become no limit.
+  if (declaredOutreach !== undefined && !outreach) throw new Error("outreach_policy_invalid");
   if (outreach) await assertOutreachAllowed(env, identity, operation.id, outreach);
   const credential = await connectionCredential(env, identity, row, operation);
   const requestId = await sha256Hex(

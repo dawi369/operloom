@@ -89,6 +89,15 @@ describe("outreach policy", () => {
     expect(seen).toHaveLength(2);
   });
 
+  it("rejects a window with a non-IANA timezone instead of ignoring it", () => {
+    expect(
+      parseOutreachPolicy({ window: { start: "09:00", end: "17:00", timezone: "EST5" } }),
+    ).toBeNull();
+    expect(
+      parseOutreachPolicy({ window: { start: "09:00", end: "17:00", timezone: "Europe/Berlin" } }),
+    ).not.toBeNull();
+  });
+
   it("reads zero sends from an empty receipts table", async () => {
     const runtime = createPackTestRuntime({ packId: "complex-operator" });
     const identity = runtime.identity();

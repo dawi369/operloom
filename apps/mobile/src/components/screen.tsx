@@ -11,12 +11,15 @@ export const Screen = ({
   refreshing,
   onRefresh,
   scroll = true,
+  loading = false,
 }: PropsWithChildren<{
   title?: string;
   subtitle?: string;
   refreshing?: boolean;
   onRefresh?: () => void;
   scroll?: boolean;
+  /** First load with nothing to show yet; pull-to-refresh uses `refreshing` instead. */
+  loading?: boolean;
 }>) => {
   const content = (
     <>
@@ -35,7 +38,13 @@ export const Screen = ({
           ) : null}
         </View>
       ) : null}
-      {children}
+      {loading ? (
+        <Text style={{ color: colors.muted, paddingHorizontal: 18 }} accessibilityRole="text">
+          Loading…
+        </Text>
+      ) : (
+        children
+      )}
     </>
   );
   return (

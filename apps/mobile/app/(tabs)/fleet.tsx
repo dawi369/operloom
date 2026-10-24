@@ -62,6 +62,7 @@ export default function FleetScreen() {
       }
       refreshing={fleet.isFetching}
       onRefresh={() => void fleet.refetch()}
+      loading={fleet.isPending}
     >
       <ErrorNotice message={fleet.error ? String(fleet.error) : null} />
       {agents.map((agent) => (
@@ -72,7 +73,7 @@ export default function FleetScreen() {
           <AgentRow
             agent={agent}
             expanded={expanded === agent.id}
-            onReview={agent.openApprovals ? () => router.navigate("/approvals") : undefined}
+            onReview={agent.openApprovals ? () => router.navigate("/(tabs)/approvals") : undefined}
           />
         </Card>
       ))}

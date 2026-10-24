@@ -371,6 +371,31 @@ export const responseSchemas = {
   billingUsageReport:
     publicBillingContracts["POST /workbench/billing/usage/report"].response.passthrough(),
   memoryList: publicMemoryContracts["GET /workbench/memory"].response.passthrough(),
+  notificationAddress: z
+    .object({
+      ...envelope,
+      channel: z.enum(["email", "sms"]),
+      status: z.string(),
+      updatedAt: timestamp,
+    })
+    .passthrough(),
+  notificationDeliveries: z
+    .object({
+      ...envelope,
+      deliveries: z.array(
+        z
+          .object({
+            id,
+            channel: z.string(),
+            eventType: z.string(),
+            status: z.string(),
+            attemptCount: nonNegativeInteger,
+            createdAt: timestamp,
+          })
+          .passthrough(),
+      ),
+    })
+    .passthrough(),
   fleet: publicFleetContracts["GET /workbench/fleet"].response.passthrough(),
   fleetTimeline: publicFleetContracts["GET /workbench/fleet/{agentId}"].response.passthrough(),
   memoryRecord: publicMemoryContracts["PUT /workbench/memory/{kind}/{key}"].response.passthrough(),

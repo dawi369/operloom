@@ -117,6 +117,7 @@ export default function ChatScreen() {
           <TextInput
             value={draft}
             onChangeText={setDraft}
+            accessibilityLabel="Message"
             placeholder="Message"
             editable={Boolean(activeThreadId) && !busy}
             multiline

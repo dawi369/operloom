@@ -53,6 +53,13 @@ const validFixtures = {
   billingPlans: { ok: true, defaultPlanId: "free", plans: [] },
   billingLink: { ok: true, url: "https://billing.example/session" },
   billingUsage: { ok: true, from: "2026-01-01", to: "2026-01-02", days: [], reports: [] },
+  notificationAddress: {
+    ok: true,
+    channel: "sms",
+    status: "active",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  notificationDeliveries: { ok: true, deliveries: [] },
   fleet: { ok: true, generatedAt: "2026-01-01T00:00:00.000Z", agents: [] },
   fleetTimeline: { ok: true, agent: { id: "a", name: "A" }, updates: [], nextBefore: null },
   memoryList: {
