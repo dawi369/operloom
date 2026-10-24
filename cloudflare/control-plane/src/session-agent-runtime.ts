@@ -585,7 +585,9 @@ export class SessionAgent {
       status: nextStatus,
     });
     if (nextStatus === "archived" || nextStatus === "deleted") {
-      await abortThreadChatResponse(this.env, thread);
+      // Fire-and-forget: the D1 status write is authoritative, so a wedged or
+      // hibernated thread agent can never stall this response (see helper).
+      this.state.waitUntil(abortThreadChatResponse(this.env, thread).catch(() => false));
     }
 
     const latestSession = await getLatestChatSession(this.env, input.identity.scope);

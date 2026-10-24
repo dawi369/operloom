@@ -92,4 +92,24 @@ describe("session thread lifecycle transitions", () => {
       }),
     );
   });
+
+  it("gives up on a wedged thread agent instead of hanging the coordinator", async () => {
+    vi.useFakeTimers();
+    try {
+      const { env } = makeEnv();
+      // A hibernated or wedged thread agent never answers; the stub fetch stays pending.
+      (env.ThreadChatAgent as unknown as { get: () => { fetch: () => Promise<Response> } }).get =
+        () => ({ fetch: () => new Promise<Response>(() => {}) });
+
+      const settled = vi.fn();
+      const pending = abortThreadChatResponse(env, thread).then(settled);
+      await vi.advanceTimersByTimeAsync(2_999);
+      expect(settled).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(2);
+      await pending;
+      expect(settled).toHaveBeenCalledWith(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

@@ -220,14 +220,19 @@ export const abortThreadChatResponse = async (env: Env, thread: ChatThreadRow) =
   try {
     const instanceName = await resolveThreadAgentInstanceName(thread);
     const stub = env.ThreadChatAgent.get(env.ThreadChatAgent.idFromName(instanceName));
-    const response = await stub.fetch("https://thread-agent.internal/internal/thread-cancel", {
-      method: "POST",
-      headers: { "x-operloom-agent-secret": secret },
-      // The session coordinator must never wait on a thread's Durable Object
-      // indefinitely; the status write has already landed and cancel is advisory.
-      signal: AbortSignal.timeout(5_000),
-    });
-    return response.ok;
+    // Cancelling the thread's in-flight response is advisory cleanup: the status
+    // write has already committed and the thread agent re-checks status on its
+    // next step. A dormant or wedged thread agent must never stall this call, so
+    // abandon it after a few seconds. Durable Object stubs ignore AbortSignal,
+    // so the timeout is enforced by racing a timer rather than aborting.
+    const response = await Promise.race([
+      stub.fetch("https://thread-agent.internal/internal/thread-cancel", {
+        method: "POST",
+        headers: { "x-operloom-agent-secret": secret },
+      }),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 3_000)),
+    ]);
+    return response !== null && response.ok;
   } catch {
     return false;
   }
