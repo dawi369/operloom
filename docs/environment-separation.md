@@ -60,19 +60,6 @@ Worker; `secrets` then sets `RESEND_API_KEY` too. Heavy tools run inline
 `conformanceMode: true` mark it as non-production. Pass `--name <other>` to use
 a second manifest with the same `kind`.
 
-### Continuous staging
-
-`.github/workflows/verify.yml` deploys staging after every green push to
-`main` (`check`, `render`, `migrate`, `deploy`, `smoke`) when the repository
-variable `OPERLOOM_STAGING_DEPLOY` is `true` and the `staging` GitHub
-environment holds `CLOUDFLARE_API_TOKEN` (Workers Scripts, D1 and R2 edit on
-the account) and `CLOUDFLARE_ACCOUNT_ID`. The job never runs `secrets`:
-signing and provider secrets stay hand-managed. Forks that do not set the
-variable skip the job. The nightly release gate still runs the browser
-conformance suites against a local Worker; staging has no automated
-authenticated journey, so a change to chat or runs still deserves one manual
-turn there.
-
 ### Sign in to staging from the local console
 
 Staging verifies WorkOS access tokens, so the local console signs in through

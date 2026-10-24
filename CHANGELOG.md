@@ -2,12 +2,6 @@
 
 ## Unreleased
 
-- CI: `verify.yml` runs `pnpm verify:security` on every pull request and push
-  (previously nightly only) and deploys and smokes staging after each green
-  push to `main` when `OPERLOOM_STAGING_DEPLOY=true` and the `staging`
-  environment holds Cloudflare credentials. New `codeql.yml` runs GitHub code
-  scanning (`security-extended`) on pull requests, pushes and weekly. Docs
-  gain "Continuous staging" and "Sign in to staging from the local console".
 - Dependencies: `next` 16.4.2 and `@sentry/nextjs` 10.76.2 clear the critical
   `use cache` and image-optimization advisories (GHSA-673q-mjm6-r5xr,
   GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r) and the Sentry tunnel middleware
