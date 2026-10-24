@@ -1,3 +1,5 @@
+import { Agent, type Dispatcher } from "undici";
+
 import { getWorkbenchSession, type WorkbenchSession } from "@/lib/workbench/agent-identity";
 
 export class ControlPlaneRequestError extends Error {
@@ -11,6 +13,29 @@ export class ControlPlaneRequestError extends Error {
 }
 
 const requestTimeoutMs = 10_000;
+
+/**
+ * Connection pool for Worker calls. Node's default pool keeps idle sockets for
+ * minutes and only notices a peer-closed one when the next request on it
+ * fails to answer, which turned every console call into a 10 s timeout until
+ * the dead socket aged out. Idle sockets are dropped well before Cloudflare's
+ * idle close, a stalled connect or header wait fails fast, and the streaming
+ * (SSE) body stays unbounded so long-lived event streams are unaffected.
+ */
+const controlPlaneDispatcher: Dispatcher = new Agent({
+  keepAliveTimeout: 4_000,
+  keepAliveMaxTimeout: 4_000,
+  connect: { timeout: 5_000 },
+  headersTimeout: requestTimeoutMs,
+  bodyTimeout: 0,
+});
+
+type DispatchedRequestInit = RequestInit & { dispatcher?: Dispatcher };
+
+const dispatched = (init: RequestInit): DispatchedRequestInit => ({
+  ...init,
+  dispatcher: controlPlaneDispatcher,
+});
 
 const forwardedHeaderNames = ["content-type", "accept", "idempotency-key", "last-event-id"];
 
@@ -33,7 +58,7 @@ export const fetchWithTimeout = async (
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    return await fetch(url, dispatched({ ...init, signal: controller.signal }));
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new ControlPlaneRequestError(
@@ -63,7 +88,9 @@ const send = (
     if (value !== null) headers.set(name, value);
   }
   const request: RequestInit = { method: init.method ?? "GET", headers, body: init.body };
-  return timeoutMs === null ? fetch(url, request) : fetchWithTimeout(url, request, timeoutMs);
+  return timeoutMs === null
+    ? fetch(url, dispatched(request))
+    : fetchWithTimeout(url, request, timeoutMs);
 };
 
 /**
