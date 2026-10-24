@@ -1,0 +1,34 @@
+# Hosted web console for a worker-only environment. Secrets (WorkOS keys, the
+# cookie password) are set with `fly secrets set`; nothing here is sensitive.
+app = "operloom-staging-web"
+primary_region = "fra"
+
+[build]
+dockerfile = "Dockerfile.web"
+
+[env]
+OPERLOOM_BACKEND_URL = "https://operloom-staging-control-plane.david-erwin-cz68.workers.dev"
+OPERLOOM_LOCAL_API_ENABLED = "false"
+NEXT_PUBLIC_WORKOS_REDIRECT_URI = "https://operloom-staging-web.fly.dev/auth/callback"
+SENTRY_ENVIRONMENT = "staging"
+SENTRY_TRACES_SAMPLE_RATE = "0"
+
+[http_service]
+internal_port = 3000
+force_https = true
+auto_stop_machines = "stop"
+auto_start_machines = true
+min_machines_running = 0
+processes = ["app"]
+
+[[http_service.checks]]
+interval = "15s"
+timeout = "3s"
+grace_period = "30s"
+method = "GET"
+path = "/api/health"
+
+[vm]
+cpu_kind = "shared"
+cpus = 1
+memory = "1gb"

@@ -25,6 +25,7 @@ describe("worker-only environments", () => {
     expect(vars.OPERLOOM_RELEASE_SHA).toBe("a".repeat(40));
     expect(JSON.stringify(rendered.wrangler)).not.toMatch(/sk-|secret_|API_KEY/i);
     expect(rendered.wrangler.d1_databases[0]!.migrations_dir).toContain("control-plane/migrations");
+    expect(vars.ALLOWED_ORIGINS).toBe("https://operloom-staging-web.fly.dev");
     expect(rendered.wrangler.observability).toEqual({
       enabled: true,
       head_sampling_rate: 1,

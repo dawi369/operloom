@@ -60,6 +60,28 @@ Worker; `secrets` then sets `RESEND_API_KEY` too. Heavy tools run inline
 `conformanceMode: true` mark it as non-production. Pass `--name <other>` to use
 a second manifest with the same `kind`.
 
+### Hosted console on Fly
+
+A worker-only environment can also serve the web console from Fly, next to
+the signed runner. `Dockerfile.web` builds the Next.js console; `fly.web.toml`
+points it at the Worker (`OPERLOOM_BACKEND_URL`, `OPERLOOM_LOCAL_API_ENABLED=false`,
+the WorkOS redirect URI on the Fly origin) and stops the machine when idle.
+Once per app:
+
+```bash
+fly apps create <app> --org <org>
+fly secrets set --app <app> WORKOS_CLIENT_ID=… WORKOS_API_KEY=… WORKOS_COOKIE_PASSWORD=… \
+  OPERLOOM_ADMIN_USER_IDS=…      # values from the same WorkOS application as the manifest
+```
+
+Then `pnpm deploy:web:fly` after each change. Register
+`https://<app>.fly.dev/auth/callback` as a redirect URI on the WorkOS
+application, list the origin under `webOrigins` in the manifest so the Worker's
+browser CORS allowlist admits the Agent WebSocket, and redeploy the Worker.
+The staging manifest already lists `https://operloom-staging-web.fly.dev`.
+Smoke: `/api/health` 200, `/sign-in` redirects to WorkOS with the Fly callback,
+`/api/workbench/*` answers 401 signed out.
+
 ### Sign in to staging from the local console
 
 Staging verifies WorkOS access tokens, so the local console signs in through

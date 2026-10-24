@@ -1,0 +1,54 @@
+FROM node:24-bookworm-slim AS builder
+
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/agent-sdk/package.json packages/agent-sdk/package.json
+COPY packages/observability/package.json packages/observability/package.json
+COPY packages/client/package.json packages/client/package.json
+COPY packages/react/package.json packages/react/package.json
+COPY agent-packs/repo-analyst/package.json agent-packs/repo-analyst/package.json
+COPY agent-packs/baby-polymancer/package.json agent-packs/baby-polymancer/package.json
+COPY agent-packs/baby-swordfish/package.json agent-packs/baby-swordfish/package.json
+COPY examples/complex-operator/package.json examples/complex-operator/package.json
+RUN pnpm install --frozen-lockfile --ignore-scripts
+COPY . .
+# The build needs no provider or auth secrets; Sentry source-map upload stays off.
+ENV SENTRY_AUTH_TOKEN=""
+RUN pnpm observability:build && pnpm agent-sdk:build && pnpm client:build \
+  && pnpm exec next build
+
+FROM node:24-bookworm-slim AS runtime
+
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/agent-sdk/package.json packages/agent-sdk/package.json
+COPY packages/observability/package.json packages/observability/package.json
+COPY packages/client/package.json packages/client/package.json
+COPY packages/react/package.json packages/react/package.json
+COPY agent-packs/repo-analyst/package.json agent-packs/repo-analyst/package.json
+COPY agent-packs/baby-polymancer/package.json agent-packs/baby-polymancer/package.json
+COPY agent-packs/baby-swordfish/package.json agent-packs/baby-swordfish/package.json
+COPY examples/complex-operator/package.json examples/complex-operator/package.json
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
+
+COPY --from=builder --chown=node:node /app/.next /app/.next
+COPY --from=builder --chown=node:node /app/next.config.ts /app/next.config.ts
+COPY --from=builder --chown=node:node /app/scripts/atomic-dev-manifests.ts /app/scripts/atomic-dev-manifests.ts
+COPY --from=builder --chown=node:node /app/packages/agent-sdk/dist /app/packages/agent-sdk/dist
+COPY --from=builder --chown=node:node /app/packages/observability/dist /app/packages/observability/dist
+COPY --from=builder --chown=node:node /app/packages/client/dist /app/packages/client/dist
+COPY --from=builder --chown=node:node /app/packages/react/dist /app/packages/react/dist
+COPY --from=builder --chown=node:node /app/generated /app/generated
+
+USER node
+
+EXPOSE 3000
+CMD ["pnpm", "exec", "next", "start", "--hostname", "0.0.0.0", "--port", "3000"]

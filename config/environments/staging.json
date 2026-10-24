@@ -11,6 +11,7 @@
     "origin": "https://operloom-staging-control-plane.david-erwin-cz68.workers.dev"
   },
   "consoleOrigin": "http://localhost:3000",
+  "webOrigins": ["https://operloom-staging-web.fly.dev"],
   "workos": {
     "issuer": "https://api.workos.com/user_management/client_01KT91CSGN8DZZZKM062EY26SX",
     "jwksUrl": "https://api.workos.com/sso/jwks/client_01KTBGQ6P5F3PC4W8S9K95CJ7D",

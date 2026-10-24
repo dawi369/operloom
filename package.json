@@ -98,6 +98,7 @@
     "deploy:web": "tsx scripts/environment-command.ts --phase deploy-web",
     "deploy:vercel": "tsx scripts/environment-command.ts --phase deploy-vercel",
     "smoke:fly-tool-runner": "tsx scripts/smoke-fly-tool-runner.ts",
+    "deploy:web:fly": "fly deploy --config fly.web.toml --remote-only --ha=false",
     "operloom": "tsx scripts/workbench-cli.ts",
     "runtime:bundle": "pnpm agent-sdk:build && tsx scripts/bundle-runtime.ts",
     "dev:runtime": "pnpm agent-sdk:build && tsx scripts/runtime-dev.ts",

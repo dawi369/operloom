@@ -23,6 +23,8 @@ export type WorkerEnvironment = {
     origin: string;
   };
   consoleOrigin: string;
+  /** Hosted consoles for this Worker besides `consoleOrigin`; added to the browser CORS allowlist. */
+  webOrigins?: readonly string[];
   workos: { issuer: string; jwksUrl: string; allowedClientIds: readonly string[] };
   mcpAllowedClientIds: readonly string[];
   features: { retainedData: boolean; connections: boolean; mutations: boolean; push: boolean };
@@ -112,6 +114,13 @@ export const parseWorkerEnvironment = (value: unknown): WorkerEnvironment => {
       origin: httpsOrigin(str(cloudflare, "origin", "cloudflare.origin"), "cloudflare.origin"),
     },
     consoleOrigin: httpsOrigin(str(root, "consoleOrigin", "consoleOrigin"), "consoleOrigin", true),
+    ...(Array.isArray(root.webOrigins)
+      ? {
+          webOrigins: root.webOrigins.map((origin, index) =>
+            httpsOrigin(typeof origin === "string" ? origin.trim() : "", `webOrigins[${index}]`),
+          ),
+        }
+      : {}),
     workos: {
       issuer: str(workos, "issuer", "workos.issuer"),
       jwksUrl: str(workos, "jwksUrl", "workos.jwksUrl"),
@@ -196,6 +205,7 @@ export const renderWorkerEnvironment = (
     vars: {
       OPENROUTER_MODEL: manifest.model,
       OPENROUTER_SITE_URL: manifest.consoleOrigin,
+      ...(manifest.webOrigins?.length ? { ALLOWED_ORIGINS: manifest.webOrigins.join(",") } : {}),
       OPENROUTER_APP_NAME: `operloom-${manifest.name}-cloudflare-chat`,
       OPERLOOM_ENVIRONMENT: manifest.name,
       OPERLOOM_CALLBACK_URL: `${manifest.cloudflare.origin}/workbench/run-callbacks`,

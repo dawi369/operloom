@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Hosted staging console: `Dockerfile.web` and `fly.web.toml` run the Next.js
+  console on Fly against a worker-only environment (`pnpm deploy:web:fly`);
+  worker-only manifests take `webOrigins`, rendered into the Worker's
+  `ALLOWED_ORIGINS`. Staging serves `https://operloom-staging-web.fly.dev`.
 - Queued turns and steering: a `/v1` turn submitted while another runs is
   recorded as a durable `queued` command (migration 0011) and answered `202`
   with `queuePosition`, instead of `409`; the thread agent drains the queue
