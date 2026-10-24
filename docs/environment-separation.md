@@ -79,8 +79,10 @@ Then `pnpm deploy:web:fly` after each change. Register
 application, list the origin under `webOrigins` in the manifest so the Worker's
 browser CORS allowlist admits the Agent WebSocket, and redeploy the Worker.
 The staging manifest already lists `https://operloom-staging-web.fly.dev`.
-Smoke: `/api/health` 200, `/sign-in` redirects to WorkOS with the Fly callback,
-`/api/workbench/*` answers 401 signed out.
+Smoke: `pnpm smoke:staging [rounds]` probes the hosted console and the Worker
+together (health, sign-in redirect, signed-out 401s, CORS preflight from the
+console origin, OpenAPI, Agent handshake) for several rounds and prints p50,
+p95 and max latency per path; a single failed round fails the command.
 
 ### Sign in to staging from the local console
 
