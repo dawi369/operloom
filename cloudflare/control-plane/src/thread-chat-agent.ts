@@ -21,6 +21,7 @@ import {
 } from "./memory";
 import { postAgentUpdate } from "./agent-updates";
 import { jsonSchema, tool } from "ai";
+import { chatHardStepLimit, planChatStep } from "./chat-turn-guards";
 import { chatRuntimeFailureCode, createChatUsageTracker } from "./chat-usage";
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
@@ -737,6 +738,7 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
     let runId: string | null = null;
     let firstTokenAtMs: number | null = null;
     let providerStartedAtMs = 0;
+    let runawayReported = false;
     let terminalState: "open" | "completed" | "failed" = "open";
     let usageTracker: ReturnType<typeof createChatUsageTracker> | undefined;
     const failUsage = async () => {
@@ -1076,13 +1078,40 @@ export class ThreadChatAgent extends AIChatAgent<Env> {
           ...(await convertToModelMessages(transcript.kept)),
         ],
         tools: modelTools.tools,
-        stopWhen: stepCountIs(3),
+        stopWhen: stepCountIs(chatHardStepLimit),
         temperature: runtimeConfig.temperature,
         maxOutputTokens: runtimeConfig.maxTokens,
         maxRetries: 0,
-        prepareStep: async ({ stepNumber, messages }) => {
+        prepareStep: async ({ stepNumber, steps, messages }) => {
           await usageTracker!.beforeStep(stepNumber, messages);
-          return {};
+          const plan = planChatStep({ stepNumber, steps });
+          if (plan.runaway && !runawayReported) {
+            runawayReported = true;
+            const nowMs = Date.now();
+            queueTraceWrite(
+              recordSpan(this.getEnv(), identity, {
+                traceId: trace.traceId,
+                name: "Chat runaway tool failures",
+                layer: "provider",
+                status: "blocked",
+                startedAtMs: nowMs,
+                endedAtMs: nowMs,
+                spanType: "event",
+                isAggregate: false,
+                bottleneckCandidate: false,
+                data: {
+                  toolName: plan.runaway.toolName,
+                  failures: plan.runaway.failures,
+                  stepNumber,
+                },
+              }),
+            );
+          }
+          if (plan.activeTools === false) return {};
+          return {
+            activeTools: plan.activeTools,
+            instructions: `${system}${plan.instructionSuffix}`,
+          };
         },
         onStepFinish: async ({ stepNumber, usage }) => usageTracker!.afterStep(stepNumber, usage),
         abortSignal: AbortSignal.any([

@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+- CI: `verify.yml` runs `pnpm verify:security` on every pull request and push
+  (previously nightly only) and deploys and smokes staging after each green
+  push to `main` when `OPERLOOM_STAGING_DEPLOY=true` and the `staging`
+  environment holds Cloudflare credentials. New `codeql.yml` runs GitHub code
+  scanning (`security-extended`) on pull requests, pushes and weekly. Docs
+  gain "Continuous staging" and "Sign in to staging from the local console".
+- Dependencies: `next` 16.4.2 and `@sentry/nextjs` 10.76.2 clear the critical
+  `use cache` and image-optimization advisories (GHSA-673q-mjm6-r5xr,
+  GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r) and the Sentry tunnel middleware
+  bypass (GHSA-mchm-gjx6-7h55). Override pins move
+  `@modelcontextprotocol/{sdk,client,server}` to 1.32.1/2.3.1, `undici` to
+  7.30.1, `body-parser` to 2.4.0, `vite` 8.x to 8.3.4 and `zod` 4.x to 4.6.7.
+  The audit gate accepts the Expo CLI's `zod` 3.x path until 2026-12-31 (the
+  fix exists only in zod 4).
+- Chat turn guards: `chat-turn-guards.ts` plans each step of the chat loop.
+  The final step of a turn runs without tools so a turn never ends on a
+  silent tool result, and a tool whose identical call fails twice in one
+  turn disables tools early with a wrap-up instruction instead of a third
+  retry; the trip is recorded as a `Chat runaway tool failures` trace event.
+  Runtime context evidence is now fenced per source in
+  `<evidence source="…" trust="…">` with `<` escaped, matching the
+  `agent_settings` block, so retrieved data cannot close its block or pose as
+  another server-supplied block. Design note for queued turns and mid-turn
+  steering in `docs/plans/chat-turn-queue.md`.
 - Operations: `environment:worker secrets` now keeps existing signing secrets
   and only creates missing ones; `--rotate` replaces them. The mobile app
   stops background polling by wiring react-query focus to `AppState`.

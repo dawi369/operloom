@@ -11,7 +11,8 @@ history. Start here, then open the reference you need.
 - [Agent packs](agent-packs.md): the package contract, monitors, settings and queries.
 - [Architecture](architecture.md): ownership and scaling boundaries.
 - [Native capabilities](capabilities.md): the target capability catalog, status
-  and platform build order; plans for the driver products in [plans/](plans/).
+  and platform build order; plans for the driver products in [plans/](plans/),
+  plus the [queued turns and steering](plans/chat-turn-queue.md) design note.
 - [Forking and upgrades](forking.md): product identity, default pack and updates.
 
 ## Clients
