@@ -29,3 +29,4 @@ next-env.d.ts
 npm-debug.log*
 pnpm-debug.log*
 .DS_Store
+temp
