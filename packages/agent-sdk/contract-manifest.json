@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sdkVersion": "2.0.0",
+  "sdkVersion": "2.1.0",
   "files": [
     {
       "path": "dist/capabilities.d.ts",

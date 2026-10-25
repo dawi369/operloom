@@ -9,7 +9,7 @@ independent conversation runtimes, durable workflows, controlled actions,
 and an architecture you can extend into your own product.
 
 [![Verify](https://github.com/dawi369/operloom/actions/workflows/verify.yml/badge.svg)](https://github.com/dawi369/operloom/actions/workflows/verify.yml)
-[![Version](https://img.shields.io/badge/version-1.0.0-52656b)](#status)
+[![Version](https://img.shields.io/badge/version-2.1.0-52656b)](#status)
 [![TypeScript](https://img.shields.io/badge/TypeScript-end_to_end-3178c6)](#built-for-scale-and-extension)
 [![License](https://img.shields.io/badge/license-PolyForm_Noncommercial-52656b)](#license)
 
@@ -50,7 +50,7 @@ Node 26 is also supported. The repository example uses `ripgrep`; allow about
 10 GiB of available RAM for the full local stack and browser.
 
 ```bash
-git clone --branch v2.0.0 https://github.com/dawi369/operloom.git
+git clone --branch v2.1.0 https://github.com/dawi369/operloom.git
 cd operloom
 pnpm install --frozen-lockfile
 pnpm operloom init
@@ -140,8 +140,9 @@ able to stop when idle and preserved existing agent snapshots.
 
 ## Status
 
-Operloom `1.0.0` stabilizes the **web developer workbench**: chat, agent packs,
-read-only workflows, artifacts, and history. Hosted credential brokerage,
+Operloom `2.1.0` is the **fork baseline**: chat with queued turns and steering,
+agent packs, durable workflows, approvals, artifacts, history, and a hosted
+staging path. Hosted credential brokerage,
 mutations, and unattended automation are **experimental and disabled by default**.
 The scaling boundaries above are architectural; no measured throughput, SLA,
 independent adoption evidence, or future maintenance is promised.
@@ -149,7 +150,7 @@ independent adoption evidence, or future maintenance is promised.
 **Mobile is WIP / future work**, preserved on
 [`codex/mobile-wip`](https://github.com/dawi369/operloom/tree/codex/mobile-wip).
 
-[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release notes](https://github.com/dawi369/operloom/releases/tag/v2.0.0)
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Release notes](https://github.com/dawi369/operloom/releases/tag/v2.1.0)
 
 ## License
 

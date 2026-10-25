@@ -1,7 +1,8 @@
 # Forking and upgrades
 
-Start from `v2.0.0`. It is a clean-slate baseline: there is no upgrade path from
-1.x, and databases are created from the baseline schema. Within 2.x, the SDK,
+Start from the latest 2.x release tag (`v2.1.0`). 2.0.0 was a clean-slate
+baseline: there is no upgrade path from 1.x, and databases are created from the
+baseline schema and forward-only migrations. Within 2.x, the SDK,
 `@operloom/client`, Runtime Module and `/v1` contracts change additively, with
 explicit migrations for breaking changes.
 
@@ -10,7 +11,7 @@ explicit migrations for breaking changes.
 Clone the release and connect your own private repository:
 
 ```bash
-git clone --branch v2.0.0 https://github.com/dawi369/operloom.git my-product
+git clone --branch v2.1.0 https://github.com/dawi369/operloom.git my-product
 cd my-product
 git switch -c main
 git remote rename origin upstream

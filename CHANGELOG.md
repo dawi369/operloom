@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 2.1.0
+
+Additive release on the 2.0.0 baseline: forward-only migration 0011, wider
+`/v1` chat contract, current assistant-ui and agents SDKs, a hosted staging
+console. `@operloom/agent-sdk` SDK 2.1.0 adds the `chat.queue` capability;
+`@operloom/client` and `@operloom/react` 2.1.0 add `threads.steer` and the
+queued turn fields. Behaviour change for `/v1` clients: a turn sent while
+another runs is now `202 queued` instead of `409`.
+
 - Console: keyboard focus is no longer drawn. A global `:focus-visible` rule
   removes outlines and focus rings on every control; focus order, dialog
   traps and aria state are unchanged. `@assistant-ui/react` 0.15.29,

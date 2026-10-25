@@ -1,6 +1,6 @@
 {
   "name": "@operloom/agent-sdk",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Build-time Agent Pack and Runtime Module contracts for Operloom.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "files": [
