@@ -1,47 +1,43 @@
 # Polymancer carry-over (temporary)
 
-Snapshot taken 2026-10-25 from `~/dev/polymancer` at `f99336d` before that
-repository is deleted. Polymancer will be re-forked from Operloom `v2.1.0`;
-this directory is the material to carry into that fork, then delete from here.
+Snapshot of `~/dev/polymancer` at `f99336d` (2026-10-25), taken before that
+repository was deleted. Polymancer is re-forked from Operloom `v2.1.0`; this
+directory moves into that fork's `agent-packs/polymancer/`, then goes away here.
 
-## docs/ — keep
+## docs/
 
-Product knowledge, written against the pre-reset Operloom. Concepts, voice,
-flows, components, domain model and roadmap all still apply; platform details
-(routes, SDK names) should be re-checked against `docs/headless-runtime.md`
-and `docs/agent-packs.md` in this repo.
+Two files, consolidated from the old repo's eleven:
 
-| File | What it is |
-| --- | --- |
-| `product.md` | Positioning, who it is for, what it does and does not do |
-| `agent.md` | Voice, research and judgment policy; the source `prompt.xml` is written from |
-| `experience.md` | The three places and end-to-end flows |
-| `interface.md` | Component rules (one card every surface, three labelled numbers, plain-language odds) |
-| `system.md` | Authoritative contract: domain model, stages, settings, math, scoring, errors |
-| `roadmap.md` | Milestones M1… and the tickets that prove each |
-| `glossary.md` | Definitions (was `CONTEXT.md`) |
-| `pack-readme.md` | The pack's public README |
-| `product-changelog.md` | What shipped, in order (the old repo's `CHANGELOG.md`) |
-| `local-notes-2026-09-28.md` | Uncommitted local agent notes from the old checkout; context only, partly stale |
+- `polymancer.md` — product, glossary, voice and guardrails, the protocols
+  (interview, brief, matching, price check, paper, watch, resolution),
+  experience, interface components and milestones. The spec `prompt.xml` and
+  the workflows are written from.
+- `system.md` — the contract: domain model, stages, settings, runtime
+  surfaces, venue data sources, research pipeline, price-check math, scoring,
+  errors. Wins on numbers.
 
-## pack-source/ — reference only
+Both were written against the pre-reset Operloom; concepts and rules stand,
+route and SDK names should be re-checked against this repository's
+`docs/headless-runtime.md` and `docs/agent-packs.md`.
 
-The `agent-packs/polymancer` code at the snapshot commit, minus `node_modules`,
-`docs/`, `CONTEXT.md` and `README.md` (moved above). It targets the pre-reset
-Pack API and will not compile here as-is; it is kept so domain logic, tests,
-venue adapters and the prompt are not lost. Port by scaffolding a fresh pack in
-the fork (`pnpm operloom pack create --id polymancer`) and moving logic across
-file by file, running `pnpm operloom pack check --pack polymancer` as you go.
+## pack-source/
 
-## Not carried
+The `agent-packs/polymancer` code at the snapshot (no `node_modules`). It
+targets the pre-reset Pack API and will not compile here; it is kept so the
+domain logic, venue adapters, tests and prompt are not lost. Port by
+scaffolding a fresh pack in the fork (`pnpm operloom pack create --id
+polymancer`) and moving logic across file by file under
+`pnpm operloom pack check --pack polymancer`.
 
-- `docs/`, `packages/*/README.md`, `CONTRIBUTING.md`, `AGENTS.md`: old platform
-  docs, superseded by this repository.
-- `plans/operloom-reset.md`, `plans/operloom-runtime-v1-superseded.md`:
-  platform plans, already realised here.
-- GitHub issues (the "Wayfinder" planning map, roadmap tickets): the repo is
-  private and they are not readable from here. `roadmap.md` and
-  `product-changelog.md` link to five of them; export them before deleting
-  the repository if the discussion matters.
+## State when snapshotted
 
-Delete this directory once the fork has absorbed it.
+The old repo had M0 (copy-trading on paper: wallet tracking, simulated fills,
+portfolio and operator-state queries, heartbeat and wallet monitors, live
+Polymarket quotes) accepted end to end on 2026-09-27, and M1 in progress; the
+last commit added watching Questions, settling and resolving outcomes, and the
+scored record. Copy-trading surfaces (`copy.start`, `copy.sync`, wallet
+monitors) are hidden from chat in M1 and kept for the power-user track.
+
+Dropped from the carry-over: old platform docs and plans (superseded by this
+repository), the dated competitor snapshot, the local agent notes, and GitHub
+issue links (the repository and its issues are gone).

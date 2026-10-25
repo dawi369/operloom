@@ -1,6 +1,10 @@
-# Polymancer: system
+# Polymancer: system contract
 
-The authoritative contract for building Polymancer: domain model, stages, settings, runtime surfaces, data sources, math, scoring and errors. Judgment policy (how Polymancer decides) is owned by [agent.md](agent.md); user flow by [experience.md](experience.md); presentation by [interface.md](interface.md). When numbers disagree, this document wins.
+Domain model, stages, settings, runtime surfaces, data sources, math, scoring
+and errors. Product, agent policy, experience and interface are in
+[polymancer.md](polymancer.md). When numbers disagree, this document wins.
+Written against the pre-reset Operloom; re-check route and SDK names against
+this repository's `docs/headless-runtime.md` and `docs/agent-packs.md`.
 
 All behavior lives on the `/v1` API (workflows, queries, settings, state), so the web console, the ChatGPT app and mobile are interchangeable clients.
 
@@ -87,20 +91,20 @@ User-editable through `/v1` settings. M1 replaces all legacy copy-trading settin
 
 | Surface                                                 | Kind                                                         | Status                                                                |
 | ------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------- |
-| `polymancer.question.save`                              | model-visible tool                                           | M1 (#29)                                                              |
-| `polymancer.forecast.commit`                            | model-visible tool + workflow                                | M1 (#29)                                                              |
-| `polymancer.match.find`                                 | workflow                                                     | M1 (#29)                                                              |
-| `polymancer.question.adopt`                             | workflow: create a child Question from a close match's terms | M1 (#29)                                                              |
-| `polymancer.question.archive`                           | workflow                                                     | M1 (#29)                                                              |
-| `polymancer.brief.create`                               | workflow (durable when long)                                 | M1 (#30)                                                              |
-| `polymancer.price.check`                                | workflow                                                     | M1 (#30)                                                              |
-| `polymancer.position.open` / `.close`                   | workflow                                                     | M1 (#30)                                                              |
-| `polymancer.question.watch`                             | model-visible tool + workflow: save and watch, or mark seen  | M1 (#31)                                                              |
-| `polymancer.watch.tick`                                 | workflow run by the `watch` monitor (minute)                 | M1 (#31)                                                              |
-| `polymancer.outcome.confirm`                            | model-visible tool + workflow                                | M1 (#31)                                                              |
-| `polymancer.questions`, `polymancer.question`           | queries                                                      | M1 (#29, extended by #30 and #31)                                     |
-| `polymancer.portfolio`                                  | query + chat context                                         | M1 (#30)                                                              |
-| `polymancer.record`                                     | query                                                        | M1 (#31)                                                              |
+| `polymancer.question.save`                              | model-visible tool                                           | M1 |
+| `polymancer.forecast.commit`                            | model-visible tool + workflow                                | M1 |
+| `polymancer.match.find`                                 | workflow                                                     | M1 |
+| `polymancer.question.adopt`                             | workflow: create a child Question from a close match's terms | M1 |
+| `polymancer.question.archive`                           | workflow                                                     | M1 |
+| `polymancer.brief.create`                               | workflow (durable when long)                                 | M1 |
+| `polymancer.price.check`                                | workflow                                                     | M1 |
+| `polymancer.position.open` / `.close`                   | workflow                                                     | M1 |
+| `polymancer.question.watch`                             | model-visible tool + workflow: save and watch, or mark seen  | M1 |
+| `polymancer.watch.tick`                                 | workflow run by the `watch` monitor (minute)                 | M1 |
+| `polymancer.outcome.confirm`                            | model-visible tool + workflow                                | M1 |
+| `polymancer.questions`, `polymancer.question`           | queries                                                      | M1                                     |
+| `polymancer.portfolio`                                  | query + chat context                                         | M1 |
+| `polymancer.record`                                     | query                                                        | M1 |
 | `polymancer.digest`                                     | schedule (weekly)                                            | M2                                                                    |
 | `copy.start`, `copy.sync`, `heartbeat`, wallet monitors | workflows and monitors                                       | Exist today. Hidden from chat in M1 and kept for the power-user track |
 
@@ -113,7 +117,7 @@ Installation:
 
 ## Data sources
 
-Verified on 2026-10-03 (research ticket #32): Kalshi against its live public API, Polymarket against its official SDK source and archived docs. Everything here is a public read; paper trading needs no venue credentials. M1 tests run on recorded fixtures.
+Verified on 2026-10-03: Kalshi against its live public API, Polymarket against its official SDK source and archived docs. Everything here is a public read; paper trading needs no venue credentials. M1 tests run on recorded fixtures.
 
 | Need               | Polymarket (international)                                                                                                                                                            | Kalshi (`api.elections.kalshi.com/trade-api/v2`, no auth)                                                                                                                                                             |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -132,9 +136,9 @@ Reads run in Workers with plain `fetch`. The Polymarket ts-sdk waits for live tr
 
 ## Research
 
-Decided on research ticket #25. Retrieval and reasoning are separate steps, so every citation comes from retrieval metadata and never from the model.
+Retrieval and reasoning are separate steps, so every citation comes from retrieval metadata and never from the model.
 
-1. **Retrieve** through an Operloom web-search port (ticket #28), backed server-side by **Exa**:
+1. **Retrieve** through the Operloom web-search port, backed server-side by **Exa**:
    - about $0.007 per search with up to 10 results;
    - returns `publishedDate`;
    - supports `endPublishedDate` and `snapshotAsOf` for a source cutoff;
@@ -192,37 +196,24 @@ EV(p)       = N × gap(p)
 | Matched contract delisted or rules changed     | Alert once, and set the match `status` to `changed` (a rules change) or `delisted`. A changed exact match drops to `close` until the user re-confirms it                          |
 | Book too thin for the requested max loss       | Offer the largest size within the slippage limit; otherwise `no edge`                                                                                                             |
 
-## Client surfaces
-
-| Client                | Scope                                                                                                                                                                                                                                           |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web console           | Everything. In M1 the Question card is a pack renderer in the dossier panel; inline chat cards arrive in M2 (needs pack tool-result renderers)                                                                                                  |
-| ChatGPT app (MCP, M2) | Ask, the Question card widget, brief, match, price check, paper positions, digest. Excluded: real-money orders, links that complete a trade, upgrades. Claude uses the same server, read-mostly                                                 |
-| Mobile (M3)           | Full parity with the web console, plus push alerts that deep-link to the Question. A real-money surface later needs an app-store review: Apple expects trading apps to come from the financial institution and real-money gaming to be licensed |
+## MCP allowlist
 
 The MCP tool allowlist is product configuration: read queries, `forecast.commit`, `question.save`, `brief.create`, `match.find`, `question.adopt`, `price.check` and the paper `position` workflows.
 
-## Operloom platform work
+## Platform dependencies
 
-Generic capabilities, built in Operloom and merged down.
-
-| Capability                                                                     | Needed for                | Status |
-| ------------------------------------------------------------------------------ | ------------------------- | ------ |
-| Web search port with dated results, cutoffs and server-held provider keys      | Briefs                    | Done   |
-| Model and search ports in model-visible tools                                  | Chat-run matching, briefs | Done   |     | Structured calls without the run's context (`includeContext: false`) | Briefs that never see the user's forecast | Done |     | Package triggers (`context.triggers.ensure`) | Watch and digest install | Done |
-| Pack tool-result renderers in chat                                             | Inline Question card      | M2     |
-| MCP adapter with OAuth, allowlist and MCP Apps widgets                         | ChatGPT and Claude apps   | M2     |
-| Notification delivery (email, push) with durable state                         | Alerts, digest            | M2     |
-| Billing and entitlements                                                       | Plus tier                 | M3     |
-| Effect operations with receipts, `policy_controlled` approvals, runner signing | Live trading              | Later  |
-| Streaming collector                                                            | Power-user track          | Later  |
+Everything the pack needs is native in Operloom 2.1: web search with dated
+results and cutoffs, structured model calls without run context, package
+triggers, pack tool-result renderers, notification delivery, billing and
+entitlements, provider operations with receipts and policy-controlled
+approvals. See `docs/capabilities.md` in this repository for status.
 
 ## Verify at build time
 
 - The Kalshi quadratic fee coefficient, and whether Kalshi's undocumented series search stays available.
 - The Polymarket book host: the code reads `clob.polymarket.com/book` (the long-standing public host and the pack fixtures); confirm it against the v2 host above from the deployed Worker.
 - Live Polymarket reads from the deployed Worker.
-- Written data-use permission from Polymarket, and Kalshi's Developer Agreement, before any public launch (task #33; findings on research ticket #24).
+- Written data-use permission from Polymarket, and Kalshi's Developer Agreement, before any public launch.
 - OpenRouter availability and prices of the chosen models.
 - OpenAI app review of the research-and-paper scope.
-- The legal read before any live trading (task #26).
+- The legal read before any live trading.
