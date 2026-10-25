@@ -10,7 +10,6 @@ export default defineConfig({
       ...configDefaults.exclude,
       "tests/e2e/**",
       "output/**",
-      "temp/**",
       "apps/mobile/node_modules/**",
     ],
   },
